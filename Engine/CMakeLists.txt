@@ -118,6 +118,7 @@ leon_add_module(Assets
     Source/Runtime/Assets/Private/FAssetManifest.cpp
     Source/Runtime/Assets/Private/FEngineBuiltins.cpp
     Source/Runtime/Assets/Private/FHDRImporter.cpp
+    Source/Runtime/Assets/Private/FTextureCompression.cpp
     Source/Runtime/Assets/Private/FTextureImporter.cpp
     Source/Runtime/Assets/Private/FImageFileLoader.cpp
     Source/Runtime/Assets/Private/FAssetExporter.cpp

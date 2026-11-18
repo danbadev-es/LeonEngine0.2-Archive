@@ -136,10 +136,11 @@ namespace Leon {
                     return;
                 const uint32_t width = std::max(texture.Desc.Width >> InMipLevel, 1u);
                 const uint32_t height = std::max(texture.Desc.Height >> InMipLevel, 1u);
-                const uint32_t rowBytes = width * RHIFormatBytesPerPixel(texture.Desc.Format);
+                const uint32_t rowBytes = RHIFormatRowBytes(texture.Desc.Format, width);
+                const uint32_t rows = RHIFormatRowCount(texture.Desc.Format, height);
                 std::vector<uint8_t>& pixels = texture.Subresources[FNullTexture::Key(InMipLevel, InArraySlice)];
-                pixels.resize(static_cast<size_t>(rowBytes) * height);
-                for (uint32_t y = 0; y < height; ++y)
+                pixels.resize(static_cast<size_t>(rowBytes) * rows);
+                for (uint32_t y = 0; y < rows; ++y)
                     std::memcpy(pixels.data() + static_cast<size_t>(y) * rowBytes,
                                 static_cast<const uint8_t*>(InData) + static_cast<size_t>(y) * InRowPitch, rowBytes);
             }
@@ -157,7 +158,9 @@ namespace Leon {
                 // Never written: reads as zero, like a freshly cleared target.
                 const uint32_t width = std::max(texture.Desc.Width >> InMipLevel, 1u);
                 const uint32_t height = std::max(texture.Desc.Height >> InMipLevel, 1u);
-                OutPixels.assign(static_cast<size_t>(width) * height * RHIFormatBytesPerPixel(texture.Desc.Format), 0);
+                OutPixels.assign(static_cast<size_t>(RHIFormatRowBytes(texture.Desc.Format, width)) *
+                                     RHIFormatRowCount(texture.Desc.Format, height),
+                                 0);
                 return true;
             }
 

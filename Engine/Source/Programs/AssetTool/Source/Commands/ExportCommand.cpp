@@ -83,7 +83,7 @@ namespace Leon::Tools {
             }
             if (NativeExt == "ltex") {
                 FNativeTextureData Tex;
-                if (!Tex.LoadFromFile(NativePath.string()))
+                if (!Tex.LoadFromFile(NativePath.string()) || !Tex.DecodeToRGBA8())
                     return false;
                 return ExportTexture(Tex, Dest, Forced);
             }

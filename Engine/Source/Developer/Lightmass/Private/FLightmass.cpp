@@ -68,7 +68,8 @@ namespace Leon {
                 return false;
 
             FNativeTextureData tex;
-            if (!tex.LoadFromFile(resolved.string()) || tex.Mips.empty() || tex.Mips[0].Pixels.empty())
+            if (!tex.LoadFromFile(resolved.string()) || !tex.DecodeToRGBA8() || tex.Mips.empty() ||
+                tex.Mips[0].Pixels.empty())
                 return false;
 
             const auto& mip = tex.Mips[0];

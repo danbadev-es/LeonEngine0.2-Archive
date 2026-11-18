@@ -73,7 +73,10 @@ namespace Leon {
         /** Honours the texture resolution limit of the quality settings by dropping the largest mips. */
         void ApplyResolutionLimit(FLegacyImage& InOutImage) {
             const uint32_t limit = FRenderer::GetMaxTextureResolution();
-            while (InOutImage.Mips.size() > 1 && std::max(InOutImage.Width, InOutImage.Height) > limit) {
+            // A block-compressed level below 4 pixels cannot be the top one.
+            const uint32_t smallest = RHIFormatBytesPerBlock(InOutImage.Format) ? 8u : 2u;
+            while (InOutImage.Mips.size() > 1 && std::max(InOutImage.Width, InOutImage.Height) > limit &&
+                   std::min(InOutImage.Width, InOutImage.Height) >= smallest) {
                 InOutImage.Mips.erase(InOutImage.Mips.begin());
                 InOutImage.Width = std::max(1u, InOutImage.Width / 2);
                 InOutImage.Height = std::max(1u, InOutImage.Height / 2);
@@ -87,6 +90,7 @@ namespace Leon {
                 return false;
             }
             const bool bSRGB = native.Header.ColorSpace == 1;
+            const ETextureCompression compression = native.GetCompression();
             std::sort(native.Mips.begin(), native.Mips.end(),
                       [](const FTextureMipData& InA, const FTextureMipData& InB) { return InA.Level < InB.Level; });
             if (native.Mips.empty() || native.Mips.front().Level != 0 || native.Mips.front().Pixels.empty())
@@ -99,7 +103,7 @@ namespace Leon {
             for (size_t i = 0; i < native.Mips.size(); ++i) {
                 const FTextureMipData& mip = native.Mips[i];
                 if (mip.Level != i || mip.Width != width || mip.Height != height ||
-                    mip.Pixels.size() != static_cast<size_t>(width) * height * 4) {
+                    mip.Pixels.size() != FTextureCompression::MipByteSize(compression, width, height)) {
                     bComplete = false;
                     break;
                 }
@@ -107,13 +111,31 @@ namespace Leon {
                 height = std::max(1u, height / 2);
             }
             if (!bComplete) {
+                if (!native.DecodeToRGBA8())
+                    return false;
                 FillFromRGBA8(std::move(native.Mips.front().Pixels), native.Header.Width, native.Header.Height, bSRGB,
                               OutImage);
                 return true;
             }
             OutImage.Width = native.Header.Width;
             OutImage.Height = native.Header.Height;
-            OutImage.Format = bSRGB ? ERHIFormat::RGBA8_UNorm_sRGB : ERHIFormat::RGBA8_UNorm;
+            switch (compression) {
+            case ETextureCompression::None:
+                OutImage.Format = bSRGB ? ERHIFormat::RGBA8_UNorm_sRGB : ERHIFormat::RGBA8_UNorm;
+                break;
+            case ETextureCompression::BC1:
+                OutImage.Format = bSRGB ? ERHIFormat::BC1_UNorm_sRGB : ERHIFormat::BC1_UNorm;
+                break;
+            case ETextureCompression::BC3:
+                OutImage.Format = bSRGB ? ERHIFormat::BC3_UNorm_sRGB : ERHIFormat::BC3_UNorm;
+                break;
+            case ETextureCompression::BC4:
+                OutImage.Format = ERHIFormat::BC4_UNorm;
+                break;
+            case ETextureCompression::BC5:
+                OutImage.Format = ERHIFormat::BC5_UNorm;
+                break;
+            }
             for (FTextureMipData& mip : native.Mips)
                 OutImage.Mips.push_back(std::move(mip.Pixels));
             return true;

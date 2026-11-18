@@ -71,6 +71,11 @@ namespace Leon {
             return false;
         }
 
+        if (!FTextureCompression::IsValid(Header.Format) || (Header.Format != 0 && Header.Channels != 4)) {
+            LE_CORE_ERROR("FNativeTextureData: Unknown pixel format {0} in \"{1}\"", Header.Format, InFilePath);
+            return false;
+        }
+
         Mips.clear();
         if (Header.MipCount == 0 || Header.MipCount > kMaxCookedMipCount) {
             LE_CORE_ERROR("FNativeTextureData: Invalid MipCount {0} in \"{1}\"", Header.MipCount, InFilePath);
@@ -100,7 +105,9 @@ namespace Leon {
             }
 
             const uint64_t expected =
-                static_cast<uint64_t>(mipHeader.Width) * static_cast<uint64_t>(mipHeader.Height) * Header.Channels;
+                Header.Format == 0
+                    ? static_cast<uint64_t>(mipHeader.Width) * static_cast<uint64_t>(mipHeader.Height) * Header.Channels
+                    : FTextureCompression::MipByteSize(GetCompression(), mipHeader.Width, mipHeader.Height);
             if (expected > static_cast<uint64_t>(kMaxCookedTextureDim) * kMaxCookedTextureDim * 4ull ||
                 mipHeader.DataSize != expected) {
                 LE_CORE_ERROR("FNativeTextureData: Mip {0} DataSize mismatch in \"{1}\" (got {2}, expected {3})", i,
@@ -132,12 +139,31 @@ namespace Leon {
         return true;
     }
 
+    bool FNativeTextureData::DecodeToRGBA8() {
+        const ETextureCompression format = GetCompression();
+        if (format == ETextureCompression::None)
+            return true;
+        for (FTextureMipData& mip : Mips) {
+            std::vector<uint8_t> pixels =
+                FTextureCompression::Decompress(format, mip.Pixels.data(), mip.Pixels.size(), mip.Width, mip.Height);
+            if (pixels.empty())
+                return false;
+            mip.Pixels = std::move(pixels);
+        }
+        Header.Format = 0;
+        Header.Channels = 4;
+        return true;
+    }
+
     FTextureImportSettings FTextureImportSettings::DetectFromFileName(const std::string& InFileName) {
         FTextureImportSettings settings;
         std::string lower = InFileName;
         std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
-        if (lower.find("_diff") != std::string::npos || lower.find("_color") != std::string::npos ||
+        if (lower.find("_orm") != std::string::npos) {
+            settings.Semantic = ETextureSemantic::ORM;
+            settings.ColorSpace = ETextureColorSpace::Linear;
+        } else if (lower.find("_diff") != std::string::npos || lower.find("_color") != std::string::npos ||
             lower.find("_albedo") != std::string::npos || lower.find("_basecolor") != std::string::npos) {
             settings.Semantic = ETextureSemantic::Albedo;
             settings.ColorSpace = ETextureColorSpace::sRGB;
@@ -225,6 +251,40 @@ namespace Leon {
         }
 
         OutData.Header.MipCount = static_cast<uint32_t>(OutData.Mips.size());
+
+        // Compressed last, level by level, so the mip chain is filtered from the true pixels.
+        ETextureCompression compression = ETextureCompression::None;
+        if (InSettings.bCompress && uWidth >= 4 && uHeight >= 4 && uWidth % 4 == 0 && uHeight % 4 == 0) {
+            switch (InSettings.Semantic) {
+            case ETextureSemantic::Albedo: {
+                bool bHasAlpha = false;
+                const std::vector<uint8_t>& top = OutData.Mips.front().Pixels;
+                for (size_t i = 3; i < top.size() && !bHasAlpha; i += 4)
+                    bHasAlpha = top[i] < 255;
+                compression = bHasAlpha ? ETextureCompression::BC3 : ETextureCompression::BC1;
+                break;
+            }
+            case ETextureSemantic::Emissive:
+            case ETextureSemantic::ORM:
+                compression = ETextureCompression::BC1;
+                break;
+            case ETextureSemantic::Normal:
+                compression = ETextureCompression::BC5;
+                break;
+            case ETextureSemantic::Roughness:
+            case ETextureSemantic::Metallic:
+            case ETextureSemantic::AO:
+                compression = ETextureCompression::BC4;
+                break;
+            case ETextureSemantic::Generic:
+                break;
+            }
+        }
+        if (compression != ETextureCompression::None) {
+            for (FTextureMipData& mip : OutData.Mips)
+                mip.Pixels = FTextureCompression::Compress(compression, mip.Pixels.data(), mip.Width, mip.Height);
+            OutData.Header.Format = static_cast<uint32_t>(compression);
+        }
         return true;
     }
 

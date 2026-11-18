@@ -117,9 +117,9 @@ TEST_SUITE("Shader GPU - PBR_Lit.hlsl Normal Mapping") {
         Leon::TestGPU::SetFloat2(shader, "u_UVOffset", glm::vec2(0.0f));
         shader->SetInt("u_DebugMode", 17); // Normal Output
 
-        // Create +X tilted normal map: (255, 128, 255) -> TS normal ~= (1.0, 0.0, 1.0) normalized -> (+0.707, 0,
-        // +0.707)
-        auto tiltXTex = gl.Create1x1Texture(255, 128, 255, 255);
+        // A normal tilted 45 degrees towards +X: (0.707, 0, 0.707) is stored as (218, 128, 218). The shader
+        // reads x and y and rebuilds z, so the texel has to be a unit vector, as a baked normal map is.
+        auto tiltXTex = gl.Create1x1Texture(218, 128, 218, 255);
         gl.BindTexture(1, tiltXTex);
         shader->SetInt("u_UseNormalMap", 1);
 

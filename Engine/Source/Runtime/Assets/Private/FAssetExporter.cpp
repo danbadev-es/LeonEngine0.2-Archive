@@ -504,7 +504,7 @@ namespace Leon {
         }
         if (NativeExt == "ltex") {
             FNativeTextureData Tex;
-            if (!Tex.LoadFromFile(InNativePath))
+            if (!Tex.LoadFromFile(InNativePath) || !Tex.DecodeToRGBA8())
                 return false;
             if (OutExt == "jpg" || OutExt == "jpeg")
                 return ExportTextureToJPG(Tex, InOutPath);

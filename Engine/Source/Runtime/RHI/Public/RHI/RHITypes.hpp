@@ -56,10 +56,23 @@ namespace Leon {
         R32_SInt,
         D32_Float,
         D24_UNorm_S8_UInt,
+        // Block compressed: 4 x 4 pixels a block. Sampled only, never a render target.
+        BC1_UNorm,
+        BC1_UNorm_sRGB,
+        BC3_UNorm,
+        BC3_UNorm_sRGB,
+        BC4_UNorm,
+        BC5_UNorm,
     };
 
-    /** Bytes of one pixel; 0 for Unknown. */
+    /** Bytes of one pixel; 0 for Unknown and for the block-compressed formats. */
     uint32_t RHIFormatBytesPerPixel(ERHIFormat InFormat);
+    /** Bytes of one 4 x 4 block; 0 for formats that are not block compressed. */
+    uint32_t RHIFormatBytesPerBlock(ERHIFormat InFormat);
+    /** Bytes of one row of a level that is InWidth pixels wide: a row of pixels, or a row of blocks. */
+    uint32_t RHIFormatRowBytes(ERHIFormat InFormat, uint32_t InWidth);
+    /** Rows of a level that is InHeight pixels high: pixel rows, or block rows. */
+    uint32_t RHIFormatRowCount(ERHIFormat InFormat, uint32_t InHeight);
     bool RHIFormatIsDepth(ERHIFormat InFormat);
 
     // --- Buffers --------------------------------------------------------------------------------

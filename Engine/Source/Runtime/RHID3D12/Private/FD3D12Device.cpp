@@ -156,6 +156,18 @@ namespace Leon {
             return DXGI_FORMAT_R32_FLOAT;
         case ERHIFormat::R32_SInt:
             return DXGI_FORMAT_R32_SINT;
+        case ERHIFormat::BC1_UNorm:
+            return DXGI_FORMAT_BC1_UNORM;
+        case ERHIFormat::BC1_UNorm_sRGB:
+            return DXGI_FORMAT_BC1_UNORM_SRGB;
+        case ERHIFormat::BC3_UNorm:
+            return DXGI_FORMAT_BC3_UNORM;
+        case ERHIFormat::BC3_UNorm_sRGB:
+            return DXGI_FORMAT_BC3_UNORM_SRGB;
+        case ERHIFormat::BC4_UNorm:
+            return DXGI_FORMAT_BC4_UNORM;
+        case ERHIFormat::BC5_UNorm:
+            return DXGI_FORMAT_BC5_UNORM;
         // Depth resources are typeless so the same memory can be a depth target and a shader input.
         case ERHIFormat::D32_Float:
             return DXGI_FORMAT_R32_TYPELESS;
@@ -259,10 +271,11 @@ namespace Leon {
         }
 
         uint64_t MemoryBytes(const FRHITextureDesc& InDesc) {
-            uint64_t texels = 0;
+            uint64_t bytes = 0;
             for (uint32_t mip = 0; mip < std::max(InDesc.MipLevels, 1u); ++mip)
-                texels += static_cast<uint64_t>(std::max(InDesc.Width >> mip, 1u)) * std::max(InDesc.Height >> mip, 1u);
-            return texels * RHIFormatBytesPerPixel(InDesc.Format) * std::max(InDesc.SliceCount(), 1u);
+                bytes += static_cast<uint64_t>(RHIFormatRowBytes(InDesc.Format, std::max(InDesc.Width >> mip, 1u))) *
+                         RHIFormatRowCount(InDesc.Format, std::max(InDesc.Height >> mip, 1u));
+            return bytes * std::max(InDesc.SliceCount(), 1u);
         }
 
         void TrackMemory(FD3D12Buffer& InBuffer) {

@@ -383,7 +383,7 @@ namespace Leon::TestGPU {
             desc.DebugName = "TestTexture";
             FTestTexture texture = Device->CreateTexture(desc);
             if (texture && InPixels)
-                Device->UploadTexture(*texture, 0, 0, InPixels, InWidth * RHIFormatBytesPerPixel(InFormat));
+                Device->UploadTexture(*texture, 0, 0, InPixels, RHIFormatRowBytes(InFormat, InWidth));
             return texture;
         }
 
@@ -399,7 +399,7 @@ namespace Leon::TestGPU {
             const uint32_t width = std::max(InTexture->GetDesc().Width >> InMipLevel, 1u);
             Device->WaitIdle();
             Device->UploadTexture(*InTexture, InMipLevel, InSlice, InPixels,
-                                  width * RHIFormatBytesPerPixel(InTexture->GetDesc().Format));
+                                  RHIFormatRowBytes(InTexture->GetDesc().Format, width));
         }
 
         FTestTexture Create1x1Texture(uint8_t InR, uint8_t InG, uint8_t InB, uint8_t InA = 255) {

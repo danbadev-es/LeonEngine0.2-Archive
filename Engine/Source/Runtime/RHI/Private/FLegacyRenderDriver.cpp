@@ -222,14 +222,16 @@ namespace Leon {
                     desc.DebugName = Path.empty() ? std::string("Texture2D") : Path;
                     Texture = device->CreateTexture(desc);
                     if (Mips.empty())
-                        Mips.emplace_back(static_cast<size_t>(Width) * Height * RHIFormatBytesPerPixel(Format), uint8_t{0});
+                        Mips.emplace_back(static_cast<size_t>(RHIFormatRowBytes(Format, Width)) *
+                                              RHIFormatRowCount(Format, Height),
+                                          uint8_t{0});
                 }
                 if (Texture && !Mips.empty()) {
                     const uint32_t levels = std::min(static_cast<uint32_t>(Mips.size()), Texture->GetDesc().MipLevels);
                     for (uint32_t level = 0; level < levels; ++level) {
                         const uint32_t mipWidth = std::max(1u, Width >> level);
                         device->UploadTexture(*Texture, level, 0, Mips[level].data(),
-                                              mipWidth * RHIFormatBytesPerPixel(Format));
+                                              RHIFormatRowBytes(Format, mipWidth));
                     }
                     Mips.clear();
                     Mips.shrink_to_fit();

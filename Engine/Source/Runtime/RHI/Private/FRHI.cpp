@@ -24,10 +24,43 @@ namespace Leon {
             return 8;
         case ERHIFormat::RGBA32_Float:
             return 16;
+        case ERHIFormat::BC1_UNorm:
+        case ERHIFormat::BC1_UNorm_sRGB:
+        case ERHIFormat::BC3_UNorm:
+        case ERHIFormat::BC3_UNorm_sRGB:
+        case ERHIFormat::BC4_UNorm:
+        case ERHIFormat::BC5_UNorm:
         case ERHIFormat::Unknown:
             return 0;
         }
         return 0;
+    }
+
+    uint32_t RHIFormatBytesPerBlock(ERHIFormat InFormat) {
+        switch (InFormat) {
+        case ERHIFormat::BC1_UNorm:
+        case ERHIFormat::BC1_UNorm_sRGB:
+        case ERHIFormat::BC4_UNorm:
+            return 8;
+        case ERHIFormat::BC3_UNorm:
+        case ERHIFormat::BC3_UNorm_sRGB:
+        case ERHIFormat::BC5_UNorm:
+            return 16;
+        default:
+            return 0;
+        }
+    }
+
+    uint32_t RHIFormatRowBytes(ERHIFormat InFormat, uint32_t InWidth) {
+        if (const uint32_t block = RHIFormatBytesPerBlock(InFormat))
+            return ((InWidth + 3) / 4 > 0 ? (InWidth + 3) / 4 : 1) * block;
+        return InWidth * RHIFormatBytesPerPixel(InFormat);
+    }
+
+    uint32_t RHIFormatRowCount(ERHIFormat InFormat, uint32_t InHeight) {
+        if (RHIFormatBytesPerBlock(InFormat))
+            return (InHeight + 3) / 4 > 0 ? (InHeight + 3) / 4 : 1;
+        return InHeight;
     }
 
     bool RHIFormatIsDepth(ERHIFormat InFormat) {

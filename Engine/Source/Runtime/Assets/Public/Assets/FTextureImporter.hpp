@@ -2,6 +2,7 @@
 
 #include "Core/Base.hpp"
 #include "Assets/FAssetTypes.hpp"
+#include "Assets/FTextureCompression.hpp"
 #include "RHI/FTexture.hpp"
 #include <cstdint>
 #include <string>
@@ -22,7 +23,7 @@ namespace Leon {
         uint32_t Height = 0;
         uint32_t Channels = 4;
         uint32_t MipCount = 1;
-        uint32_t Format = 0;        // ETextureFormat (0 = RGBA8) — only RGBA8 is cooked today
+        uint32_t Format = 0;        // ETextureCompression: 0 = RGBA8, then BC1, BC3, BC4, BC5
         uint32_t ColorSpace = 0;    // ETextureColorSpace (0 = Linear, 1 = sRGB)
         uint32_t Semantic = 0;      // ETextureSemantic
         uint32_t WrapMode = 0;      // 0 = Repeat, 1 = Clamp
@@ -54,6 +55,10 @@ namespace Leon {
 
         bool SaveToFile(const std::string& InFilePath) const;
         bool LoadFromFile(const std::string& InFilePath);
+
+        ETextureCompression GetCompression() const { return static_cast<ETextureCompression>(Header.Format); }
+        /** Turns every level into RGBA8, for code that reads pixels. Does nothing to an RGBA8 texture. */
+        bool DecodeToRGBA8();
     };
 
     struct FTextureImportSettings {
@@ -64,6 +69,12 @@ namespace Leon {
         bool bFlipVertically = false;
         uint32_t WrapMode = 0;   // 0 = Repeat, 1 = Clamp
         uint32_t FilterMode = 0; // 0 = LinearMipmapLinear
+        /**
+         * Chosen from what the texture is for: colour BC1 (BC3 when it has alpha), normals BC5,
+         * single-channel masks BC4, packed ORM BC1. Generic textures (UI, look-up tables) and sizes
+         * that are not multiples of four stay RGBA8.
+         */
+        bool bCompress = true;
 
         static FTextureImportSettings DetectFromFileName(const std::string& InFileName);
     };

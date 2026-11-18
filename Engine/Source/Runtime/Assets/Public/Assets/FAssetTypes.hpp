@@ -99,7 +99,9 @@ namespace Leon {
         Metallic = 3,
         AO = 4,
         Emissive = 5,
-        Generic = 6
+        Generic = 6,
+        /** Occlusion in red, roughness in green, metalness in blue. */
+        ORM = 7
     };
 
     inline const char* TextureSemanticToString(ETextureSemantic InSemantic) {

@@ -180,8 +180,10 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
 
     float3 N = geometricNormal;
     if (textureBits & MATERIAL_HAS_NORMAL) {
-        float3 tangentNormal = t_Normal.Sample(s_LinearWrap, uv).rgb * 2.0 - 1.0;
-        tangentNormal.xy *= u_SurfaceParams.w;
+        // Only x and y are read, and z is what makes the vector unit length: a two-channel (BC5)
+        // normal map and a three-channel one look the same.
+        float2 tangentXY = t_Normal.Sample(s_LinearWrap, uv).rg * 2.0 - 1.0;
+        float3 tangentNormal = float3(tangentXY * u_SurfaceParams.w, sqrt(max(1.0 - dot(tangentXY, tangentXY), 1.0e-4)));
         tangentNormal = normalize(tangentNormal);
         N = normalize(T * tangentNormal.x + B * tangentNormal.y + geometricNormal * tangentNormal.z);
     }
