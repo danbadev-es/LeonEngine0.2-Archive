@@ -221,12 +221,11 @@ namespace Leon {
     }
 
     int UEngine::InternalRun(FApplicationCommandLineArgs InArgs, const std::string& InProjectOrConfigPath) {
-        // Shipping packages place Engine/Resources beside the exe; adopt that cwd so relative
-        // engine resource paths resolve when launched from Explorer (cwd != package root).
+        // Engine resources are addressed relative to the engine root. Find it from the executable
+        // (packaged layout, or a build tree inside the repository) so the game starts from anywhere.
         if (InArgs.Args && InArgs.Count > 0 && InArgs.Args[0]) {
-            if (FProjectPaths::AdoptPackagedWorkingDirectory(InArgs.Args[0])) {
-                LE_CORE_INFO("UEngine: Adopted packaged working directory (Engine/Resources beside exe)");
-            }
+            if (!FProjectPaths::AdoptEngineRoot(InArgs.Args[0]))
+                LE_CORE_WARN("UEngine: Engine/Resources not found from the working directory or the executable");
         }
 
         LE_CORE_INFO("==================================================");

@@ -21,3 +21,5 @@ target_link_libraries(Sandbox PRIVATE
 )
 
 leon_register_game(NAME Sandbox PROJECT_FILE "Samples/Sandbox/Sandbox.lproject")
+
+leon_apply_compile_options(Sandbox)

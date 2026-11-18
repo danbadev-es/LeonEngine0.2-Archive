@@ -105,7 +105,7 @@ namespace Leon {
     }
 
     void FPostProcessPipeline::RenderBloom(const FPostProcessSettings& InSettings, TRef<FFramebuffer> InHDRScene,
-                                           uint32_t InWidth, uint32_t InHeight) {
+                                           uint32_t /*InWidth*/, uint32_t /*InHeight*/) {
         if (!InHDRScene || BloomDownsampleFBOs.empty())
             return;
 

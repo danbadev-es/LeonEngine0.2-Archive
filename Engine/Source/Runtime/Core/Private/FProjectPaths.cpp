@@ -1,4 +1,14 @@
 #include "Core/FProjectPaths.hpp"
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 #include "Core/FAssetPath.hpp"
 #include <filesystem>
 #include <algorithm>
@@ -199,6 +209,44 @@ namespace Leon {
 
         fs::current_path(exeDir, ec);
         return !ec;
+    }
+
+    bool FProjectPaths::AdoptEngineRoot(const char* InExecutableArgv0) {
+        namespace fs = std::filesystem;
+        if (AdoptPackagedWorkingDirectory(InExecutableArgv0))
+            return true;
+
+        std::error_code ec;
+        if (fs::is_directory(fs::path("Engine") / "Resources", ec))
+            return true;
+        if (!InExecutableArgv0 || InExecutableArgv0[0] == '\0')
+            return false;
+
+        // argv[0] is whatever the parent process typed (possibly a bare name found through PATH);
+        // ask the OS where the executable really is.
+        fs::path executable = fs::path(InExecutableArgv0);
+#ifdef _WIN32
+        wchar_t modulePath[4096];
+        const unsigned long length = GetModuleFileNameW(nullptr, modulePath, 4096);
+        if (length > 0 && length < 4096)
+            executable = fs::path(std::wstring(modulePath, length));
+#endif
+        fs::path cursor = fs::absolute(executable.parent_path(), ec);
+        if (ec)
+            return false;
+        for (int depth = 0; depth < 10 && !cursor.empty(); ++depth) {
+            // A missing folder reports an error here; it only means "keep walking up".
+            std::error_code probe;
+            if (fs::is_directory(cursor / "Engine" / "Resources", probe)) {
+                fs::current_path(cursor, ec);
+                return !ec;
+            }
+            const fs::path parent = cursor.parent_path();
+            if (parent == cursor)
+                break;
+            cursor = parent;
+        }
+        return false;
     }
 
     std::string FProjectPaths::LocateProjectFile(const std::string& InPathOrDir) {

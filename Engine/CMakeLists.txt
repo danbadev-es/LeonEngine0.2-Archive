@@ -255,3 +255,4 @@ target_link_libraries(LeonEnginePipeline
         ufbx
 )
 
+leon_apply_compile_options(LeonEngineCore LeonEnginePipeline)

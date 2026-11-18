@@ -166,7 +166,7 @@ namespace Leon {
     }
 
     void ALeonTournamentProjectile::ApplyPointDamage(ALeonTournamentCharacter* InTarget, const glm::vec3& InLocation,
-                                                     const glm::vec3& InNormal, const glm::vec3& InImpulseDir) {
+                                                     const glm::vec3& InNormal, const glm::vec3& /*InImpulseDir*/) {
         if (!World || !InstigatorCharacter || !InTarget || World->GetNetMode() == ENetMode::Client)
             return;
         auto* gm = dynamic_cast<ALeonTournamentGameMode*>(World->GetGameMode());

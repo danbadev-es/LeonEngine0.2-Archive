@@ -42,6 +42,15 @@ namespace Leon {
          */
         static bool AdoptPackagedWorkingDirectory(const char* InExecutableArgv0);
 
+        /**
+         * @brief Makes engine resource paths resolve wherever the executable was started from.
+         *
+         * Order: a packaged layout beside the executable; the current directory if it already holds
+         * Engine/Resources; otherwise the nearest parent of the executable that does (a build tree
+         * inside the repository). Returns false when no engine root was found.
+         */
+        static bool AdoptEngineRoot(const char* InExecutableArgv0);
+
     private:
         static std::string CachedProjectDir;
     };

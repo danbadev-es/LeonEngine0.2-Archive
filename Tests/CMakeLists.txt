@@ -123,3 +123,5 @@ leon_configure_test_exe(RendererTests)
 enable_testing()
 add_test(NAME EngineTests COMMAND RendererTests WORKING_DIRECTORY ${LEON_ENGINE_ROOT})
 add_custom_target(EngineTests DEPENDS RendererTests)
+
+leon_apply_compile_options(RendererTests)

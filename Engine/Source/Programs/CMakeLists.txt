@@ -6,3 +6,5 @@ add_subdirectory(Common)
 add_subdirectory(AssetTool)
 add_subdirectory(Lightmass)
 add_subdirectory(ProjectTool)
+
+leon_apply_compile_options(ToolsCommon AssetTool LightmassTool ProjectTool)

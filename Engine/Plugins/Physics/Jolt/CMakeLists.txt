@@ -50,3 +50,5 @@ target_link_libraries(LeonEngine_Jolt
 )
 
 target_compile_features(LeonEngine_Jolt PUBLIC cxx_std_20)
+
+leon_apply_compile_options(LeonEngine_Jolt)

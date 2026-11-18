@@ -85,7 +85,7 @@ namespace Leon {
         }
     }
 
-    bool FApplication::OnWindowClose(FWindowCloseEvent& InEvent) {
+    bool FApplication::OnWindowClose(FWindowCloseEvent& /*InEvent*/) {
         bRunning = false;
         return true;
     }

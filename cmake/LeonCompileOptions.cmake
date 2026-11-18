@@ -31,6 +31,9 @@ function(leon_apply_compile_options)
             if(MSVC)
                 target_compile_options(${tgt} PRIVATE
                     /W4
+                    # Headers included with <...> are third party: their warnings are not ours to fix.
+                    /external:anglebrackets
+                    /external:W0
                     /permissive-
                     /Zc:__cplusplus
                     /MP
@@ -41,7 +44,7 @@ function(leon_apply_compile_options)
                 set_target_properties(${tgt} PROPERTIES
                     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
                 )
-                target_compile_definitions(${tgt} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+                target_compile_definitions(${tgt} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
                 if(LEON_WARNINGS_AS_ERRORS)
                     target_compile_options(${tgt} PRIVATE /WX)
                 endif()

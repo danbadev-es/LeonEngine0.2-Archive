@@ -36,3 +36,5 @@ if(WIN32)
 endif()
 
 target_compile_features(LeonEngine_ENet PUBLIC cxx_std_20)
+
+leon_apply_compile_options(LeonEngine_ENet)

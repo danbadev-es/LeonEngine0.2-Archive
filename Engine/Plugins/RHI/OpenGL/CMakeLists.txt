@@ -36,3 +36,5 @@ target_link_libraries(LeonEngine_OpenGL PUBLIC
 if(WIN32)
     target_link_libraries(LeonEngine_OpenGL PUBLIC opengl32)
 endif()
+
+leon_apply_compile_options(LeonEngine_OpenGL)

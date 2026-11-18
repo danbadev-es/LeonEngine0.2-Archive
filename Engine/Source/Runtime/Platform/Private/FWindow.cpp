@@ -224,7 +224,7 @@ namespace Leon {
                 data.EventCallback(event);
         });
 
-        glfwSetKeyCallback(NativeWindow, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        glfwSetKeyCallback(NativeWindow, [](GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
             FWindowData& data = *(FWindowData*)glfwGetWindowUserPointer(window);
 
             switch (action) {
@@ -249,7 +249,7 @@ namespace Leon {
             }
         });
 
-        glfwSetMouseButtonCallback(NativeWindow, [](GLFWwindow* window, int button, int action, int mods) {
+        glfwSetMouseButtonCallback(NativeWindow, [](GLFWwindow* window, int button, int action, int /*mods*/) {
             FWindowData& data = *(FWindowData*)glfwGetWindowUserPointer(window);
 
             switch (action) {

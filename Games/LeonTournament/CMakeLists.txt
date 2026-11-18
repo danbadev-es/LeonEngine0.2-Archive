@@ -31,3 +31,8 @@ if(LEON_BUILD_TESTS)
     )
     add_test(NAME LeonTournamentTests COMMAND LeonTournamentTests WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")
 endif()
+
+leon_apply_compile_options(LeonTournament)
+if(TARGET LeonTournamentTests)
+    leon_apply_compile_options(LeonTournamentTests)
+endif()

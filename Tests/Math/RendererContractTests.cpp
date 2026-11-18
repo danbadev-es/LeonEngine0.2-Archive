@@ -392,7 +392,7 @@ TEST_SUITE("Renderer contract - transforms, TBN, PBR, color, shadows") {
 
     TEST_CASE("CSM PCF reports lit when all taps are out of UV bounds") {
         // FilterShadowArray returns 0.0 occlusion (fully lit) when valid tap count is 0.
-        auto filterWithValidCount = [](int validCount, float accumulatedLitTaps, int totalTaps) -> float {
+        auto filterWithValidCount = [](int validCount, float accumulatedLitTaps, int /*totalTaps*/) -> float {
             if (validCount == 0)
                 return 0.0f;
             const float visibility = accumulatedLitTaps / static_cast<float>(validCount);

@@ -30,3 +30,8 @@ if(LEON_BUILD_TESTS)
     )
     add_test(NAME LeonHorrorTests COMMAND LeonHorrorTests WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")
 endif()
+
+leon_apply_compile_options(LeonHorror)
+if(TARGET LeonHorrorTests)
+    leon_apply_compile_options(LeonHorrorTests)
+endif()

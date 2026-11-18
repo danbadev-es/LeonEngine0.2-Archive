@@ -325,6 +325,15 @@ namespace Leon {
                 return InProceduralFallback;
 
             const fs::path fbxPath = fs::path(lmeshDisk).replace_extension(".fbx");
+            // The imported .lmesh is checked in next to its source. Re-import (and rewrite it) only
+            // when it is missing or older than the FBX; otherwise every run would touch a tracked file.
+            std::error_code timeError;
+            if (fs::exists(lmeshDisk, timeError) && fs::exists(fbxPath, timeError) &&
+                fs::last_write_time(lmeshDisk, timeError) >= fs::last_write_time(fbxPath, timeError) && !timeError) {
+                auto cached = UStaticMesh::Create(InName);
+                if (cached->LoadFromFile(lmeshDisk))
+                    return cached;
+            }
             if (fs::exists(fbxPath)) {
                 FMeshImportSettings settings;
                 settings.bSplitStaticMeshes = false;

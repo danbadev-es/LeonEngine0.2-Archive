@@ -2,6 +2,7 @@
 #include <doctest/doctest.h>
 
 #include "Assets/UAssetManager.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "FJoltPhysicsDriver.hpp"
 #include "RHI/FRenderer.hpp"
 
@@ -13,6 +14,7 @@
 
 int main(int argc, char** argv) {
     // Content is addressed relative to the repository root.
+    Leon::FProjectPaths::AdoptEngineRoot(argc > 0 ? argv[0] : nullptr);
     std::error_code ec;
     if (!std::filesystem::exists("Games/LeonHorror/LeonHorror.lproject", ec)) {
         std::cerr << "LeonHorrorTests must be run from the repository root.\n";

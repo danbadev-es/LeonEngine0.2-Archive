@@ -76,7 +76,7 @@ TEST_CASE("Lightmap UV validation and barycentric") {
     auto result = FLightmapUV::Validate(*mesh);
     CHECK(result.bInUnitSquare);
 
-    glm::vec3 bary;
+    glm::vec3 bary(0.0f);
     REQUIRE(FLightmapUV::ComputeBarycentric({0.5f, 0.367f}, verts[0].LightmapUV, verts[1].LightmapUV,
                                             verts[2].LightmapUV, bary));
     CHECK(doctest::Approx(bary.x + bary.y + bary.z).epsilon(1e-3) == 1.0f);

@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 #include "Assets/UAssetManager.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "RHI/FRenderer.hpp"
 #include <cstdlib>
 #include <filesystem>
@@ -10,6 +11,7 @@
 int main(int argc, char** argv) {
     // Tests address engine resources relative to the repo root; fail with a clear message instead of
     // hundreds of unrelated failures when launched from another directory.
+    Leon::FProjectPaths::AdoptEngineRoot(argc > 0 ? argv[0] : nullptr);
     std::error_code ec;
     if (!std::filesystem::exists("Engine/Resources/Shaders", ec)) {
         std::cerr << "RendererTests must be run from the repository root (Engine/Resources/Shaders not found in '"
