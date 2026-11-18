@@ -2,9 +2,9 @@
 // against the old interfaces (FWorldRendererGeometry.cpp, FWorldRendererLighting.cpp, ...).
 //
 // Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
-// lightmaps, image-based lighting and fog, plus skinned outlines, into an HDR target that is then
-// tone mapped to the output.
-// Still to come: sky, shadows, bloom/SSAO/FXAA, UI and debug drawing, reflections.
+// lightmaps, image-based lighting and fog, plus skinned outlines and the sky, into an HDR target
+// that is then tone mapped to the output.
+// Still to come: shadows, bloom/SSAO/FXAA, UI and debug drawing, reflections.
 //
 // The old Render() still runs first each frame; this code relies on it for work that is not drawing:
 // the image-based lighting environment, level-of-detail selection and light/transform syncing.
@@ -114,6 +114,16 @@ namespace Leon {
             glm::vec4 ColorWidth;
         };
 
+        struct FSkyConstants { // Skybox.hlsl
+            glm::mat4 ClipToDirection;
+            glm::vec4 SunDirection;
+            glm::vec4 SkyColor;
+            glm::vec4 HorizonColor;
+            glm::vec4 GroundColor;
+            glm::vec4 SunColor;
+            glm::ivec4 SkyFlags;
+        };
+
         struct FToneMappingConstants { // ToneMapping.hlsl
             glm::vec4 ToneParams;
             glm::ivec4 ToneFlags;
@@ -210,6 +220,9 @@ namespace Leon {
         struct FSceneLighting {
             FLitPassConstants Constants;
             float Exposure = 1.0f;
+            /** Sky settings of the world; defaults when it has none (bHasSkybox false). */
+            FSkyboxComponent Skybox;
+            bool bHasSkybox = false;
         };
 
         FSceneLighting GatherLighting(UWorld& InWorld) {
@@ -280,6 +293,8 @@ namespace Leon {
                 glm::vec4(std::max(skybox.FogStartDistance, 0.0f), std::max(skybox.FogHeightFalloff, 0.0f),
                           skybox.FogBaseHeight, glm::clamp(skybox.FogMaxOpacity, 0.0f, 1.0f));
             lighting.Exposure = skybox.Exposure;
+            lighting.Skybox = skybox;
+            lighting.bHasSkybox = bHasSkybox;
             return lighting;
         }
 
@@ -293,6 +308,7 @@ namespace Leon {
         /** Surface pipelines by vertex format and render state. Null: the pipeline failed to build. */
         std::map<std::string, TRef<IRHIPipeline>> SurfacePipelines;
         TRef<IRHIPipeline> OutlinePipeline;
+        TRef<IRHIPipeline> SkyPipeline;
         TRef<IRHIPipeline> ToneMappingPipeline;
         ERHIFormat ToneMappingTargetFormat = ERHIFormat::Unknown;
     };
@@ -347,6 +363,8 @@ namespace Leon {
             FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex, {{"SKINNED", "1"}});
         TRef<IRHIShader> outlineVS = FShaderLibrary::Get("Outline_Skinned.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> outlinePS = FShaderLibrary::Get("Outline_Skinned.hlsl", "PSMain", ERHIShaderStage::Pixel);
+        TRef<IRHIShader> skyVS = FShaderLibrary::Get("Skybox.hlsl", "VSMain", ERHIShaderStage::Vertex);
+        TRef<IRHIShader> skyPS = FShaderLibrary::Get("Skybox.hlsl", "PSMain", ERHIShaderStage::Pixel);
         TRef<IRHIShader> toneVS = FShaderLibrary::Get("ToneMapping.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> tonePS = FShaderLibrary::Get("ToneMapping.hlsl", "PSMain", ERHIShaderStage::Pixel);
 
@@ -608,6 +626,25 @@ namespace Leon {
         const bool bIBL = bUseIBL && brdfLut && irradiance && prefilter;
         lighting.Constants.PassFlags = glm::ivec4(bIBL ? 1 : 0, DebugMode, 0, 0);
 
+        // --- Sky ---
+        const bool bDrawSky = lighting.bHasSkybox && lighting.Skybox.bEnabled && skyVS && skyPS;
+        if (bDrawSky && !state.SkyPipeline) {
+            FRHIGraphicsPipelineDesc desc;
+            desc.VertexShader = skyVS.get();
+            desc.PixelShader = skyPS.get();
+            desc.Raster.Cull = ERHICull::None;
+            desc.Depth.bWrite = false;
+            desc.Depth.Compare = ERHICompare::LessEqual; // it sits exactly on the far plane
+            desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
+            desc.DepthFormat = ERHIFormat::D32_Float;
+            desc.DebugName = "Sky";
+            state.SkyPipeline = device->CreateGraphicsPipeline(desc);
+        }
+        IRHITexture* panorama = nullptr;
+        if (bDrawSky && lighting.Skybox.bUseHDREnvironmentMap && lighting.Skybox.HDREnvironmentMap &&
+            lighting.Skybox.HDREnvironmentMap->IsLoaded())
+            panorama = GetRHITexture(*lighting.Skybox.HDREnvironmentMap);
+
         FFrameConstants frame;
         frame.ViewProjection = ClipDepthZeroToOne() * InCamera.GetViewProjectionMatrix();
         frame.View = InCamera.GetViewMatrix();
@@ -703,6 +740,27 @@ namespace Leon {
                 InCommands.SetIndexBuffer(outline.Indices);
                 InCommands.DrawIndexed(outline.IndexCount, outline.FirstIndex);
             }
+            InCommands.PopMarker();
+        }
+        if (bDrawSky && state.SkyPipeline) {
+            const FSkyboxComponent& skybox = lighting.Skybox;
+            const FDirectionalLightConstants& sun = lighting.Constants.DirLight;
+            FSkyConstants sky;
+            // The view without its translation: the sky is infinitely far, so only rotation matters.
+            sky.ClipToDirection = glm::inverse(ClipDepthZeroToOne() * InCamera.GetProjectionMatrix() *
+                                               glm::mat4(glm::mat3(InCamera.GetViewMatrix())));
+            sky.SunDirection = sun.Direction.w > 0.5f ? glm::vec4(-glm::vec3(sun.Direction), 0.0f)
+                                                      : glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+            sky.SkyColor = glm::vec4(skybox.SkyZenithColor, skybox.EnvironmentIntensity);
+            sky.HorizonColor = glm::vec4(skybox.HorizonColor, 0.0f);
+            sky.GroundColor = glm::vec4(skybox.GroundColor, 0.0f);
+            sky.SunColor = glm::vec4(skybox.SunColor, skybox.SunIntensity);
+            sky.SkyFlags = glm::ivec4(panorama ? 1 : 0, 0, 0, 0);
+            InCommands.PushMarker("Sky");
+            InCommands.SetPipeline(state.SkyPipeline.get());
+            InCommands.SetConstants(ERHIConstantSlot::Material, &sky, sizeof(sky));
+            InCommands.SetTexture(0, panorama);
+            InCommands.Draw(3);
             InCommands.PopMarker();
         }
         drawAll(transparent, "Transparent");
