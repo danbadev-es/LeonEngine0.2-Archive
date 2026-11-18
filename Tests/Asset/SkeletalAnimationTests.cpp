@@ -325,6 +325,116 @@ TEST_SUITE("Skeletal Animation") {
         }
     }
 
+    TEST_CASE("One-shot animation blends in, plays once, blends out and removes itself") {
+        auto skel = MakeTwoBoneSkeleton();
+        auto seq = MakeSpinAnim(skel); // 1 s: spine turns 0 -> 90 degrees about Y
+        auto inst = MakeRef<UAnimInstance>("Inst");
+        inst->Initialize(skel);
+
+        const auto spineYawDegrees = [&]() {
+            FPose pose;
+            inst->Evaluate(pose);
+            REQUIRE(pose.Num() == 2);
+            return glm::degrees(glm::angle(pose.LocalTransforms[1].Rotation));
+        };
+
+        CHECK_FALSE(inst->IsPlayingOneShot());
+        CHECK(spineYawDegrees() == doctest::Approx(0.0f).epsilon(0.01));
+
+        FAnimOneShotParams params;
+        params.BlendIn = 0.2f;
+        params.BlendOut = 0.2f;
+        inst->PlayOneShot(seq, params);
+        CHECK(inst->IsPlayingOneShot());
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(0.0f));
+
+        inst->NativeUpdateAnimation(0.1f); // half way through the blend-in
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(0.5f));
+        // The clip is at 9 degrees and half blended against the rest pose.
+        CHECK(spineYawDegrees() == doctest::Approx(4.5f).epsilon(0.05));
+
+        inst->NativeUpdateAnimation(0.4f); // t = 0.5: fully in
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(1.0f));
+        CHECK(spineYawDegrees() == doctest::Approx(45.0f).epsilon(0.02));
+
+        inst->NativeUpdateAnimation(0.4f); // t = 0.9: half way through the blend-out
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(0.5f).epsilon(0.02));
+
+        inst->NativeUpdateAnimation(0.2f); // past the end
+        CHECK_FALSE(inst->IsPlayingOneShot());
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(0.0f));
+        CHECK(spineYawDegrees() == doctest::Approx(0.0f).epsilon(0.01)); // does not hold the last frame
+    }
+
+    TEST_CASE("Stopping a one-shot early fades it out instead of popping") {
+        auto skel = MakeTwoBoneSkeleton();
+        auto seq = MakeSpinAnim(skel);
+        auto inst = MakeRef<UAnimInstance>("Inst");
+        inst->Initialize(skel);
+
+        FAnimOneShotParams params;
+        params.BlendIn = 0.0f;
+        params.BlendOut = 0.2f;
+        inst->PlayOneShot(seq, params);
+        inst->NativeUpdateAnimation(0.3f);
+        REQUIRE(inst->GetOneShotWeight() == doctest::Approx(1.0f));
+
+        inst->StopOneShot();
+        CHECK(inst->IsPlayingOneShot());
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(1.0f));
+        inst->NativeUpdateAnimation(0.1f);
+        CHECK(inst->GetOneShotWeight() == doctest::Approx(0.5f).epsilon(0.02));
+        inst->NativeUpdateAnimation(0.15f);
+        CHECK_FALSE(inst->IsPlayingOneShot());
+
+        SUBCASE("a zero blend-out stops immediately") {
+            inst->PlayOneShot(seq, params);
+            inst->NativeUpdateAnimation(0.3f);
+            inst->StopOneShot(0.0f);
+            CHECK_FALSE(inst->IsPlayingOneShot());
+        }
+    }
+
+    TEST_CASE("An upper-body one-shot leaves bones outside the mask untouched") {
+        auto skel = MakeTwoBoneSkeleton(); // mask: root 0, spine 1
+        auto seq = UAnimSequence::Create("Both");
+        seq->SetDuration(1.0f);
+        seq->SetSampleRate(30.0f);
+        for (const char* bone : {"root", "spine"}) {
+            FAnimBoneTrack track;
+            track.BoneName = bone;
+            track.RotationKeys.push_back({0.0f, glm::angleAxis(glm::radians(60.0f), glm::vec3(0, 1, 0))});
+            track.RotationKeys.push_back({1.0f, glm::angleAxis(glm::radians(60.0f), glm::vec3(0, 1, 0))});
+            seq->GetTracks().push_back(track);
+        }
+        seq->LinkSkeleton(skel);
+
+        auto inst = MakeRef<UAnimInstance>("Inst");
+        inst->Initialize(skel);
+        FAnimOneShotParams params;
+        params.BlendIn = 0.0f;
+        params.BlendOut = 0.0f;
+
+        SUBCASE("full body moves both bones") {
+            inst->PlayOneShot(seq, params);
+            inst->NativeUpdateAnimation(0.5f);
+            FPose pose;
+            inst->Evaluate(pose);
+            CHECK(glm::degrees(glm::angle(pose.LocalTransforms[0].Rotation)) == doctest::Approx(60.0f).epsilon(0.02));
+            CHECK(glm::degrees(glm::angle(pose.LocalTransforms[1].Rotation)) == doctest::Approx(60.0f).epsilon(0.02));
+        }
+
+        SUBCASE("upper body only moves the spine") {
+            params.bUpperBodyOnly = true;
+            inst->PlayOneShot(seq, params);
+            inst->NativeUpdateAnimation(0.5f);
+            FPose pose;
+            inst->Evaluate(pose);
+            CHECK(glm::degrees(glm::angle(pose.LocalTransforms[0].Rotation)) == doctest::Approx(0.0f).epsilon(0.01));
+            CHECK(glm::degrees(glm::angle(pose.LocalTransforms[1].Rotation)) == doctest::Approx(60.0f).epsilon(0.02));
+        }
+    }
+
     TEST_CASE("ACharacter writes anim rep state from movement") {
         auto world = UWorld::Create("AnimWorld");
         auto* character = world->SpawnActor<ACharacter>("Hero");

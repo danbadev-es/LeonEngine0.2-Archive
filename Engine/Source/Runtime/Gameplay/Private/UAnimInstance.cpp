@@ -1,6 +1,8 @@
 #include "Gameplay/UAnimInstance.hpp"
 #include "Assets/FAnimRuntime.hpp"
 
+#include <algorithm>
+
 namespace Leon {
 
     UAnimInstance::UAnimInstance(const std::string& InName) : UObject(InName) {}
@@ -41,6 +43,48 @@ namespace Leon {
     void UAnimInstance::NativeUpdateAnimation(float InDeltaSeconds) {
         AnimTime += InDeltaSeconds;
         StateMachine.Update(InDeltaSeconds, *this);
+
+        if (OneShotSequence) {
+            OneShotTime += InDeltaSeconds * std::max(OneShotParams.PlayRate, 0.0f);
+            if (OneShotTime >= OneShotEndTime)
+                OneShotSequence = nullptr; // finished: the graph shows through again
+        }
+    }
+
+    void UAnimInstance::PlayOneShot(const TRef<UAnimSequence>& InSeq, const FAnimOneShotParams& InParams) {
+        OneShotSequence = InSeq;
+        OneShotParams = InParams;
+        OneShotTime = 0.0f;
+        OneShotEndTime = InSeq ? InSeq->GetDuration() : 0.0f;
+        if (OneShotSequence && Skeleton)
+            OneShotSequence->LinkSkeleton(Skeleton);
+        if (OneShotEndTime <= 0.0f)
+            OneShotSequence = nullptr;
+    }
+
+    void UAnimInstance::StopOneShot(float InBlendOut) {
+        if (!OneShotSequence)
+            return;
+        if (InBlendOut >= 0.0f)
+            OneShotParams.BlendOut = InBlendOut;
+        if (OneShotParams.BlendOut <= 0.0f) {
+            OneShotSequence = nullptr;
+            return;
+        }
+        // Fade from the current weight: shorten the remaining time to that fraction of the blend-out.
+        const float weight = GetOneShotWeight();
+        OneShotEndTime = std::min(OneShotEndTime, OneShotTime + OneShotParams.BlendOut * weight);
+    }
+
+    float UAnimInstance::GetOneShotWeight() const {
+        if (!OneShotSequence)
+            return 0.0f;
+        float weight = 1.0f;
+        if (OneShotParams.BlendIn > 0.0f)
+            weight = std::min(weight, OneShotTime / OneShotParams.BlendIn);
+        if (OneShotParams.BlendOut > 0.0f)
+            weight = std::min(weight, (OneShotEndTime - OneShotTime) / OneShotParams.BlendOut);
+        return std::clamp(weight, 0.0f, 1.0f);
     }
 
     void UAnimInstance::Evaluate(FPose& OutPose) {
@@ -61,6 +105,23 @@ namespace Leon {
             FPose layered;
             FAnimRuntime::LayeredBlend(OutPose, upper, UpperBodyMask, layered);
             OutPose = std::move(layered);
+        }
+
+        // One-shot on top of everything else.
+        const float oneShotWeight = GetOneShotWeight();
+        if (OneShotSequence && oneShotWeight > 0.0f) {
+            FPose shot;
+            FAnimRuntime::SampleSequence(*OneShotSequence, *Skeleton, OneShotTime, false, shot);
+            FPose blended;
+            if (OneShotParams.bUpperBodyOnly && !UpperBodyMask.empty()) {
+                std::vector<float> weights = UpperBodyMask;
+                for (float& w : weights)
+                    w *= oneShotWeight;
+                FAnimRuntime::LayeredBlend(OutPose, shot, weights, blended);
+            } else {
+                FAnimRuntime::BlendPoses(OutPose, shot, oneShotWeight, blended);
+            }
+            OutPose = std::move(blended);
         }
     }
 
@@ -86,6 +147,7 @@ namespace Leon {
     void UAnimInstance::ResetPoseState() {
         AnimTime = 0.0f;
         ClearOverrideSequence();
+        OneShotSequence = nullptr;
         SetUpperBodySequence(nullptr);
         SetBool("bIsDead", false);
         SetBool("bIsFalling", false);

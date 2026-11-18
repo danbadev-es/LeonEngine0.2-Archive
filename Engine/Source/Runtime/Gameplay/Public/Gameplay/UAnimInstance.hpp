@@ -13,6 +13,15 @@
 
 namespace Leon {
 
+    /** How a one-shot animation is layered on top of the state machine. */
+    struct FAnimOneShotParams {
+        float BlendIn = 0.12f;
+        float BlendOut = 0.18f;
+        /** Only bones in the skeleton upper-body mask are affected; the legs keep following locomotion. */
+        bool bUpperBodyOnly = false;
+        float PlayRate = 1.0f;
+    };
+
     /**
      * Generic animation evaluation host. Named float/bool parameters feed the state machine
      * and blend spaces. Game subclasses set parameters and build the graph.
@@ -53,6 +62,20 @@ namespace Leon {
         void ClearOverrideSequence();
         void ResetPoseState();
 
+        /**
+         * Plays a sequence once over whatever the graph is doing (attack, hit reaction, interaction),
+         * blending in and out, then removes itself. Unlike the override it does not replace the state
+         * machine or hold its last frame. There is no completion callback on purpose: gameplay timing
+         * belongs to gameplay code, poll IsPlayingOneShot() if needed.
+         */
+        void PlayOneShot(const TRef<UAnimSequence>& InSeq, const FAnimOneShotParams& InParams = {});
+        /** Fades the current one-shot out over its BlendOut time (or InBlendOut when >= 0). */
+        void StopOneShot(float InBlendOut = -1.0f);
+        bool IsPlayingOneShot() const { return OneShotSequence != nullptr; }
+        float GetOneShotTime() const { return OneShotTime; }
+        /** Current blend weight of the one-shot, 0..1. */
+        float GetOneShotWeight() const;
+
         float GetAnimTime() const { return AnimTime; }
 
     protected:
@@ -62,6 +85,10 @@ namespace Leon {
         TRef<UAnimSequence> OverrideSequence;
         bool bOverrideLoop = true;
         float AnimTime = 0.0f;
+        TRef<UAnimSequence> OneShotSequence;
+        FAnimOneShotParams OneShotParams;
+        float OneShotTime = 0.0f;
+        float OneShotEndTime = 0.0f;
         std::vector<float> UpperBodyMask;
         std::string BlendParamX = "Speed";
         std::string BlendParamY = "Direction";
