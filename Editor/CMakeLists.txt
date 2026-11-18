@@ -43,6 +43,9 @@ include("${LEON_ENGINE_ROOT}/CMake/LeonEngineStack.cmake")
 include("${LEON_ENGINE_ROOT}/CMake/EditorDependencies.cmake")
 include("${LEON_ENGINE_ROOT}/CMake/LeonCompileOptions.cmake")
 include("${LEON_ENGINE_ROOT}/CMake/EditorTournamentModule.cmake")
+# LeonHorror is linked in-process too; its source list lives with the project.
+include("${LEON_ENGINE_ROOT}/Projects/LeonHorror/Sources.cmake")
+leonhorror_add_game_library()
 
 add_library(LeonEditorCore STATIC
     Source/Private/FEditorApp.cpp
@@ -94,10 +97,11 @@ target_link_libraries(LeonEditorCore PUBLIC
     Leon::Jolt
     Leon::ENet
     LeonTournamentGame
+    LeonHorrorGame
     imgui
 )
 
-target_compile_definitions(LeonEditorCore PUBLIC LEON_EDITOR_HAS_TOURNAMENT_MODULE=1)
+target_compile_definitions(LeonEditorCore PUBLIC LEON_EDITOR_HAS_TOURNAMENT_MODULE=1 LEON_EDITOR_HAS_HORROR_MODULE=1)
 
 if(WIN32)
     target_link_libraries(LeonEditorCore PUBLIC comdlg32 ole32)

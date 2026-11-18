@@ -16,6 +16,9 @@
 #if defined(LEON_EDITOR_HAS_TOURNAMENT_MODULE)
 extern "C" void LE_RegisterGameModule(Leon::UClassRegistry& InRegistry, Leon::FGameModuleHooks& OutHooks);
 #endif
+#if defined(LEON_EDITOR_HAS_HORROR_MODULE)
+#include "LeonHorror/LeonHorrorModule.hpp"
+#endif
 
 namespace fs = std::filesystem;
 
@@ -51,9 +54,19 @@ namespace Leon::Editor {
             LE_CORE_INFO("FGameModuleLoader: Registered in-process game module '{}'", InProjectName);
             return true;
         }
-#else
-        (void)InProjectName;
 #endif
+#if defined(LEON_EDITOR_HAS_HORROR_MODULE)
+        if (InProjectName == "LeonHorror") {
+            Hooks = {};
+            RegisterLeonHorrorModule(UClassRegistry::Get(), Hooks);
+            if (Hooks.GameInstanceFactory)
+                UEngine::SetGameInstanceFactory(Hooks.GameInstanceFactory);
+            bLoaded = true;
+            LE_CORE_INFO("FGameModuleLoader: Registered in-process game module '{}'", InProjectName);
+            return true;
+        }
+#endif
+        (void)InProjectName;
         return false;
     }
 

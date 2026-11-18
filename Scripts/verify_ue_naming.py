@@ -54,8 +54,8 @@ ALLOWED_UNPREFIXED_ALIASES = {"Ref", "Scope"}
 RE_SCENE = re.compile(r"\b(FSceneRenderer|GetSceneRenderer|class SceneRenderer)\b")
 RE_MEMBER_M = re.compile(r"\bm_[A-Za-z]\w*")
 RE_MEMBER_S = re.compile(r"\bs_[A-Za-z]\w*")
-RE_ENGINE_PROJECT_PATH = re.compile(r"Projects[/\\](Sandbox|LeonTournament)")
-RE_ENGINE_PRODUCT = re.compile(r"\b(Sandbox|LeonTournament)\b")
+RE_ENGINE_PROJECT_PATH = re.compile(r"Projects[/\\](Sandbox|LeonTournament|LeonHorror)")
+RE_ENGINE_PRODUCT = re.compile(r"\b(Sandbox|LeonTournament|LeonHorror)\b")
 # Docs/NAMING.md sections 1-2: EnTT PODs are F*Component; U*Component only for UActorComponent subclasses
 RE_U_COMPONENT_STRUCT = re.compile(r"struct\s+U[A-Za-z0-9_]*Component\b")
 # Docs/NAMING.md section 1: F* is value/struct prefix — must not inherit UObject-style U*

@@ -234,6 +234,7 @@ namespace Leon::Editor {
 
         addIfMissing("Projects/Sandbox/Sandbox.lproject");
         addIfMissing("Projects/LeonTournament/LeonTournament.lproject");
+        addIfMissing("Projects/LeonHorror/LeonHorror.lproject");
     }
 
     void FProjectHubPanel::SaveRecentProjects(const std::string& InSavedDir) {

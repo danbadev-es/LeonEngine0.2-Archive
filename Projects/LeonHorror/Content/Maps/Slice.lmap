@@ -1,0 +1,76 @@
+# LeonEngine2 Map Asset File (.lmap)
+Map:
+  Name: "Slice"
+  Version: "2.2"
+
+Environment:
+  WorldSettings:
+    GameModeClass: "ALeonHorrorGameMode"
+    StaticLighting: false
+    LightingBuildQuality: Draft
+    LightmapResolution: 64
+    NumIndirectBounces: 2
+    SamplesPerTexel: 8
+    IndirectIntensity: 1
+    AmbientOcclusion: true
+    AOIntensity: 1
+    AORadius: 1
+    TexelPadding: 2
+    WorldScale: 1
+  Skybox:
+    Enabled: false
+    Exposure: 0.9
+    SunIntensity: 0
+    EnvironmentIntensity: 0.05
+    UseHDREnvironmentMap: false
+    SkyZenithColor: [0.01, 0.012, 0.02]
+    HorizonColor: [0.02, 0.022, 0.03]
+    GroundColor: [0.005, 0.005, 0.008]
+    SunColor: [0.3, 0.32, 0.4]
+
+Actors:
+  - Name: "PlayerStart"
+    Class: "APlayerStart"
+    GUID: "4c454f4e484f5252000000000000a001"
+    Transform:
+      Translation: [0, 1.8, 3]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+  - Name: "Floor"
+    Class: "AActor"
+    GUID: "4c454f4e484f5252000000000000a002"
+    Transform:
+      Translation: [0, -0.25, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 12
+      Height: 0.5
+      Depth: 12
+      Radius: 0.5
+      MetersPerUv: 2
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorFloor.lmat"
+  - Name: "RoomLight"
+    Class: "AActor"
+    GUID: "4c454f4e484f5252000000000000a003"
+    Transform:
+      Translation: [0, 2.6, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.82, 0.6]
+      Intensity: 4
+      Radius: 9
+      Mobility: Stationary

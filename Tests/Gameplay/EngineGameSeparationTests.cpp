@@ -23,6 +23,7 @@ TEST_SUITE("Engine / Game separation") {
             "UShooter",
             "LeonTournament",
             "Projects/LeonTournament",
+            "LeonHorror",
             "SetupDefaultTPSGraph",
             "IsFiring",
             "FlagFiring",
