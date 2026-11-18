@@ -46,11 +46,6 @@ namespace Leon {
         virtual void OnEvent(FEvent& InEvent);
         virtual void OnShutdown() {}
 
-        /**
-         * Called by whoever draws the final image, before drawing into the back buffer, so the
-         * application knows it does not need to clear it.
-         */
-        void NotifyBackBufferDrawn() { bBackBufferUntouched = false; }
 
         FWindow& GetWindow() { return *AppWindow; }
         /** The window's swapchain; null when the application runs without a GPU backend. */
@@ -90,8 +85,6 @@ namespace Leon {
         TScope<IGraphicsContext> GraphicsContext;
         TScope<IRHISwapchain> Swapchain;
         IRHICommandList* FrameCommands = nullptr;
-        /** True until something has drawn into the back buffer this frame. */
-        bool bBackBufferUntouched = true;
         std::chrono::high_resolution_clock::time_point WindowCreationTime;
         bool bRunning = true;
         bool bMinimized = false;

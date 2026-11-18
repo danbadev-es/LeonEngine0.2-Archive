@@ -1,4 +1,6 @@
 #include "UMG/FUIRenderer.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FRenderCommand.hpp"
 
@@ -239,58 +241,27 @@ namespace Leon {
     }
 
     void FUIRenderer::Flush(bool bUseTexture) {
-        if (!Shader)
-            return;
-
-        Shader->Bind();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(OrthoMatrix));
-        Shader->SetInt("u_UseTexture", bUseTexture ? 1 : 0);
-
-        if (bUseTexture) {
-            Shader->SetInt("u_FontTexture", 0);
-            if (FontTexture)
-                FontTexture->Bind(0);
-        }
-
+        // FUIVertex is laid out exactly like the canvas vertex, so the arrays are passed as they are.
+        static_assert(sizeof(FUIVertex) == sizeof(FCanvasVertex), "FUIVertex must match FCanvasVertex");
         const auto& vertices = bUseTexture ? TextVertices : QuadVertices;
         if (vertices.empty())
             return;
-
-        VertexBuffer->SetData(vertices.data(), static_cast<unsigned int>(vertices.size() * sizeof(FUIVertex)));
-        VertexArray->Bind();
-        FRenderCommand::DrawArrays(VertexArray, static_cast<unsigned int>(vertices.size()));
+        IRHITexture* atlas = (bUseTexture && FontTexture) ? GetRHITexture(*FontTexture) : nullptr;
+        if (bUseTexture && !atlas)
+            return;
+        FCanvasRHI::DrawTriangles(reinterpret_cast<const FCanvasVertex*>(vertices.data()),
+                                  static_cast<uint32_t>(vertices.size()), OrthoMatrix, atlas);
     }
 
     void FUIRenderer::FlushTextured(const TRef<FTexture2D>& InTexture, const std::vector<FUIVertex>& InVertices) {
-        if (!Shader || !InTexture || InVertices.empty())
+        if (!InTexture || InVertices.empty())
             return;
-
-        FRenderCommand::SetDepthTesting(false);
-        FRenderCommand::SetCulling(false);
-        FRenderCommand::SetBlendState(true);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
-
-        Shader->Bind();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(OrthoMatrix));
-        Shader->SetInt("u_UseTexture", 1);
-        Shader->SetInt("u_FontTexture", 0);
-        InTexture->Bind(0);
-
-        VertexBuffer->SetData(InVertices.data(), static_cast<unsigned int>(InVertices.size() * sizeof(FUIVertex)));
-        VertexArray->Bind();
-        FRenderCommand::DrawArrays(VertexArray, static_cast<unsigned int>(InVertices.size()));
+        if (IRHITexture* texture = GetRHITexture(*InTexture))
+            FCanvasRHI::DrawTriangles(reinterpret_cast<const FCanvasVertex*>(InVertices.data()),
+                                      static_cast<uint32_t>(InVertices.size()), OrthoMatrix, texture);
     }
 
     void FUIRenderer::End() {
-        if (!Shader)
-            return;
-
-        // Configure UI pipeline states (Depth test OFF, Blending ON)
-        FRenderCommand::SetDepthTesting(false);
-        FRenderCommand::SetCulling(false);
-        FRenderCommand::SetBlendState(true);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
-
         // 1. Draw all opaque and tinted background quads
         if (!QuadVertices.empty()) {
             Flush(false);
@@ -302,11 +273,6 @@ namespace Leon {
             Flush(true);
             TextVertices.clear();
         }
-
-        // Restore default state so the next frame does not inherit UI blend
-        FRenderCommand::SetDepthTesting(true);
-        FRenderCommand::SetCulling(true, ECullMode::Back);
-        FRenderCommand::SetBlendState(false);
     }
 
 } // namespace Leon

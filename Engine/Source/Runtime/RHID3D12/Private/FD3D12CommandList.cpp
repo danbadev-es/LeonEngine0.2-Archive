@@ -137,6 +137,20 @@ namespace Leon {
         List->IASetIndexBuffer(&view);
     }
 
+    void FD3D12CommandList::SetVertexData(const void* InData, uint32_t InSize, uint32_t InStride) {
+        if (!List || !InData || InSize == 0 || InStride == 0)
+            return;
+        // The frame's constant memory is plain upload memory; vertices can live there just as well.
+        const D3D12_GPU_VIRTUAL_ADDRESS address = Device.AllocateConstants(InData, InSize);
+        if (!address)
+            return;
+        D3D12_VERTEX_BUFFER_VIEW view{};
+        view.BufferLocation = address;
+        view.SizeInBytes = InSize;
+        view.StrideInBytes = InStride;
+        List->IASetVertexBuffers(0, 1, &view);
+    }
+
     void FD3D12CommandList::SetConstants(ERHIConstantSlot InSlot, const void* InData, uint32_t InSize) {
         if (!List || !InData || InSize == 0)
             return;

@@ -58,6 +58,13 @@ namespace Leon {
         virtual void SetIndexBuffer(IRHIBuffer* InBuffer) = 0;
 
         /**
+         * Copies InSize bytes of vertices into this frame's memory and binds them as the vertex buffer.
+         * For geometry rebuilt every frame (UI, debug lines, particles): there is no buffer to create
+         * or keep, and the data is captured at the call like SetConstants.
+         */
+        virtual void SetVertexData(const void* InData, uint32_t InSize, uint32_t InStride) = 0;
+
+        /**
          * Copies InSize bytes into this frame's constant memory and binds them at the slot. The data
          * is captured at the call: each draw sees exactly what was set before it, however many times
          * a slot is rewritten in a frame.

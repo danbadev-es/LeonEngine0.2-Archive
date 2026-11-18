@@ -1,4 +1,5 @@
 #include "RHI/IRHIDevice.hpp"
+#include "RHI/FRHIFrame.hpp"
 
 #include "Core/FLog.hpp"
 
@@ -98,6 +99,29 @@ namespace Leon {
 
     IRHIDevice* FRHI::GetDevice() {
         return DeviceSlot().get();
+    }
+
+    namespace {
+        IRHICommandList* GFrameCommands = nullptr;
+        IRHITexture* GFrameOutput = nullptr;
+    } // namespace
+
+    void FRHIFrame::Begin(IRHICommandList& InCommands, IRHITexture& InOutput) {
+        GFrameCommands = &InCommands;
+        GFrameOutput = &InOutput;
+    }
+
+    void FRHIFrame::End() {
+        GFrameCommands = nullptr;
+        GFrameOutput = nullptr;
+    }
+
+    IRHICommandList* FRHIFrame::GetCommands() {
+        return GFrameCommands;
+    }
+
+    IRHITexture* FRHIFrame::GetOutput() {
+        return GFrameOutput;
     }
 
 } // namespace Leon

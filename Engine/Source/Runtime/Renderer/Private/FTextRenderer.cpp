@@ -1,4 +1,6 @@
 #include "Renderer/FTextRenderer.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FRenderCommand.hpp"
 
@@ -94,30 +96,13 @@ namespace Leon {
     }
 
     void FTextRenderer::Flush() {
-        if (Vertices.empty() || !Shader || !FontTexture)
+        if (Vertices.empty() || !FontTexture)
             return;
-
-        // Enable Alpha Blending with depth testing
-        FRenderCommand::SetBlendState(true);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
-        FRenderCommand::SetDepthTesting(true);
-        FRenderCommand::SetDepthMask(true);
-
-        Shader->Bind();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(ViewProjection));
-        Shader->SetMat4("u_Model", glm::value_ptr(glm::mat4(1.0f))); // Vertices are in world space
-
-        FontTexture->Bind(0);
-        Shader->SetInt("u_FontAtlas", 0);
-
-        VertexBuffer->SetData(Vertices.data(), static_cast<unsigned int>(Vertices.size() * sizeof(FTextVertex)));
-
-        VertexArray->Bind();
-        FRenderCommand::DrawArrays(VertexArray, static_cast<unsigned int>(Vertices.size()));
-
+        // Vertices are in world space; the world renderer draws them inside its scene pass.
+        static_assert(sizeof(FTextVertex) == 36, "FTextVertex must match ESceneBatch::Text");
+        if (IRHITexture* atlas = GetRHITexture(*FontTexture))
+            FSceneBatchesRHI::Submit(ESceneBatch::Text, Vertices.data(), static_cast<uint32_t>(Vertices.size()), atlas);
         Vertices.clear();
-        FRenderCommand::SetBlendState(false);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
     }
 
     glm::vec2 FTextRenderer::MeasureString(const std::string& InText, float InSize) {

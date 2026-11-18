@@ -10,6 +10,8 @@
 #include "RHI/FRenderer.hpp"
 #include "RHI/FRenderCommand.hpp"
 #include "Renderer/FTextRenderer.hpp"
+#include "RHI/FRHIFrame.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "Renderer/FShaderLibrary.hpp"
 #include "Physics/IPhysicsScene.hpp"
 
@@ -80,6 +82,7 @@ namespace Leon {
         FDebugRenderer::Shutdown();
         UAssetManager::Shutdown();
         FRenderer::Shutdown();
+        ShutdownImmediateDrawRHI();
         FShaderLibrary::Clear();
         // The swapchain's images must be gone before the device.
         if (IRHIDevice* device = FRHI::GetDevice())
@@ -192,7 +195,16 @@ namespace Leon {
             const bool bRenderFrame = device && Swapchain && !bMinimized;
             if (bRenderFrame) {
                 FrameCommands = &device->BeginFrame();
-                bBackBufferUntouched = true;
+                // Start from a known image: whatever draws this frame (world, HUD, overlays) goes on
+                // top, and with nothing drawing the window shows this colour.
+                FRHIRenderPassDesc pass;
+                pass.NumColorTargets = 1;
+                pass.Color[0].Texture = Swapchain->GetBackBuffer();
+                pass.Color[0].ClearColor = {0.02f, 0.03f, 0.05f, 1.0f};
+                pass.Name = "ClearBackBuffer";
+                FrameCommands->BeginRenderPass(pass);
+                FrameCommands->EndRenderPass();
+                FRHIFrame::Begin(*FrameCommands, *Swapchain->GetBackBuffer());
             }
 
             if (!bMinimized) {
@@ -212,17 +224,7 @@ namespace Leon {
             {
                 const auto presentStart = std::chrono::high_resolution_clock::now();
                 if (bRenderFrame) {
-                    // Nothing drew the final image (no world, or the renderer is not on this RHI yet):
-                    // show a cleared frame rather than whatever the back buffer held.
-                    if (bBackBufferUntouched) {
-                        FRHIRenderPassDesc pass;
-                        pass.NumColorTargets = 1;
-                        pass.Color[0].Texture = Swapchain->GetBackBuffer();
-                        pass.Color[0].ClearColor = {0.02f, 0.03f, 0.05f, 1.0f};
-                        pass.Name = "ClearBackBuffer";
-                        FrameCommands->BeginRenderPass(pass);
-                        FrameCommands->EndRenderPass();
-                    }
+                    FRHIFrame::End();
                     FrameCommands = nullptr;
                     device->EndFrame();
                 }

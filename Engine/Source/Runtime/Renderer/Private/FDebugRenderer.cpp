@@ -1,4 +1,6 @@
 #include "Renderer/FDebugRenderer.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "Renderer/FShadowMath.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FRenderCommand.hpp"
@@ -56,39 +58,13 @@ namespace Leon {
     }
 
     void FDebugRenderer::Flush(bool bDepthTest) {
-        if (LineVertices.empty() || !Shader)
+        if (LineVertices.empty())
             return;
-
-        // Depth-test against the scene so meshes occlude traces/colliders; do not write depth.
-        FRenderCommand::SetBlendState(true);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
-        FRenderCommand::SetDepthTesting(bDepthTest);
-        FRenderCommand::SetDepthMask(false);
-        if (bDepthTest) {
-            FRenderCommand::SetDepthFunc(EDepthFunc::LessEqual);
-            FRenderCommand::SetPolygonOffset(true, -1.0f, -2.0f);
-        }
-        FRenderCommand::SetCulling(false);
-
-        Shader->Bind();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(ViewProjection));
-        Shader->SetMat4("u_Model", glm::value_ptr(glm::mat4(1.0f)));
-
-        VertexBuffer->SetData(LineVertices.data(),
-                              static_cast<unsigned int>(LineVertices.size() * sizeof(FDebugVertex)));
-
-        VertexArray->Bind();
-        // Core GL only guarantees line width 1.0; values > 1.0 are deprecated and spam GL debug.
-        FRenderCommand::SetLineWidth(1.0f);
-        FRenderCommand::DrawLines(VertexArray, static_cast<unsigned int>(LineVertices.size()));
-
-        FRenderCommand::SetPolygonOffset(false);
-        FRenderCommand::SetDepthTesting(true);
-        FRenderCommand::SetDepthMask(true);
-        FRenderCommand::SetDepthFunc(EDepthFunc::Less);
-        FRenderCommand::SetCulling(true, ECullMode::Back);
-        FRenderCommand::SetBlendState(false);
-
+        // The world renderer draws the lines inside its scene pass: with depth testing meshes hide
+        // traces and colliders, without it they show through.
+        static_assert(sizeof(FDebugVertex) == 28, "FDebugVertex must match ESceneBatch::Lines");
+        FSceneBatchesRHI::Submit(bDepthTest ? ESceneBatch::Lines : ESceneBatch::LinesOnTop, LineVertices.data(),
+                                 static_cast<uint32_t>(LineVertices.size()));
         LineVertices.clear();
     }
 

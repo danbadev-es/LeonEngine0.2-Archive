@@ -1,4 +1,6 @@
 #include "Renderer/FParticleRenderer.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/FParticleTypes.hpp"
 #include "Engine/UWorld.hpp"
@@ -102,24 +104,9 @@ namespace Leon {
         if (verts.empty())
             return;
 
-        FRenderCommand::SetBlendState(true);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::One);
-        FRenderCommand::SetDepthTesting(true);
-        FRenderCommand::SetDepthMask(false);
-        FRenderCommand::SetCulling(false);
-
-        Shader->Bind();
-        glm::mat4 vp = InCamera.GetViewProjectionMatrix();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(vp));
-        Shader->SetMat4("u_Model", glm::value_ptr(glm::mat4(1.0f)));
-        VertexBuffer->SetData(verts.data(), static_cast<unsigned int>(verts.size() * sizeof(FVertex)));
-        VertexArray->Bind();
-        FRenderCommand::DrawArrays(VertexArray, static_cast<unsigned int>(verts.size()));
-
-        FRenderCommand::SetBlendState(false);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
-        FRenderCommand::SetDepthMask(true);
-        FRenderCommand::SetCulling(true, ECullMode::Back);
+        // Camera-facing quads in world space, added to the image by the world renderer's scene pass.
+        static_assert(sizeof(FVertex) == 28, "FVertex must match ESceneBatch::AdditiveTriangles");
+        FSceneBatchesRHI::Submit(ESceneBatch::AdditiveTriangles, verts.data(), static_cast<uint32_t>(verts.size()));
     }
 
 } // namespace Leon

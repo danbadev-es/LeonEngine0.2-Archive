@@ -4,8 +4,9 @@
 // Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
 // lightmaps, image-based lighting, fog and shadows (sun cascades, one spot light, point lights), plus
 // skinned outlines and the sky, into an HDR target that FPostProcessRHI turns into the final image
-// (ambient occlusion, bloom, tone mapping, anti-aliasing).
-// Still to come: UI and debug drawing, reflections.
+// (ambient occlusion, bloom, tone mapping, anti-aliasing). World-space text, debug lines and particles
+// submitted through FSceneBatchesRHI are drawn at the end of the scene pass.
+// Still to come: planar reflections.
 //
 // The old Render() still runs first each frame; this code relies on it for work that is not drawing:
 // the image-based lighting environment, level-of-detail selection, light/transform syncing and
@@ -27,6 +28,7 @@
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FTextureCube.hpp"
 #include "RHI/IRHIDevice.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "Renderer/FLight.hpp"
 #include "Renderer/FMaterialInstance.hpp"
 #include "Renderer/FShaderLibrary.hpp"
@@ -1096,6 +1098,7 @@ namespace Leon {
             InCommands.PopMarker();
         }
         drawAll(transparent, "Transparent");
+        FSceneBatchesRHI::Flush(InCommands, ERHIFormat::RGBA16_Float, ERHIFormat::D32_Float);
         InCommands.EndRenderPass();
 
         // --- HDR scene to the output ---

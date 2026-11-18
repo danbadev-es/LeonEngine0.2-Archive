@@ -1,4 +1,6 @@
 #include "Renderer/FDebugOverlay.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
+#include "Renderer/FImmediateDrawRHI.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FRenderCommand.hpp"
@@ -144,22 +146,13 @@ namespace Leon {
     }
 
     void FDebugOverlay::Flush(const glm::mat4& InOrthoMatrix) {
-        if (Vertices.empty() || !Shader)
+        // FOverlayVertex is laid out exactly like the canvas vertex, so the array is passed as it is.
+        static_assert(sizeof(FOverlayVertex) == sizeof(FCanvasVertex), "FOverlayVertex must match FCanvasVertex");
+        if (Vertices.empty())
             return;
-
-        Shader->Bind();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(InOrthoMatrix));
-        Shader->SetInt("u_UseTexture", 1);
-        Shader->SetInt("u_FontTexture", 0);
-
-        if (FontTexture)
-            FontTexture->Bind(0);
-
-        VertexBuffer->SetData(Vertices.data(), static_cast<unsigned int>(Vertices.size() * sizeof(FOverlayVertex)));
-
-        VertexArray->Bind();
-        FRenderCommand::DrawArrays(VertexArray, static_cast<unsigned int>(Vertices.size()));
-
+        if (IRHITexture* atlas = FontTexture ? GetRHITexture(*FontTexture) : nullptr)
+            FCanvasRHI::DrawTriangles(reinterpret_cast<const FCanvasVertex*>(Vertices.data()),
+                                      static_cast<uint32_t>(Vertices.size()), InOrthoMatrix, atlas);
         Vertices.clear();
     }
 
@@ -225,9 +218,8 @@ namespace Leon {
 
         // Flush panel geometry
         if (!Vertices.empty()) {
-            VertexBuffer->SetData(Vertices.data(), static_cast<unsigned int>(Vertices.size() * sizeof(FOverlayVertex)));
-            VertexArray->Bind();
-            FRenderCommand::DrawArrays(VertexArray, static_cast<unsigned int>(Vertices.size()));
+            FCanvasRHI::DrawTriangles(reinterpret_cast<const FCanvasVertex*>(Vertices.data()),
+                                      static_cast<uint32_t>(Vertices.size()), ortho, nullptr);
             Vertices.clear();
         }
 

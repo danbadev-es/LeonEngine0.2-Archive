@@ -123,6 +123,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Renderer/Private/FWorldRendererPostProcess.cpp
     Source/Runtime/Renderer/Private/FWorldRendererRHI.cpp
     Source/Runtime/Renderer/Private/FPostProcessRHI.cpp
+    Source/Runtime/Renderer/Private/FImmediateDrawRHI.cpp
     Source/Runtime/Renderer/Private/FShaderLibrary.cpp
     Source/Runtime/Renderer/Private/FMaterial.cpp
     Source/Runtime/Renderer/Private/FMaterialInstance.cpp

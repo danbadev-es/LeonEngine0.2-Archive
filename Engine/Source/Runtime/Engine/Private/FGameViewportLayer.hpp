@@ -85,7 +85,6 @@ namespace Leon {
                     IRHISwapchain* swapchain = application.GetSwapchain();
                     FWorldRenderer* renderer = World->GetWorldRenderer();
                     if (commands && swapchain && renderer && swapchain->GetBackBuffer()) {
-                        application.NotifyBackBufferDrawn();
                         renderer->RenderRHI(activeCamera, *commands, *swapchain->GetBackBuffer());
                     }
                 }
