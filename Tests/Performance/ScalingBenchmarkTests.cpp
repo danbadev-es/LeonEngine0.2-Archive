@@ -19,6 +19,18 @@
 #include <string>
 #include <vector>
 
+// Absolute time budgets only hold for optimised builds. Unoptimised Debug builds (checked iterators,
+// no inlining) run these loops 50-90x slower, so there the numbers are reported but do not gate the suite.
+#ifdef NDEBUG
+#define LE_PERF_CHECK(expr) CHECK(expr)
+#else
+#define LE_PERF_CHECK(expr)                                                                                            \
+    do {                                                                                                               \
+        if (!(expr))                                                                                                   \
+            MESSAGE("perf budget exceeded in a Debug build (not gating): " #expr);                                     \
+    } while (0)
+#endif
+
 namespace {
 
     float TimeWorldTicks(Leon::UWorld& InWorld, int InFrames, float InDt = 1.0f / 60.0f) {
@@ -45,7 +57,7 @@ TEST_SUITE("Performance scaling benchmarks") {
         const int frames = 120;
         const float ms = TimeWorldTicks(*world, frames);
         Report("EmptyWorld", 0, ms, frames);
-        CHECK(ms / frames < 2.0f);
+        LE_PERF_CHECK(ms / frames < 2.0f);
     }
 
     TEST_CASE("static actor tick scaling") {
@@ -95,7 +107,7 @@ TEST_SUITE("Performance scaling benchmarks") {
             const float worldMs = TimeWorldTicks(*world, frames);
             Report("PhysicsBodies", count, physMs, frames);
             Report("PhysicsWorldTick", count, worldMs, frames);
-            CHECK(physMs / frames < 8.0f);
+            LE_PERF_CHECK(physMs / frames < 8.0f);
         }
         Leon::FPhysicsModule::Unregister();
     }
@@ -112,7 +124,7 @@ TEST_SUITE("Performance scaling benchmarks") {
             }
             const float ms = TimeWorldTicks(*world, frames);
             Report("Characters", count, ms, frames);
-            CHECK(ms / frames < 16.0f);
+            LE_PERF_CHECK(ms / frames < 16.0f);
         }
     }
 
@@ -132,7 +144,7 @@ TEST_SUITE("Performance scaling benchmarks") {
             }
             const float ms = TimeWorldTicks(*world, frames);
             Report("AIControllers", count, ms, frames);
-            CHECK(ms / frames < 16.0f);
+            LE_PERF_CHECK(ms / frames < 16.0f);
         }
     }
 
@@ -152,7 +164,7 @@ TEST_SUITE("Performance scaling benchmarks") {
             fx->Activate(true);
             const float ms = TimeWorldTicks(*world, frames);
             Report("Particles", count, ms, frames);
-            CHECK(ms / frames < 8.0f);
+            LE_PERF_CHECK(ms / frames < 8.0f);
         }
     }
 
@@ -195,6 +207,6 @@ TEST_SUITE("Performance scaling benchmarks") {
         os << "LightBaker small scene ms=" << ms << " texels=" << (scene.AtlasWidth * scene.AtlasHeight);
         MESSAGE(os.str());
         CHECK(baked.size() == static_cast<size_t>(scene.AtlasWidth * scene.AtlasHeight * 4));
-        CHECK(ms < 5000.0f);
+        LE_PERF_CHECK(ms < 5000.0f);
     }
 }
