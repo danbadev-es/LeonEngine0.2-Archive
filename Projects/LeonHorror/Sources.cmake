@@ -12,6 +12,7 @@ set(LEONHORROR_GAME_SOURCES
 set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/Main.cpp"
     "${LEONHORROR_ROOT}/Tests/BootTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/AnimationPipelineTests.cpp"
 )
 
 function(leonhorror_add_game_library)
