@@ -10,7 +10,7 @@ namespace Leon::Editor {
     struct FEditorGameModule {
         /** ProjectName of the .lproject. */
         const char* Name;
-        /** Path of the .lproject, relative to the repository root. */
+        /** Absolute path of the .lproject on the machine that built the editor. */
         const char* ProjectFile;
         /** Registers the game's classes in-process; null when the game is only listed, not linked. */
         FRegisterGameModuleFn Register;
