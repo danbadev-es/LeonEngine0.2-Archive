@@ -54,6 +54,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Renderer/RenderDebugHotkeysTests.cpp
     Core/FrameProfilerTests.cpp
     RHI/RHINullTests.cpp
+    RHI/RHID3D12Tests.cpp
     Core/WindowDisplayPolicyTests.cpp
     Performance/ScalingBenchmarkTests.cpp
 )
@@ -71,6 +72,8 @@ function(leon_configure_test_exe TargetName)
         LeonEngineCore
         LeonEnginePipeline
         LeonModule_RHINull
+        LeonModule_RHID3D12
+        LeonModule_ShaderCompiler
         LeonEngine_Jolt
         LeonEngine_ENet
         doctest

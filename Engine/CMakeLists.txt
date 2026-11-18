@@ -52,6 +52,43 @@ leon_add_module(RHINull
     DEPENDS RHI
 )
 
+# The Direct3D 12 backend.
+leon_add_module(RHID3D12
+    SOURCES
+    Source/Runtime/RHID3D12/Private/FD3D12Device.cpp
+    Source/Runtime/RHID3D12/Private/FD3D12CommandList.cpp
+    DEPENDS RHI
+    PRIVATE_LIBRARIES d3d12 dxgi dxguid
+)
+
+# HLSL -> DXIL with the DirectX Shader Compiler from the Windows SDK. Developer module: a packaged
+# game ships compiled shaders, not the compiler.
+set(LEON_DEVELOPER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Source/Developer")
+leon_add_module(ShaderCompiler
+    ROOT "${LEON_DEVELOPER_ROOT}/ShaderCompiler"
+    SOURCES
+    Source/Developer/ShaderCompiler/Private/FShaderCompiler.cpp
+    DEPENDS RHI
+    PRIVATE_LIBRARIES dxcompiler
+)
+# dxcompiler.dll and dxil.dll (which signs the output so Direct3D accepts it) must sit beside
+# every executable that compiles shaders.
+find_file(LEON_DXCOMPILER_DLL dxcompiler.dll
+    HINTS "$ENV{WindowsSdkDir}/Redist/D3D/x64" "C:/Program Files (x86)/Windows Kits/10/Redist/D3D/x64"
+    NO_DEFAULT_PATH)
+find_file(LEON_DXIL_DLL dxil.dll
+    HINTS "$ENV{WindowsSdkDir}/Redist/D3D/x64" "C:/Program Files (x86)/Windows Kits/10/Redist/D3D/x64"
+    NO_DEFAULT_PATH)
+if(NOT LEON_DXCOMPILER_DLL OR NOT LEON_DXIL_DLL)
+    message(FATAL_ERROR "dxcompiler.dll / dxil.dll not found in the Windows SDK (Redist/D3D/x64)")
+endif()
+add_custom_target(LeonShaderCompilerRuntime ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LEON_DXCOMPILER_DLL}" "${LEON_DXIL_DLL}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    COMMENT "Copying the DirectX Shader Compiler next to the executables"
+)
+add_dependencies(LeonModule_ShaderCompiler LeonShaderCompilerRuntime)
+
 leon_add_module(Platform
     SOURCES
     Source/Runtime/Platform/Private/FInput.cpp
