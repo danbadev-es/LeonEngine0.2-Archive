@@ -1,0 +1,61 @@
+#pragma once
+
+#include "RHI/IRHIDevice.hpp"
+#include "Renderer/FPostProcessPipeline.hpp"
+
+#include <glm/glm.hpp>
+
+#include <map>
+#include <string>
+#include <vector>
+
+namespace Leon {
+
+    /** What a frame gives the post-process chain. */
+    struct FPostProcessInputs {
+        /** Linear HDR colour of the scene. */
+        IRHITexture* SceneColor = nullptr;
+        /** Depth of the scene; must be creatable as a sampled texture. */
+        IRHITexture* SceneDepth = nullptr;
+        /** Where the finished image goes (the window's back buffer, or the editor's viewport). */
+        IRHITexture* Output = nullptr;
+        /** The camera's projection as the scene was drawn with it: clip depth 0..1. */
+        glm::mat4 Projection{1.0f};
+        float Exposure = 1.0f;
+    };
+
+    /**
+     * Turns the HDR scene into the final image on the RHI: ambient occlusion, bloom, tone mapping and
+     * anti-aliasing, in that order. Owns the intermediate targets and recreates them when the output
+     * changes size.
+     *
+     * Replaces FPostProcessPipeline, which is written against the old interfaces; the settings
+     * structure is shared with it.
+     */
+    class FPostProcessRHI {
+    public:
+        /** Call between render passes: it begins and ends its own. */
+        void Render(IRHICommandList& InCommands, const FPostProcessInputs& InInputs,
+                    const FPostProcessSettings& InSettings);
+
+    private:
+        void EnsureTargets(IRHIDevice& InDevice, uint32_t InWidth, uint32_t InHeight);
+        IRHIPipeline* GetPipeline(IRHIDevice& InDevice, const char* InFile, const char* InPixelEntry,
+                                  ERHIFormat InTargetFormat, bool bInAdditive = false);
+
+        uint32_t Width = 0;
+        uint32_t Height = 0;
+        /** Half resolution and smaller, largest first. */
+        std::vector<TRef<IRHITexture>> BloomDown;
+        std::vector<TRef<IRHITexture>> BloomUp;
+        TRef<IRHITexture> Occlusion;
+        TRef<IRHITexture> OcclusionBlur;
+        TRef<IRHITexture> OccludedScene;
+        TRef<IRHITexture> ToneMapped;
+        /** By shader, entry point, target format and blending. Null: the pipeline failed to build. */
+        std::map<std::string, TRef<IRHIPipeline>> Pipelines;
+        glm::vec4 OcclusionKernel[16]{};
+        bool bKernelBuilt = false;
+    };
+
+} // namespace Leon

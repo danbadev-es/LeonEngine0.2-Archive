@@ -3,8 +3,9 @@
 //
 // Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
 // lightmaps, image-based lighting, fog and shadows (sun cascades, one spot light, point lights), plus
-// skinned outlines and the sky, into an HDR target that is then tone mapped to the output.
-// Still to come: bloom/SSAO/FXAA, UI and debug drawing, reflections.
+// skinned outlines and the sky, into an HDR target that FPostProcessRHI turns into the final image
+// (ambient occlusion, bloom, tone mapping, anti-aliasing).
+// Still to come: UI and debug drawing, reflections.
 //
 // The old Render() still runs first each frame; this code relies on it for work that is not drawing:
 // the image-based lighting environment, level-of-detail selection, light/transform syncing and
@@ -12,6 +13,7 @@
 
 #include "Renderer/FWorldRenderer.hpp"
 
+#include "FPostProcessRHI.hpp"
 #include "FWorldRendererInternals.hpp"
 
 #include "Assets/FAnimTypes.hpp"
@@ -144,11 +146,6 @@ namespace Leon {
             glm::vec4 GroundColor;
             glm::vec4 SunColor;
             glm::ivec4 SkyFlags;
-        };
-
-        struct FToneMappingConstants { // ToneMapping.hlsl
-            glm::vec4 ToneParams;
-            glm::ivec4 ToneFlags;
         };
 
         /**
@@ -384,8 +381,7 @@ namespace Leon {
         TRef<IRHITexture> SpotShadowMap;
         TRef<IRHITexture> PointShadowMap;
         std::map<std::string, TRef<IRHIPipeline>> ShadowPipelines;
-        TRef<IRHIPipeline> ToneMappingPipeline;
-        ERHIFormat ToneMappingTargetFormat = ERHIFormat::Unknown;
+        FPostProcessRHI PostProcess;
     };
 
     void FWorldRenderer::RenderRHI(const FPerspectiveCamera& InCamera, IRHICommandList& InCommands,
@@ -415,7 +411,7 @@ namespace Leon {
             depthDesc.Width = width;
             depthDesc.Height = height;
             depthDesc.Format = ERHIFormat::D32_Float;
-            depthDesc.Usage = RHITextureUsage_DepthStencil;
+            depthDesc.Usage = RHITextureUsage_DepthStencil | RHITextureUsage_Sampled; // ambient occlusion reads it
             depthDesc.DebugName = "SceneDepth";
             state.SceneDepth = device->CreateTexture(depthDesc);
         }
@@ -470,8 +466,6 @@ namespace Leon {
         TRef<IRHIShader> shadowLinearPS = FShaderLibrary::Get("ShadowDepth.hlsl", "PSMainLinear", ERHIShaderStage::Pixel);
         TRef<IRHIShader> skyVS = FShaderLibrary::Get("Skybox.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> skyPS = FShaderLibrary::Get("Skybox.hlsl", "PSMain", ERHIShaderStage::Pixel);
-        TRef<IRHIShader> toneVS = FShaderLibrary::Get("ToneMapping.hlsl", "VSMain", ERHIShaderStage::Vertex);
-        TRef<IRHIShader> tonePS = FShaderLibrary::Get("ToneMapping.hlsl", "PSMain", ERHIShaderStage::Pixel);
 
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
                                          const glm::mat4& InModel, bool bInTransparent,
@@ -513,20 +507,6 @@ namespace Leon {
             state.SurfacePipelines[key] = pipeline;
             return pipeline.get();
         };
-
-        if (toneVS && tonePS &&
-            (!state.ToneMappingPipeline || state.ToneMappingTargetFormat != InTarget.GetDesc().Format)) {
-            FRHIGraphicsPipelineDesc desc;
-            desc.VertexShader = toneVS.get();
-            desc.PixelShader = tonePS.get();
-            desc.Raster.Cull = ERHICull::None;
-            desc.Depth.bTest = false;
-            desc.Depth.bWrite = false;
-            desc.ColorFormats[0] = InTarget.GetDesc().Format;
-            desc.DebugName = "ToneMapping";
-            state.ToneMappingPipeline = device->CreateGraphicsPipeline(desc);
-            state.ToneMappingTargetFormat = InTarget.GetDesc().Format;
-        }
 
         // bInBias: push depth away from the light to hide self-shadowing. bInLinearDepth: point-light cubes.
         const auto shadowPipeline = [&](const FVertexArray& InVertexArray, bool bInSkinned, ERHICull InCull, bool bInBias,
@@ -1118,24 +1098,14 @@ namespace Leon {
         drawAll(transparent, "Transparent");
         InCommands.EndRenderPass();
 
-        // --- Tone mapping: HDR scene to the output ---
-        FRHIRenderPassDesc outputPass;
-        outputPass.NumColorTargets = 1;
-        outputPass.Color[0].Texture = &InTarget;
-        outputPass.Color[0].LoadOp = ERHILoadOp::Clear;
-        outputPass.Name = "ToneMapping";
-        InCommands.BeginRenderPass(outputPass);
-        if (state.ToneMappingPipeline) {
-            FToneMappingConstants tone;
-            tone.ToneParams = glm::vec4(lighting.Exposure, PostProcessSettings.BloomIntensity, PostProcessSettings.Gamma, 0.0f);
-            tone.ToneFlags = glm::ivec4(PostProcessSettings.ToneMapper, 0, PostProcessSettings.DebugMode == 1 ? 1 : 0, 0);
-            InCommands.SetPipeline(state.ToneMappingPipeline.get());
-            InCommands.SetConstants(ERHIConstantSlot::Pass, &tone, sizeof(tone));
-            InCommands.SetTexture(0, state.SceneColor.get());
-            InCommands.SetTexture(1, nullptr);
-            InCommands.Draw(3);
-        }
-        InCommands.EndRenderPass();
+        // --- HDR scene to the output ---
+        FPostProcessInputs post;
+        post.SceneColor = state.SceneColor.get();
+        post.SceneDepth = state.SceneDepth.get();
+        post.Output = &InTarget;
+        post.Projection = ClipDepthZeroToOne() * InCamera.GetProjectionMatrix();
+        post.Exposure = lighting.Exposure;
+        state.PostProcess.Render(InCommands, post, PostProcessSettings);
     }
 
 } // namespace Leon
