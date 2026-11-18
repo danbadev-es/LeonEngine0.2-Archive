@@ -99,6 +99,80 @@ namespace Leon {
             CHECK(worstRotation < 1.0f);
             CHECK(worstPosition < 0.01f);
         }
+
+        TEST_CASE("authored clips are well formed and move the part of the body they are meant to") {
+            struct FExpectedClip {
+                const char* Name;
+                float Duration;
+                const char* MovingBone; // must travel at least MinTravel metres during the clip
+                float MinTravel;
+            };
+            // Durations come from the key times in Scripts/make_animations.py.
+            const FExpectedClip clips[] = {
+                {"WalkForward", 1.1f, "mixamorig:LeftFoot", 0.20f},
+                {"MeleeSwing", 0.8f, "mixamorig:RightHand", 0.40f},
+                {"PistolAimIdle", 2.0f, "mixamorig:RightHand", 0.005f}, // a held pose with a slight sway
+                {"PistolFire", 0.3f, "mixamorig:RightHand", 0.08f},
+                {"HitReact", 0.5f, "mixamorig:Head", 0.10f},
+                {"Interact", 0.9f, "mixamorig:RightHand", 0.40f},
+                {"EnemyShamble", 1.5f, "mixamorig:LeftFoot", 0.15f},
+                {"EnemyAttack", 1.0f, "mixamorig:RightHand", 0.50f},
+            };
+
+            auto skeleton = LoadSkeleton();
+            REQUIRE(skeleton);
+            const size_t boneCount = skeleton->GetBones().size();
+            const int32_t hips = skeleton->FindBoneIndex("mixamorig:Hips");
+            const int32_t head = skeleton->FindBoneIndex("mixamorig:Head");
+            const int32_t finger = skeleton->FindBoneIndex("mixamorig:LeftHandIndex1");
+            REQUIRE(hips >= 0);
+            REQUIRE(head >= 0);
+            REQUIRE(finger >= 0);
+
+            for (const FExpectedClip& expected : clips) {
+                CAPTURE(expected.Name);
+                auto clip = LoadClip(std::string("Projects/LeonHorror/Content/Animations/") + expected.Name + ".lanim",
+                                     skeleton);
+                REQUIRE(clip);
+                CHECK(clip->GetDuration() == doctest::Approx(expected.Duration).epsilon(0.05));
+
+                // One track per skeleton bone, every one of them matched by name.
+                CHECK(clip->GetTracks().size() == boneCount);
+                for (int32_t boneIndex : clip->GetTrackToBone())
+                    CHECK(boneIndex >= 0);
+
+                const int32_t moving = skeleton->FindBoneIndex(expected.MovingBone);
+                REQUIRE(moving >= 0);
+                glm::vec3 minPos(1.0e9f);
+                glm::vec3 maxPos(-1.0e9f);
+                const int samples = 16;
+                for (int i = 0; i <= samples; ++i) {
+                    const float time = clip->GetDuration() * static_cast<float>(i) / static_cast<float>(samples);
+                    FPose pose;
+                    FAnimRuntime::SampleSequence(*clip, *skeleton, time, false, pose);
+                    REQUIRE(pose.Num() == boneCount);
+
+                    // The body stays upright at a human scale: catches unit and axis mistakes.
+                    const glm::vec3 hipsPos = BoneComponentPosition(*skeleton, pose, hips);
+                    const glm::vec3 headPos = BoneComponentPosition(*skeleton, pose, head);
+                    CHECK(hipsPos.y > 0.7f);
+                    CHECK(hipsPos.y < 1.2f);
+                    CHECK(headPos.y - hipsPos.y > 0.3f);
+                    CHECK(headPos.y - hipsPos.y < 0.9f);
+
+                    // Bones the script never poses stay at their rest rotation.
+                    const float fingerDrift = RotationDifferenceDegrees(
+                        pose.LocalTransforms[static_cast<size_t>(finger)].Rotation,
+                        skeleton->GetBones()[static_cast<size_t>(finger)].RestLocal.Rotation);
+                    CHECK(fingerDrift < 0.5f);
+
+                    const glm::vec3 p = BoneComponentPosition(*skeleton, pose, moving);
+                    minPos = glm::min(minPos, p);
+                    maxPos = glm::max(maxPos, p);
+                }
+                CHECK(glm::length(maxPos - minPos) >= expected.MinTravel);
+            }
+        }
     }
 
 } // namespace Leon

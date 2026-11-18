@@ -28,7 +28,7 @@ FPS = 30
 
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    args = {"mode": "author", "source": "", "rig": "", "out": "", "only": ""}
+    args = {"mode": "author", "source": "", "rig": "", "out": "", "only": "", "preview": ""}
     i = 0
     while i < len(argv):
         key = argv[i].lstrip("-")
@@ -197,98 +197,176 @@ def seconds(value):
     return 1 + int(round(value * FPS))
 
 
-# Pose fragments. Angles are offsets from the T-pose rest, found by rendering and adjusting; they are
-# kept in one place so a clip reads as a sequence of named poses.
-# Mixamo bone axes: Y runs along the bone; for the arms X bends forward/back and Z raises/lowers.
-ARMS_DOWN = {
-    "LeftArm": (0, 0, -68), "RightArm": (0, 0, 68),
-    "LeftForeArm": (0, 0, -8), "RightForeArm": (0, 0, 8),
+# Pose vocabulary.
+#
+# Rotations are offsets from the T-pose rest, in degrees, applied X then Y then Z about the rest axes.
+# What each axis does was measured on this rig (rotate one axis, see where the bone tip goes):
+#   spine / head : +X bends forward, +Y turns left, +Z leans right
+#   upper arm    : +X lowers the arm (90 = hanging at the side). Once lowered, Y swings it forward or
+#                  back and Z swings it sideways across the body; both signs flip between left and right
+#   forearm      : Z flexes the elbow (+ on the left arm, - on the right)
+#   thigh        : +X swings the leg forward
+#   shin         : -X bends the knee
+# The helpers below hide the per-side signs so a clip reads in plain terms.
+
+def arm(side, down, forward=0.0, inward=0.0):
+    """Upper arm: `down` from horizontal, then swung `forward` and `inward` (toward the body centre)."""
+    if side == "L":
+        return (down, -forward, inward)
+    return (down, forward, -inward)
+
+
+def elbow(side, bend):
+    return (0.0, 0.0, bend if side == "L" else -bend)
+
+
+def thigh(forward):
+    return (forward, 0.0, 0.0)
+
+
+def knee(bend):
+    return (-bend, 0.0, 0.0)
+
+
+def torso(forward=0.0, turn_left=0.0, lean_right=0.0):
+    return (forward, turn_left, lean_right)
+
+
+RELAXED = {
+    "LeftArm": arm("L", 76), "RightArm": arm("R", 76),
+    "LeftForeArm": elbow("L", 12), "RightForeArm": elbow("R", 12),
+    "Spine": torso(3), "Head": torso(-2),
 }
-RELAXED = merge(ARMS_DOWN, {"Spine": (3, 0, 0), "Head": (-2, 0, 0)})
 
 
 def clip_poses():
     """name -> (list of (time seconds, pose), loop flag)"""
     clips = {}
+    steps = 8
 
-    # Slow, guarded walk: small steps, shoulders tight.
+    # Slow, guarded walk: short steps, arms barely swinging.
     def walk(phase):
         swing = math.sin(phase)
-        lift = max(0.0, math.cos(phase))
+        left_lift = max(0.0, math.cos(phase))
+        right_lift = max(0.0, -math.cos(phase))
         return merge(RELAXED, {
-            "LeftUpLeg": (-22 * swing, 0, 0), "RightUpLeg": (22 * swing, 0, 0),
-            "LeftLeg": (34 * max(0.0, -math.cos(phase)), 0, 0), "RightLeg": (34 * lift, 0, 0),
-            "LeftArm": (14 * swing, 0, -66), "RightArm": (-14 * swing, 0, 66),
-            "Spine": (5, 4 * swing, 0), "Hips": (0, -3 * swing, 0),
+            "LeftUpLeg": thigh(20 * swing + 8 * left_lift), "RightUpLeg": thigh(-20 * swing + 8 * right_lift),
+            "LeftLeg": knee(6 + 36 * left_lift), "RightLeg": knee(6 + 36 * right_lift),
+            "LeftArm": arm("L", 76, -12 * swing), "RightArm": arm("R", 76, 12 * swing),
+            "Spine": torso(6, 4 * swing), "Hips": torso(0, -3 * swing),
         })
-    steps = 8
-    clips["WalkForward"] = ([(1.0 * i / steps, walk(2 * math.pi * i / steps)) for i in range(steps + 1)], True)
+    clips["WalkForward"] = ([(1.1 * i / steps, walk(2 * math.pi * i / steps)) for i in range(steps + 1)], True)
 
     # Two-handed overhead swing with a blunt weapon.
-    ready = merge(RELAXED, {"RightArm": (-40, 0, 20), "RightForeArm": (0, 0, 70), "LeftArm": (-25, 0, -30),
-                            "LeftForeArm": (0, 0, -60), "Spine": (-6, -12, 0)})
-    wind = merge(RELAXED, {"RightArm": (-150, 0, 10), "RightForeArm": (0, 0, 95), "LeftArm": (-120, 0, -15),
-                           "LeftForeArm": (0, 0, -85), "Spine": (-14, -24, 0), "Spine1": (-6, -10, 0)})
-    hit = merge(RELAXED, {"RightArm": (-35, 0, 30), "RightForeArm": (0, 0, 20), "LeftArm": (-30, 0, -35),
-                          "LeftForeArm": (0, 0, -25), "Spine": (22, 20, 0), "Spine1": (8, 10, 0)})
+    ready = merge(RELAXED, {"RightArm": arm("R", 88, 40, 10), "RightForeArm": elbow("R", 85),
+                            "LeftArm": arm("L", 88, 30, 20), "LeftForeArm": elbow("L", 75),
+                            "Spine": torso(-3, -10)})
+    wind = merge(RELAXED, {"RightArm": arm("R", 90, 160, 5), "RightForeArm": elbow("R", 75),
+                           "LeftArm": arm("L", 90, 140, 20), "LeftForeArm": elbow("L", 85),
+                           "Spine": torso(-14, -16), "Spine1": torso(-6, -6), "Head": torso(6)})
+    hit = merge(RELAXED, {"RightArm": arm("R", 90, 42, 12), "RightForeArm": elbow("R", 14),
+                          "LeftArm": arm("L", 90, 38, 22), "LeftForeArm": elbow("L", 22),
+                          "Spine": torso(24, 14), "Spine1": torso(8, 6), "Head": torso(-10),
+                          "LeftUpLeg": thigh(14), "LeftLeg": knee(18)})
     clips["MeleeSwing"] = ([(0.0, ready), (0.22, wind), (0.36, hit), (0.5, hit), (0.8, ready)], False)
 
-    # Pistol held out in the right hand, left hand supporting. Upper body only at runtime.
-    aim = merge(RELAXED, {"RightArm": (-78, 0, 12), "RightForeArm": (0, 0, 6), "LeftArm": (-70, 0, 28),
-                          "LeftForeArm": (0, 0, -34), "Spine": (2, -8, 0), "Head": (0, 6, 0)})
-    aim_breathe = merge(aim, {"Spine": (3, -8, 0), "RightArm": (-77, 0, 12)})
+    # Pistol held out in the right hand, left hand supporting. Layered on the upper body at runtime.
+    aim = merge(RELAXED, {"RightArm": arm("R", 90, 86, 8), "RightForeArm": elbow("R", 5),
+                          "LeftArm": arm("L", 90, 74, 26), "LeftForeArm": elbow("L", 38),
+                          "Spine": torso(2, -8), "Head": torso(0, 6)})
+    aim_breathe = merge(aim, {"Spine": torso(4, -8), "RightArm": arm("R", 90, 84, 8)})
     clips["PistolAimIdle"] = ([(0.0, aim), (1.0, aim_breathe), (2.0, aim)], True)
-    recoil = merge(aim, {"RightArm": (-92, 0, 12), "RightForeArm": (0, 0, 22), "LeftArm": (-82, 0, 28),
-                         "Spine": (-3, -8, 0)})
+    recoil = merge(aim, {"RightArm": arm("R", 90, 100, 8), "RightForeArm": elbow("R", 24),
+                         "LeftArm": arm("L", 90, 86, 26), "Spine": torso(-3, -8)})
     clips["PistolFire"] = ([(0.0, aim), (0.05, recoil), (0.3, aim)], False)
 
     # Staggered backwards by a blow.
-    flinch = merge(RELAXED, {"Spine": (-20, 10, 6), "Spine1": (-10, 4, 0), "Head": (-16, -10, 0),
-                             "LeftArm": (20, 0, -40), "RightArm": (25, 0, 45), "Hips": (-6, 0, 0)})
+    flinch = merge(RELAXED, {"Spine": torso(-20, 8, 6), "Spine1": torso(-10, 4), "Head": torso(-16, -10),
+                             "LeftArm": arm("L", 55, -25), "RightArm": arm("R", 50, -30),
+                             "LeftForeArm": elbow("L", 40), "RightForeArm": elbow("R", 40),
+                             "RightUpLeg": thigh(-12), "RightLeg": knee(10)})
     clips["HitReact"] = ([(0.0, RELAXED), (0.1, flinch), (0.5, RELAXED)], False)
 
     # Reaching forward and down to pick something up or work a handle.
-    reach = merge(RELAXED, {"RightArm": (-62, 0, 20), "RightForeArm": (0, 0, 30), "Spine": (18, -6, 0),
-                            "Head": (10, 0, 0)})
+    reach = merge(RELAXED, {"RightArm": arm("R", 90, 62, 8), "RightForeArm": elbow("R", 22),
+                            "Spine": torso(18, -6), "Head": torso(10)})
     clips["Interact"] = ([(0.0, RELAXED), (0.3, reach), (0.55, reach), (0.9, RELAXED)], False)
 
-    # Enemy: a dragging, lopsided shamble.
+    # Enemy: a dragging, lopsided shamble; one arm hangs, the other is drawn up against the chest.
     def shamble(phase):
         swing = math.sin(phase)
+        lift = max(0.0, math.cos(phase))
         return merge(RELAXED, {
-            "Spine": (26, 8 * swing, 10), "Spine1": (10, 0, 6), "Head": (22, -14, 12), "Neck": (8, 0, 0),
-            "LeftUpLeg": (-16 * swing, 0, 0), "RightUpLeg": (10 * swing - 6, 0, 8),
-            "LeftLeg": (26 * max(0.0, -math.cos(phase)), 0, 0), "RightLeg": (8, 0, 0),
-            "LeftArm": (10 + 8 * swing, 0, -74), "RightArm": (-34, 0, 52), "RightForeArm": (0, 0, 48),
-            "Hips": (0, -5 * swing, 4),
+            "Spine": torso(26, 8 * swing, 9), "Spine1": torso(10, 0, 5), "Neck": torso(8),
+            "Head": torso(18, -14, 12),
+            "LeftUpLeg": thigh(18 * swing + 6 * lift), "LeftLeg": knee(8 + 26 * lift),
+            "RightUpLeg": thigh(-9 * swing + 3), "RightLeg": knee(10),
+            "LeftArm": arm("L", 82, 6 * swing), "LeftForeArm": elbow("L", 8),
+            "RightArm": arm("R", 86, 34, 22), "RightForeArm": elbow("R", 62),
+            "Hips": torso(0, -5 * swing, 4),
         })
-    clips["EnemyShamble"] = ([(1.4 * i / steps, shamble(2 * math.pi * i / steps)) for i in range(steps + 1)], True)
+    clips["EnemyShamble"] = ([(1.5 * i / steps, shamble(2 * math.pi * i / steps)) for i in range(steps + 1)], True)
 
-    # Enemy: both arms thrown forward in a lunge.
-    rear = merge(RELAXED, {"Spine": (-8, 0, 0), "LeftArm": (30, 0, -50), "RightArm": (30, 0, 50), "Head": (-10, 0, 0)})
-    lunge = merge(RELAXED, {"Spine": (34, 0, 0), "Spine1": (12, 0, 0), "LeftArm": (-95, 0, -18),
-                            "RightArm": (-95, 0, 18), "LeftForeArm": (0, 0, -12), "RightForeArm": (0, 0, 12),
-                            "Head": (-24, 0, 0)})
+    # Enemy: rears back, then throws both arms forward in a lunge.
+    rear = merge(RELAXED, {"Spine": torso(-10), "Head": torso(-8),
+                           "LeftArm": arm("L", 70, -30), "RightArm": arm("R", 70, -30),
+                           "LeftForeArm": elbow("L", 50), "RightForeArm": elbow("R", 50)})
+    lunge = merge(RELAXED, {"Spine": torso(32), "Spine1": torso(12), "Head": torso(-22),
+                            "LeftArm": arm("L", 90, 96, 10), "RightArm": arm("R", 90, 96, 10),
+                            "LeftForeArm": elbow("L", 12), "RightForeArm": elbow("R", 12),
+                            "LeftUpLeg": thigh(22), "LeftLeg": knee(24)})
     clips["EnemyAttack"] = ([(0.0, RELAXED), (0.3, rear), (0.45, lunge), (0.65, lunge), (1.0, RELAXED)], False)
     return clips
 
 
-def run_author(rig_path, out_dir, only):
+def render_preview(name, frames, preview_dir):
+    """Workbench stills of the posed mannequin, for checking a clip by eye. Best effort."""
+    scene = bpy.context.scene
+    try:
+        scene.render.engine = "BLENDER_WORKBENCH"
+        scene.render.resolution_x = 300
+        scene.render.resolution_y = 420
+        scene.render.film_transparent = False
+        camera_data = bpy.data.cameras.new("PreviewCam")
+        camera = bpy.data.objects.new("PreviewCam", camera_data)
+        scene.collection.objects.link(camera)
+        # The character stands at the origin, about 1.8 m tall, facing -Y.
+        camera.location = Vector((2.4, -3.4, 1.35))
+        direction = Vector((0.0, 0.0, 0.95)) - camera.location
+        camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+        camera_data.lens = 38
+        scene.camera = camera
+        os.makedirs(preview_dir, exist_ok=True)
+        for index, frame in enumerate(frames):
+            scene.frame_set(frame)
+            scene.render.filepath = os.path.join(os.path.abspath(preview_dir), f"{name}_{index}.png")
+            bpy.ops.render.render(write_still=True)
+            print("PREVIEW", scene.render.filepath)
+        bpy.data.objects.remove(camera)
+    except Exception as error:  # rendering is optional: never fail the export because of it
+        print("PREVIEW FAILED", name, error)
+
+
+def run_author(rig_path, out_dir, only, preview_dir):
     clips = clip_poses()
     for name, (keys, loop) in clips.items():
         if only and name != only:
             continue
         reset_scene()
         armature = import_fbx(rig_path)
-        # The rig file carries the mesh too; it is not exported, but keep it for preview renders.
+        # The rig file carries the mesh too; it is not exported, but it is what the previews show.
         rig = Rig(armature)
         rig.new_action(name)
         last_frame = 1
+        key_frames = []
         for time, pose in keys:
             frame = seconds(time)
             rig.key(frame, pose)
+            key_frames.append(frame)
             last_frame = max(last_frame, frame)
         rig.finish(linear=loop)
+        if preview_dir:
+            render_preview(name, key_frames[:4], preview_dir)
         export_armature(armature, os.path.join(out_dir, name + ".fbx"), 1, last_frame)
 
 
@@ -299,7 +377,7 @@ def main():
     if args["mode"] == "roundtrip":
         run_roundtrip(args["source"], args["out"])
     else:
-        run_author(args["rig"], args["out"], args["only"])
+        run_author(args["rig"], args["out"], args["only"], args["preview"])
 
 
 main()
