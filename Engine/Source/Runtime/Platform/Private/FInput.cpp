@@ -1,5 +1,5 @@
-#include "Core/FInput.hpp"
-#include "Core/FApplication.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FWindow.hpp"
 
 #include <GLFW/glfw3.h>
 #include <cmath>
@@ -9,9 +9,8 @@ namespace Leon {
     namespace {
 
         GLFWwindow* GetInputWindow() {
-            if (!FApplication::HasInstance())
-                return nullptr;
-            return static_cast<GLFWwindow*>(FApplication::Get().GetWindow().GetNativeWindow());
+            const FWindow* window = FWindow::GetMainWindow();
+            return window ? static_cast<GLFWwindow*>(window->GetNativeHandle()) : nullptr;
         }
 
     } // namespace

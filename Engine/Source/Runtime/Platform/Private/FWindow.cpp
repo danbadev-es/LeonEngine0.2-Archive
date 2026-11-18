@@ -1,4 +1,5 @@
-#include "Core/FWindow.hpp"
+#include "Platform/FWindow.hpp"
+#include "Platform/FPlatformTime.hpp"
 #include "Core/FLog.hpp"
 #include "Core/events/FApplicationEvent.hpp"
 #include "Core/events/FKeyEvent.hpp"
@@ -138,6 +139,8 @@ namespace Leon {
     }
 
     void FWindow::Init(const FWindowProps& InProps) {
+        if (!MainWindowSlot())
+            MainWindowSlot() = this;
         Data.Title = InProps.Title;
         Data.Width = InProps.Width;
         Data.Height = InProps.Height;
@@ -288,6 +291,8 @@ namespace Leon {
     }
 
     void FWindow::Shutdown() {
+        if (MainWindowSlot() == this)
+            MainWindowSlot() = nullptr;
         if (NativeWindow) {
             glfwDestroyWindow(NativeWindow);
             NativeWindow = nullptr;
@@ -456,6 +461,44 @@ namespace Leon {
 
         glfwSetWindowIcon(NativeWindow, static_cast<int>(images.size()), images.data());
         stbi_image_free(pixels);
+    }
+
+    FWindow* FWindow::GetMainWindow() {
+        return MainWindowSlot();
+    }
+
+    void* FWindow::GetOSHandle() const {
+#ifdef _WIN32
+        return NativeWindow ? glfwGetWin32Window(NativeWindow) : nullptr;
+#else
+        return nullptr;
+#endif
+    }
+
+    void FWindow::SetTitle(const std::string& InTitle) {
+        Data.Title = InTitle;
+        if (NativeWindow)
+            glfwSetWindowTitle(NativeWindow, InTitle.c_str());
+    }
+
+    bool FWindow::IsMaximized() const {
+        return NativeWindow && glfwGetWindowAttrib(NativeWindow, GLFW_MAXIMIZED) == GLFW_TRUE;
+    }
+
+    void FWindow::GetWindowedRect(int& OutX, int& OutY, int& OutWidth, int& OutHeight) const {
+        if (!NativeWindow)
+            return;
+        glfwGetWindowPos(NativeWindow, &OutX, &OutY);
+        glfwGetWindowSize(NativeWindow, &OutWidth, &OutHeight);
+    }
+
+    void FWindow::SetShouldClose(bool bInShouldClose) {
+        if (NativeWindow)
+            glfwSetWindowShouldClose(NativeWindow, bInShouldClose ? GLFW_TRUE : GLFW_FALSE);
+    }
+
+    double FPlatformTime::Seconds() {
+        return glfwGetTime();
     }
 
 } // namespace Leon

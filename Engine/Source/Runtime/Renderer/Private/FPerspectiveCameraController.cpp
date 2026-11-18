@@ -1,5 +1,5 @@
 #include "Renderer/FPerspectiveCameraController.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include <cmath>
 
 namespace Leon {

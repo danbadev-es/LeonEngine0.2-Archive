@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Gameplay/APawn.hpp"
 
 namespace Leon {

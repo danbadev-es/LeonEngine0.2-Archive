@@ -2,7 +2,7 @@
 
 #include "Core/FApplication.hpp"
 #include "Core/FConfigFile.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInputSettings.hpp"
 #include "Core/FProjectDescriptor.hpp"
 #include "Gameplay/UObject.hpp"
 #include "Engine/UGameInstance.hpp"

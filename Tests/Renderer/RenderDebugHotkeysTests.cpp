@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Renderer/FRenderDebugHotkeys.hpp"
 
 #include <set>

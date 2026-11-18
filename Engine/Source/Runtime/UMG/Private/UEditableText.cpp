@@ -1,6 +1,6 @@
 #include "UMG/UEditableText.hpp"
 #include "UMG/FUIRenderer.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 
 namespace Leon {
 

@@ -14,14 +14,14 @@ set(LEON_ENGINE_SOURCES
     # Core
     Source/Runtime/Core/Private/FApplication.cpp
     Source/Runtime/Core/Private/FConfigFile.cpp
-    Source/Runtime/Core/Private/FInput.cpp
     Source/Runtime/Core/Private/FLayerStack.cpp
     Source/Runtime/Core/Private/FFrameProfiler.cpp
     Source/Runtime/Core/Private/FLog.cpp
     Source/Runtime/Core/Private/FPlatformMemory.cpp
     Source/Runtime/Core/Private/FProjectDescriptor.cpp
     Source/Runtime/Core/Private/FProjectPaths.cpp
-    Source/Runtime/Core/Private/FWindow.cpp
+    Source/Runtime/Platform/Private/FInput.cpp
+    Source/Runtime/Platform/Private/FWindow.cpp
     # RHI
     Source/Runtime/RHI/Private/IGraphicsContext.cpp
     Source/Runtime/RHI/Private/IRenderAPI.cpp
@@ -181,6 +181,7 @@ add_library(Leon::Gameplay ALIAS LeonEngineCore)
 target_include_directories(LeonEngineCore
     PUBLIC
         "${LEON_RUNTIME_ROOT}/Core/Public"
+        "${LEON_RUNTIME_ROOT}/Platform/Public"
         "${LEON_RUNTIME_ROOT}/RHI/Public"
         "${LEON_RUNTIME_ROOT}/Assets/Public"
         "${LEON_RUNTIME_ROOT}/Renderer/Public"

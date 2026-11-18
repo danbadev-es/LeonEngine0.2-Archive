@@ -70,11 +70,31 @@ namespace Leon {
         /** Title-bar / taskbar icon from an RGBA PNG. Also applies the exe resource on Windows. */
         void SetIconFromFile(const std::string& InPath);
 
-        GLFWwindow* GetNativeWindow() const { return NativeWindow; }
+        /**
+         * The windowing library's own handle (a GLFWwindow*), for the few callers that must hand it to
+         * another library, such as the editor's ImGui backend. Engine code should not need it.
+         */
+        void* GetNativeHandle() const { return NativeWindow; }
+        /** The Win32 HWND, or null on other platforms. What a GPU swapchain is created on. */
+        void* GetOSHandle() const;
+
+        void SetTitle(const std::string& InTitle);
+        bool IsMaximized() const;
+        /** Position and size of the window on the desktop, in screen coordinates. */
+        void GetWindowedRect(int& OutX, int& OutY, int& OutWidth, int& OutHeight) const;
+        /** Cancels (or requests) closing, e.g. after the user declines a "save changes?" prompt. */
+        void SetShouldClose(bool bInShouldClose);
+
+        /** The first window created; input is read from it. Null before any window exists. */
+        static FWindow* GetMainWindow();
 
         static TScope<FWindow> Create(const FWindowProps& InProps = FWindowProps());
 
     private:
+        static FWindow*& MainWindowSlot() {
+            static FWindow* slot = nullptr;
+            return slot;
+        }
         void Init(const FWindowProps& InProps);
         void Shutdown();
         void ApplyHdClientConstraints();

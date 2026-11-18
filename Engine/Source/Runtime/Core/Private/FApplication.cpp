@@ -1,5 +1,5 @@
 #include "Core/FApplication.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FFrameProfiler.hpp"
 #include "Core/events/FKeyEvent.hpp"
@@ -13,7 +13,7 @@
 #include "Physics/IPhysicsScene.hpp"
 
 #include <algorithm>
-#include <GLFW/glfw3.h>
+#include "Platform/FPlatformTime.hpp"
 
 namespace Leon {
 
@@ -145,7 +145,7 @@ namespace Leon {
         OnInit();
 
         while (bRunning) {
-            float time = (float)glfwGetTime();
+            float time = static_cast<float>(FPlatformTime::Seconds());
             const float rawDt = time - LastFrameTime;
             LastFrameTime = time;
             FTimestep timestep = std::min(rawDt, kPhysicsMaxFrameDeltaSeconds);

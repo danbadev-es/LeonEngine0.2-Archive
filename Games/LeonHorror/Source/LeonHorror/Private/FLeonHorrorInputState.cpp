@@ -1,7 +1,7 @@
 #include "LeonHorror/FLeonHorrorInputState.hpp"
 
-#include "Core/FInput.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FInputSettings.hpp"
 
 namespace Leon {
 

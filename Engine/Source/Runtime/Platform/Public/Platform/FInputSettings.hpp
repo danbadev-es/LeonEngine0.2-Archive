@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/FConfigFile.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 
 #include <string>
 #include <unordered_map>

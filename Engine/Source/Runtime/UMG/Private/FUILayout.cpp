@@ -1,7 +1,7 @@
 #include "UMG/FUILayout.hpp"
 #include "Core/FApplication.hpp"
-#include "Core/FInput.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FInputSettings.hpp"
 
 #include <cmath>
 

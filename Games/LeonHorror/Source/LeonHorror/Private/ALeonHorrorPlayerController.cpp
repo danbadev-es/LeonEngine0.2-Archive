@@ -4,8 +4,8 @@
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 
 #include "Core/FApplication.hpp"
-#include "Core/FInput.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FInputSettings.hpp"
 #include "Engine/UWorld.hpp"
 
 namespace Leon {

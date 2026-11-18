@@ -16,7 +16,7 @@
 #include "AI/UPathFollowingComponent.hpp"
 #include "AI/UAIPerceptionComponent.hpp"
 #include "Core/FWorldUnits.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 
 #include <algorithm>
 #include <cmath>

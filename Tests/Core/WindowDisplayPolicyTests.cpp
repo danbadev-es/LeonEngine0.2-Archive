@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "Core/FWindow.hpp"
+#include "Platform/FWindow.hpp"
 
 TEST_SUITE("Window display policy") {
 

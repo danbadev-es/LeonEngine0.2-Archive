@@ -1,6 +1,6 @@
 #include "Renderer/FRenderDebugHotkeys.hpp"
 #include "Renderer/FWorldRenderer.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
 
 namespace Leon {

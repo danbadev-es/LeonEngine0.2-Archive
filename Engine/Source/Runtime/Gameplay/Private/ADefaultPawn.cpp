@@ -1,5 +1,5 @@
 #include "Gameplay/ADefaultPawn.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInputSettings.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Renderer/FRenderingMath.hpp"
 #include <algorithm>

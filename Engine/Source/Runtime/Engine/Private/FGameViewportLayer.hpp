@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Engine/UEngine.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FFrameProfiler.hpp"
 #include "Core/events/FKeyEvent.hpp"

@@ -3,7 +3,7 @@
 #include "Core/Base.hpp"
 #include "Core/FLayerStack.hpp"
 #include "Core/FTimestep.hpp"
-#include "Core/FWindow.hpp"
+#include "Platform/FWindow.hpp"
 #include "Core/events/FApplicationEvent.hpp"
 
 #include <chrono>

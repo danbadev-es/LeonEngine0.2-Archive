@@ -1,6 +1,6 @@
 #include "ASandboxHUD.hpp"
 #include "USandboxRenderLabWidget.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/UGameplayStatics.hpp"

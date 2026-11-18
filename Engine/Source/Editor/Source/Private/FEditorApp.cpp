@@ -3,7 +3,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectPaths.hpp"
-#include "Core/FWindow.hpp"
+#include "Platform/FWindow.hpp"
 #include "Core/events/FApplicationEvent.hpp"
 #include "Editor/Commands/FDeleteActorsCommand.hpp"
 #include "Editor/Commands/FDuplicateActorsCommand.hpp"
@@ -152,7 +152,7 @@ namespace Leon::Editor {
     }
 
     void FEditorApp::OnInit() {
-        GLFWwindow* Native = GetWindow().GetNativeWindow();
+        GLFWwindow* Native = static_cast<GLFWwindow*>(GetWindow().GetNativeHandle());
 
         std::vector<fs::path> iconCandidates = {
             fs::path("Engine") / "Resources" / "Icon" / "Logo.png",
@@ -367,10 +367,6 @@ namespace Leon::Editor {
     }
 
     void FEditorApp::UpdateWindowTitle() {
-        GLFWwindow* native = GetWindow().GetNativeWindow();
-        if (!native)
-            return;
-
         std::string title = "Leon Engine Editor";
         if (!ActiveProjectDescriptor.ProjectName.empty()) {
             title += " - [" + ActiveProjectDescriptor.ProjectName + "]";
@@ -378,7 +374,7 @@ namespace Leon::Editor {
         if (!ActiveMapName.empty() || Context.IsMapDirty()) {
             title += " - " + FormatMapDisplayName();
         }
-        glfwSetWindowTitle(native, title.c_str());
+        GetWindow().SetTitle(title);
     }
 
     void FEditorApp::OpenProject(const std::string& InProjectPath) {
@@ -1276,14 +1272,11 @@ namespace Leon::Editor {
         FGameModuleLoader::Unload();
         FLog::ClearSink();
 
-        GLFWwindow* native = GetWindow().GetNativeWindow();
-        if (native && !WindowConfigIniPath.empty()) {
-            bool bMax = (glfwGetWindowAttrib(native, GLFW_MAXIMIZED) == GLFW_TRUE);
+        if (!WindowConfigIniPath.empty()) {
+            bool bMax = GetWindow().IsMaximized();
             int px = 0, py = 0, w = 1600, h = 900;
-            if (!bMax) {
-                glfwGetWindowPos(native, &px, &py);
-                glfwGetWindowSize(native, &w, &h);
-            }
+            if (!bMax)
+                GetWindow().GetWindowedRect(px, py, w, h);
             std::ofstream out(WindowConfigIniPath);
             if (out.is_open()) {
                 out << "[EditorWindow]\n";
@@ -1410,7 +1403,7 @@ namespace Leon::Editor {
 
     void FEditorApp::OnEvent(FEvent& InEvent) {
         if (InEvent.GetEventType() == EEventType::WindowClose && Context.IsMapDirty()) {
-            glfwSetWindowShouldClose(GetWindow().GetNativeWindow(), GLFW_FALSE);
+            GetWindow().SetShouldClose(false);
             PendingUnsavedAction = EPendingUnsavedAction::CloseApp;
             PendingUnsavedPath.clear();
             bOpenUnsavedModal = true;

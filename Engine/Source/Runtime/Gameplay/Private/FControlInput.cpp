@@ -1,6 +1,6 @@
 #include "Gameplay/FControlInput.hpp"
-#include "Core/FInput.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FInputSettings.hpp"
 #include "Engine/FNetBlob.hpp"
 
 #include <cmath>

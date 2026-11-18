@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 #include "Core/FConfigFile.hpp"
-#include "Core/FInput.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FInputSettings.hpp"
 
 #include <filesystem>
 #include <fstream>

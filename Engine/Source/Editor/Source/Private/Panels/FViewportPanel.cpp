@@ -3,7 +3,7 @@
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FApplication.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectPaths.hpp"
 #include "Editor/Context/FEditorHistory.hpp"

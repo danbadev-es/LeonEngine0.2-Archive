@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/FInput.hpp"
-#include "Core/FInputSettings.hpp"
+#include "Platform/FInput.hpp"
+#include "Platform/FInputSettings.hpp"
 #include "Gameplay/APawn.hpp"
 #include "Gameplay/FControlInput.hpp"
 #include "Gameplay/USkeletalMeshComponent.hpp"

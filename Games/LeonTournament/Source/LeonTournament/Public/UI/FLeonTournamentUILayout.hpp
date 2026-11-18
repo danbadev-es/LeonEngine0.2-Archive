@@ -2,7 +2,7 @@
 
 #include "UMG/FUILayout.hpp"
 #include "FLeonTournamentUITheme.hpp"
-#include "Core/FInput.hpp"
+#include "Platform/FInput.hpp"
 
 namespace Leon {
 
