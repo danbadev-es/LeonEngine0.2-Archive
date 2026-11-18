@@ -11,6 +11,16 @@
 #include <sstream>
 #include <vector>
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace fs = std::filesystem;
 
 namespace Leon::Editor {
@@ -64,11 +74,16 @@ namespace Leon::Editor {
     }
 
     std::string FEditorLayoutStore::FindBundledDefaultDir() {
-        const std::vector<fs::path> Candidates = {
-            fs::path("Editor") / "Resources" / "Layouts",
-            fs::path("Resources") / "Layouts",
-            fs::path("..") / ".." / "Editor" / "Resources" / "Layouts",
-        };
+        // Beside the executable first (where the build stages it), so it is found whatever the
+        // working directory is; then the source tree, for a run from the repository root.
+        std::vector<fs::path> Candidates;
+#ifdef _WIN32
+        char ExePath[MAX_PATH] = {};
+        if (GetModuleFileNameA(nullptr, ExePath, MAX_PATH) > 0)
+            Candidates.push_back(fs::path(ExePath).parent_path() / "Resources" / "Layouts");
+#endif
+        Candidates.push_back(fs::path("Engine") / "Source" / "Editor" / "Resources" / "Layouts");
+        Candidates.push_back(fs::path("Resources") / "Layouts");
         std::error_code Ec;
         for (const auto& Dir : Candidates) {
             if (fs::exists(Dir / "Default.ini", Ec))
@@ -80,7 +95,7 @@ namespace Leon::Editor {
     bool FEditorLayoutStore::LoadBundledDefaultLayout(FEditorPanelVisibility& OutPanels) {
         const std::string Dir = FindBundledDefaultDir();
         if (Dir.empty()) {
-            LE_CORE_WARN("FEditorLayoutStore: Bundled Default.ini not found under Editor/Resources/Layouts");
+            LE_CORE_WARN("FEditorLayoutStore: Bundled Default.ini not found beside the executable or in the source tree");
             return false;
         }
 
