@@ -26,7 +26,7 @@ LeonEngine2 follows a strict, unidirectional dependency hierarchy adhering to **
 
 ### Strict Rules:
 
-1. **Engine $\rightarrow$ Projects**: **FORBIDDEN.** The engine is an agnostic reusable library. It must never reference or include any code from `Projects/`, and must never hardcode a product name (e.g. Sandbox) or `Projects/Sandbox` path. Enforced by `Scripts/verify_ue_naming.py`.
+1. **Engine $\rightarrow$ Projects**: **FORBIDDEN.** The engine is an agnostic reusable library. It must never reference or include any code from `Projects/`, and must never hardcode a product name (e.g. Sandbox) or `Samples/Sandbox` path. Enforced by `Tools/verify_ue_naming.py`.
 2. **Plugins $\rightarrow$ Projects**: **FORBIDDEN.** Hardware plugins/drivers are low-level rendering backends. They must never know about client applications.
 3. **Plugins $\rightarrow$ Engine Runtime Public headers**: **ALLOWED & REQUIRED.** Plugins depend on the abstract interfaces under `Engine/Source/Runtime/*/Public/` (such as `RHI/IGraphicsContext.hpp`, `RHI/FBuffer.hpp`, `RHI/IRenderDriver.hpp`, `Core/Base.hpp`) in order to implement them.
 4. **Engine $\rightarrow$ Plugins**: **FORBIDDEN.** The `Engine` core contains **zero `#include` directives** pointing to plugin implementation headers (e.g., `opengl/...`). All hardware object instantiation is mediated via the **`FRenderDriverRegistry`** factory registry.
@@ -36,13 +36,13 @@ LeonEngine2 follows a strict, unidirectional dependency hierarchy adhering to **
 Like Unreal, **build/run tools live with the Engine** and are invoked *against* a `.lproject`:
 
 ```text
-python Scripts/build_engine.py
-python Scripts/build_editor.py
-python Scripts/build_project.py --project Projects/Sandbox/Sandbox.lproject
-python Scripts/run_project.py    --project Projects/Sandbox/Sandbox.lproject
-python Scripts/validate_project.py --project Projects/Sandbox/Sandbox.lproject
-python Scripts/bake_lightmaps.py --project Projects/Sandbox/Sandbox.lproject
-python Scripts/create_project.py --name MyGame --output D:/Games/MyGame
+python Tools/build_engine.py
+python Tools/build_editor.py
+python Tools/build_project.py --project Samples/Sandbox/Sandbox.lproject
+python Tools/run_project.py    --project Samples/Sandbox/Sandbox.lproject
+python Tools/validate_project.py --project Samples/Sandbox/Sandbox.lproject
+python Tools/bake_lightmaps.py --project Samples/Sandbox/Sandbox.lproject
+python Tools/create_project.py --name MyGame --output D:/Games/MyGame
 ```
 
 Environment: `LEON_ENGINE_ROOT` (optional), `LEON_PROJECT` (or `--project`). Full inventory: [SCRIPTS.md](SCRIPTS.md).
@@ -51,15 +51,15 @@ Environment: `LEON_ENGINE_ROOT` (optional), `LEON_PROJECT` (or `--project`). Ful
 | :--- | :--- |
 | Engine (`Engine/`, `Plugins/`, `Scripts/`, `Tools/`) | Runtime, RHI plugins, asset tool, build/verify scripts |
 | Editor (`Editor/`) | Out-of-process ImGui host (`LeonEditor`); separate `out/Editor` build |
-| Project (`Projects/<Name>/` or any external path) | `Main`, gameplay classes, Content, Config, `.lproject`, thin CMake target |
+| Project (`Games/<Name>/` or any external path) | `Main`, gameplay classes, Content, Config, `.lproject`, thin CMake target |
 
 - `UEngine::Run` requires a `.lproject` (argv `--project=`, explicit path, or discovery) — **no Sandbox default inside Engine**.
-- Root CMake `LEON_PRODUCT=Engine|Project`; Editor uses `cmake -S Editor`. Artifacts: `out/Engine`, `out/Editor`, `out/Projects/<Name>`. See [BUILD.md](BUILD.md).
+- Root CMake `LEON_PRODUCT=Engine|Project`; Editor uses `cmake -S Editor`. Artifacts: `out/Engine`, `out/Editor`, `out/Games/<Name>`. See [BUILD.md](BUILD.md).
 - One Project configure builds **one** game (`LEON_PROJECT_DIR`).
 - There is no UBT / `.Build.cs` yet; CMake + these Python scripts are the lite equivalent.
-- Product shortcuts (e.g. Sandbox) live under `Projects/<Name>/Scripts/`, never as Engine defaults.
+- Product shortcuts (e.g. Sandbox) live under `Games/<Name>/Scripts/`, never as Engine defaults.
 
-**Isolation checklist:** `grep` / CI must not find `Projects/Sandbox`, `Projects/LeonTournament`, or bare product names (`Sandbox`, `LeonTournament`) under `Engine/Source`. Enforced by `Scripts/verify_ue_naming.py` and `Tests/Gameplay/EngineGameSeparationTests.cpp`.
+**Isolation checklist:** `grep` / CI must not find `Samples/Sandbox`, `Games/LeonTournament`, or bare product names (`Sandbox`, `LeonTournament`) under `Engine/Source`. Enforced by `Tools/verify_ue_naming.py` and `Tests/Gameplay/EngineGameSeparationTests.cpp`.
 
 ---
 
@@ -93,7 +93,7 @@ LeonEngine2/
 ├── Plugins/RHI/OpenGL/                    # FOpenGL* backend
 ├── Plugins/Physics/Jolt/                  # FJoltPhysicsDriver
 ├── Plugins/Networking/ENet/               # FENetTransport
-├── Projects/Sandbox/
+├── Samples/Sandbox/
 ├── Tests/
 └── ThirdParty/
 ```
@@ -179,7 +179,7 @@ This is **not** full Unreal config stacking (`Base.ini` + project + `Saved/Confi
 The **project** executable registers the RHI driver and project classes, resolves its `.lproject`
 (`--project=` → `LEON_PROJECT` → beside exe → project-local fallback), then calls
 `UEngine::Run(args, projectPath)`. There is no `EntryPoint.hpp`. Prefer
-`Scripts/run_project.py --project <path>` so the Engine never assumes a product path.
+`Tools/run_project.py --project <path>` so the Engine never assumes a product path.
 
 ---
 

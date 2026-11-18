@@ -20,8 +20,8 @@ Helpers: `IsLightmassBakeLight`, `DoesLightmassBakeDirect`.
 ## Offline bake (`LightmassTool` / `AssetTool`)
 
 ```
-python Scripts/bake_lightmaps.py --project <path.lproject> [--map /Game/Maps/Name] [--force]
-python Scripts/bake_lightmaps.py --project <path.lproject> --validate-only
+python Tools/bake_lightmaps.py --project <path.lproject> [--map /Game/Maps/Name] [--force]
+python Tools/bake_lightmaps.py --project <path.lproject> --validate-only
 
 LightmassTool bake --map <path.lmap> [--quality=Preview|Draft|Production] [--force]
 LightmassTool validate --map <path.lmap>
@@ -81,4 +81,4 @@ No GPU Lightmass, no volumetric lightmaps, no photon mapping, no true Stationary
 | :--- | :--- | :--- | :--- |
 | `/Game/Maps/ShowcaseLevel` | Procedural primitives (studio floor 40×28) | `DaySky1k` | `ShowcaseLevel.llightmap` |
 
-`DaySky1k.lhdr` is the IBL/HDR test fixture under Sandbox `Content/HDR/`. Rebake after content changes: `python Projects/Sandbox/Scripts/bake.py --force`.
+`DaySky1k.lhdr` is the IBL/HDR test fixture under Sandbox `Content/HDR/`. Rebake after content changes: `python Samples/Sandbox/Scripts/bake.py --force`.

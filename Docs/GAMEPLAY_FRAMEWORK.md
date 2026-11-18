@@ -109,7 +109,7 @@ Engine generic fallbacks: `AGameModeBase`, `AGameMode`, `AGameStateBase`, `AGame
 ### LeonTournament source layout
 
 ```text
-Projects/LeonTournament/Source/LeonTournament/
+Games/LeonTournament/Source/LeonTournament/
 ├── Public/{Types,UI,Game,Characters,Combat}/
 └── Private/{UI,Game,Characters,Combat}/
 ```

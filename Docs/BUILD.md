@@ -33,10 +33,10 @@ shell:
 
 | Script | Builds |
 | :--- | :--- |
-| `python Scripts/build_engine.py` | Engine tests and tools (`RendererTests`, `AssetTool`, `LightmassTool`, `ProjectTool`) |
-| `python Scripts/build_editor.py [--run]` | `LeonEditor` |
-| `python Scripts/build_project.py --project <path.lproject> [--run] [--target <name>]` | A game |
-| `python Scripts/run_tests.py` | Builds and runs the engine test suite |
+| `python Tools/build_engine.py` | Engine tests and tools (`RendererTests`, `AssetTool`, `LightmassTool`, `ProjectTool`) |
+| `python Tools/build_editor.py [--run]` | `LeonEditor` |
+| `python Tools/build_project.py --project <path.lproject> [--run] [--target <name>]` | A game |
+| `python Tools/run_tests.py` | Builds and runs the engine test suite |
 
 All of them take `--config Debug|Release|RelWithDebInfo`, `--clean` (delete the tree first) and
 `--rebuild`.
@@ -48,7 +48,7 @@ All of them take `--config Debug|Release|RelWithDebInfo`, `--clean` (delete the 
 | `LEON_BUILD_EDITOR` | `ON` | Build the editor |
 | `LEON_BUILD_TOOLS` | `ON` | Build the asset, lightmass and project tools |
 | `LEON_BUILD_TESTS` | `ON` | Build test executables and register them with CTest |
-| `LEON_GAMES` | `Sandbox;LeonTournament;LeonHorror` | Game folders under `Projects/` to build |
+| `LEON_GAMES` | `Sandbox;LeonTournament;LeonHorror` | Game folders under `Games/` or `Samples/` to build |
 | `LEON_EXTERNAL_GAME_DIRS` | empty | Absolute paths of game projects outside this repository |
 | `LEON_WARNINGS_AS_ERRORS` | `OFF` | Used by the `ci` preset |
 | `LEON_ENABLE_ASAN` | `OFF` | Used by the `asan` preset |

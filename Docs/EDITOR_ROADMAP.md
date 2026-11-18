@@ -12,8 +12,8 @@ Leon Engine 2 Editor follows an **Unreal Engine–inspired Context-Driven archit
 Build & Run:
 
 ```bat
-python Scripts/build_editor.py --config Debug
-python Scripts/build_editor.py --run
+python Tools/build_editor.py --config Debug
+python Tools/build_editor.py --run
 ```
 
 ---

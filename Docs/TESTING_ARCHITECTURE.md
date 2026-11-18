@@ -5,10 +5,10 @@
 | CMake target | Role | Location | Links Projects? |
 | :--- | :--- | :--- | :---: |
 | `RendererTests` | Engine unit/integration/GPU suite | `Tests/` (`out/Engine/`) | No |
-| `LeonTournamentTests` | Product gameplay, combat, AI, UI, match | `Projects/LeonTournament/Tests/` (`out/Projects/LeonTournament/`) | Project only |
+| `LeonTournamentTests` | Product gameplay, combat, AI, UI, match | `Games/LeonTournament/Tests/` (`out/Games/LeonTournament/`) | Project only |
 
-`python Scripts/run_tests.py` builds and runs the Engine test suite (`RendererTests`).
-Product gameplay tests are built and executed via project scripts: `python Projects/LeonTournament/Scripts/test.py`.
+`python Tools/run_tests.py` builds and runs the Engine test suite (`RendererTests`).
+Product gameplay tests are built and executed via project scripts: `python Games/LeonTournament/Scripts/test.py`.
 
 ## Layout
 
@@ -18,7 +18,7 @@ Tests/
   Math/ IBL/ PBR/ HDR/ Cache/ GPU/ Shader/ Asset/ Lightmass/ Renderer/
   Gameplay/                Engine gameplay framework (not the product)
 
-Projects/LeonTournament/Tests/
+Games/LeonTournament/Tests/
   Main.cpp                 Project test entry with class and driver bindings
   *Tests.cpp               Product gameplay, combat, anim, bot, UI tests
 ```

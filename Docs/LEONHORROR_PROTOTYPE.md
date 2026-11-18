@@ -5,7 +5,7 @@ foggy corridor with one enemy, an office, a locked storage room and a locked exi
 prove the gameplay loop (explore, find keys, fight or avoid, save, die, reload) and to show
 what the engine still lacks for this kind of game.
 
-Project folder: `Projects/LeonHorror`. Game classes are prefixed `ALeonHorror*` / `ULeonHorror*`.
+Project folder: `Games/LeonHorror`. Game classes are prefixed `ALeonHorror*` / `ULeonHorror*`.
 
 ## Build, run, test
 
@@ -13,14 +13,14 @@ Run everything from the repository root.
 
 | What | Command |
 | :--- | :--- |
-| Build and run the game | `python Scripts/run_project.py --project Projects/LeonHorror/LeonHorror.lproject` |
-| Build only | `python Scripts/build_project.py --project Projects/LeonHorror/LeonHorror.lproject --target LeonHorror` |
-| Build the tests | `python Scripts/build_project.py --project Projects/LeonHorror/LeonHorror.lproject --target LeonHorrorTests` |
+| Build and run the game | `python Tools/run_project.py --project Games/LeonHorror/LeonHorror.lproject` |
+| Build only | `python Tools/build_project.py --project Games/LeonHorror/LeonHorror.lproject --target LeonHorror` |
+| Build the tests | `python Tools/build_project.py --project Games/LeonHorror/LeonHorror.lproject --target LeonHorrorTests` |
 | Run the tests | `out/build/dev-debug/bin/LeonHorrorTests.exe` |
 | Smoke run (exits by itself) | `out/build/dev-debug/bin/LeonHorror.exe --validate-seconds=10` |
-| Open in the editor | `python Scripts/run_editor.py`, then pick LeonHorror in the Project Hub |
+| Open in the editor | `python Tools/run_editor.py`, then pick LeonHorror in the Project Hub |
 
-After adding a source or test file to `Projects/LeonHorror/Sources.cmake`, reconfigure once:
+After adding a source or test file to `Games/LeonHorror/Sources.cmake`, reconfigure once:
 `cmake --preset dev-debug`.
 
 ## Controls
@@ -69,11 +69,11 @@ Dying returns to the last save, or restarts the map if there is none.
   tick.
 - **HUD** — `ALeonHorrorHUD::BuildModel` turns the game state into plain data
   (`FLeonHorrorHudModel`); drawing only lays that out. Tests check the model.
-- **Level** — `Projects/LeonHorror/Scripts/build_slice_map.py` generates `Content/Maps/Slice.lmap`
+- **Level** — `Games/LeonHorror/Scripts/build_slice_map.py` generates `Content/Maps/Slice.lmap`
   from boxes. Edit the script, not the map; pass `--bake` to rebake Draft lightmaps. Rebuild
   `AssetTool` and `LightmassTool` first if the map serializer changed.
-- **Animations** — `Scripts/make_animations.py` (run by Blender, headless) authors the clips
-  that Mixamo did not provide; `Scripts/import_animations.py` imports them.
+- **Animations** — `Tools/make_animations.py` (run by Blender, headless) authors the clips
+  that Mixamo did not provide; `Tools/import_animations.py` imports them.
 
 Engine features added for this prototype: per-actor map properties, world pause with
 tick-when-paused actors, distance and height fog, line-of-sight and noise in AI perception,

@@ -85,12 +85,12 @@ Actors support Unreal-style parent-child attachments:
 
 ```powershell
 # Build Editor (Ninja + MSVC)
-python Scripts/build_editor.py --config Debug
+python Tools/build_editor.py --config Debug
 
 # Launch Editor
-python Scripts/run_editor.py
+python Tools/run_editor.py
 
 # Format and verify conventions
-python Scripts/verify_ue_naming.py
-python Scripts/format_code.py
+python Tools/verify_ue_naming.py
+python Tools/format_code.py
 ```

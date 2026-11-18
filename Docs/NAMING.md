@@ -35,7 +35,7 @@ Official naming, directory layout, and coding standards for **LeonEngine2**, ali
 
 ### Allowed exceptions
 
-These exist in the tree and must not be mass-renamed without a dedicated sweep. `Scripts/verify_ue_naming.py` allowlists the unprefixed aliases.
+These exist in the tree and must not be mass-renamed without a dedicated sweep. `Tools/verify_ue_naming.py` allowlists the unprefixed aliases.
 
 | Exception | Why |
 | :--- | :--- |

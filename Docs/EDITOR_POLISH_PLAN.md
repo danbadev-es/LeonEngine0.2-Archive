@@ -138,7 +138,7 @@ Hide/Lock: either honor `HiddenActors` / `LockedActors` in `FViewportPanel` pick
 
 No new command types required in this phase.
 
-**Verify:** `python Scripts/verify_ue_naming.py` on touched files.
+**Verify:** `python Tools/verify_ue_naming.py` on touched files.
 
 ---
 
@@ -244,7 +244,7 @@ While `bRmbNavigating`, disable/capture cursor (same idea as PIE) so look does n
 
 ### 5.1 Import
 
-`FContentBrowserPanel` import must invoke the existing pipeline (`Scripts/import_assets.py` / `AssetTool import`), async like Lightmass bake (`bBakeRunning` pattern): English lines in Output Log, toast on failure.
+`FContentBrowserPanel` import must invoke the existing pipeline (`Tools/import_assets.py` / `AssetTool import`), async like Lightmass bake (`bBakeRunning` pattern): English lines in Output Log, toast on failure.
 
 Accept into Content: `.lmesh`, `.lskeletalmesh`, `.lskeleton`, `.lanim`, `.ltex`, `.lhdr`, `.lmat`, `.lmap`, project audio formats the runtime already loads. **Reject** leaving raw `.fbx` / `.obj` as the playable mesh.
 
@@ -274,7 +274,7 @@ Keep New Project templates. Ensure Blank project gets an empty `.lmap`, default 
 | `ATriggerVolume` | Gameplay | 4 |
 | `FProceduralPrimitiveSpawner` (+ `Ramp`) | Gameplay | 4 |
 
-CMake: add new `.cpp` to `LeonEditorCore` and/or `Leon::Gameplay` as appropriate. Run `python Scripts/verify_ue_naming.py`.
+CMake: add new `.cpp` to `LeonEditorCore` and/or `Leon::Gameplay` as appropriate. Run `python Tools/verify_ue_naming.py`.
 
 ---
 

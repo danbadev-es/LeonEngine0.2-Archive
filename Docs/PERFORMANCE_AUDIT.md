@@ -10,16 +10,16 @@ Scenario: LeonTournament TDM 2v2, 1280×720, `--offline-match --no-vsync --bots=
 ```bat
 cmake --build build --target LeonTournament RendererTests --parallel
 .\build\Projects\LeonTournament\LeonTournament.exe ^
-  --project=Projects/LeonTournament/LeonTournament.lproject ^
+  --project=Games/LeonTournament/LeonTournament.lproject ^
   --offline-match --validate-seconds=60 --no-vsync --bots=2,2 ^
-  --report=Projects/LeonTournament/Saved/perf_report.txt
+  --report=Games/LeonTournament/Saved/perf_report.txt
 
 .\build\Tests\RendererTests.exe --test-suite="Frame profiler"
 .\build\Tests\RendererTests.exe --test-suite="Performance scaling benchmarks"
 .\build\Tests\RendererTests.exe --test-suite="Jolt physics scene"
 ```
 
-Reports land under `Projects/LeonTournament/Saved/perf_*.txt` (percentiles, subsystem averages, bound class, RAM/VRAM).
+Reports land under `Games/LeonTournament/Saved/perf_*.txt` (percentiles, subsystem averages, bound class, RAM/VRAM).
 
 ## Baseline (pre-remediation)
 

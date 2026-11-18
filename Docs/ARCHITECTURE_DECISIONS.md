@@ -34,15 +34,15 @@ Rather than a single monolithic build, LeonEngine2 separates code into three dis
 │    Outputs: LeonEditor.exe (out/Editor/)                                       │
 │    Consumes: LeonEngineCore + Plugins + Dear ImGui Docking + Editor Panels     │
 ├────────────────────────────────────────────────────────────────────────────────┤
-│ 3. PROJECT PRODUCT (cmake -S . -B out/Projects/<Name> -DLEON_PRODUCT=Project)  │
-│    Outputs: _project/<Game>.exe (out/Projects/<Name>/)                         │
+│ 3. PROJECT PRODUCT (cmake -S . -B out/Games/<Name> -DLEON_PRODUCT=Project)  │
+│    Outputs: _project/<Game>.exe (out/Games/<Name>/)                         │
 │    Consumes: LeonEngineCore + Plugins + Single Game Source (Zero Editor/ImGui) │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Rationale:
 1. **Zero Editor Bloat in Runtime Games**: The game executable (`_project/<Game>.exe`) never includes ImGui or editor panels.
-2. **Multi-Project Scalability**: The engine does not hardcode any game names. Any external `.lproject` can be built against the engine using `python Scripts/build_project.py --project <path>`.
+2. **Multi-Project Scalability**: The engine does not hardcode any game names. Any external `.lproject` can be built against the engine using `python Tools/build_project.py --project <path>`.
 3. **Clean Incremental Builds**: Changes to editor UI do not invalidate game runtime compilation artifacts, and vice versa.
 
 ---
@@ -53,8 +53,8 @@ LeonEngine2 strictly decouples physical file locations on disk from asset refere
 
 ```text
 /Engine/Shaders/PBR_Lit.glsl  ──►  Engine/Resources/Shaders/PBR_Lit.glsl
-/Game/Maps/ShowcaseLevel      ──►  Projects/<Project>/Content/Maps/ShowcaseLevel.lmap
-/Game/Materials/M_Floor       ──►  Projects/<Project>/Content/Materials/M_Floor.lmat
+/Game/Maps/ShowcaseLevel      ──►  Games/<Project>/Content/Maps/ShowcaseLevel.lmap
+/Game/Materials/M_Floor       ──►  Games/<Project>/Content/Materials/M_Floor.lmat
 ```
 
 ### Rationale:
@@ -81,16 +81,16 @@ Baking operations (lightmaps, reflection probes, IBL prefiltering) are computati
 
 ## 5. Shipping & Distribution Pipeline
 
-Production game releases are staged and packaged via [`Scripts/package_project.py`](../Scripts/package_project.py):
+Production game releases are staged and packaged via [`Tools/package_project.py`](../Tools/package_project.py):
 
 ```powershell
-python Scripts/package_project.py --project Projects/Sandbox/Sandbox.lproject --config Release
+python Tools/package_project.py --project Samples/Sandbox/Sandbox.lproject --config Release
 ```
 
 ### Package Process:
 1. **Optimized Build**: Compiles in `Release` configuration with maximum optimization flags (`/O2`, link-time code generation where supported).
 2. **Symbol Stripping**: Runs `strip --strip-unneeded` on the executable (on applicable toolchains) to reduce binary size and protect intellectual property.
-3. **Staging Directory Assembly**: Collects only runtime essentials into `Projects/<Name>/Dist/Shipping/<Name>/`:
+3. **Staging Directory Assembly**: Collects only runtime essentials into `Games/<Name>/Dist/Shipping/<Name>/`:
    - `<Name>.exe` and `<Name>.lproject`
    - `Content/` (game assets)
    - `Config/` (Multi-INI configurations)

@@ -103,11 +103,11 @@ LeonEngine2 features a high-performance, deterministic **Native Asset Import Pip
 Prefer Engine Scripts (resolve Content from `.lproject`). See [SCRIPTS.md](SCRIPTS.md).
 
 ```bash
-python Scripts/validate_project.py --project <path.lproject>
-python Scripts/import_assets.py --project <path.lproject> [--force]
-python Scripts/export_assets.py --project <path.lproject> [--force] [--format auto|obj|fbx|png|tga|jpg|bmp|hdr|exr]
-python Scripts/validate_assets.py --project <path.lproject>
-python Scripts/bake_lightmaps.py --project <path.lproject> [--map /Game/Maps/Name] [--force]
+python Tools/validate_project.py --project <path.lproject>
+python Tools/import_assets.py --project <path.lproject> [--force]
+python Tools/export_assets.py --project <path.lproject> [--force] [--format auto|obj|fbx|png|tga|jpg|bmp|hdr|exr]
+python Tools/validate_assets.py --project <path.lproject>
+python Tools/bake_lightmaps.py --project <path.lproject> [--map /Game/Maps/Name] [--force]
 
 # Direct specialized tools:
 AssetTool import --raw <raw_dir> --content <content_dir> [--force]

@@ -3,8 +3,8 @@
 Dependency direction is **Game → Engine** only.
 
 ```text
-Projects/LeonTournament  →  Engine
-Projects/Sandbox         →  Engine
+Games/LeonTournament  →  Engine
+Samples/Sandbox         →  Engine
 Engine                   ↛  any project
 ```
 
@@ -22,7 +22,7 @@ Root CMake `LEON_PROJECT_DIR` selects the game to run. Extra monorepo games are 
 
 | Check | Location |
 | :--- | :--- |
-| No `Sandbox` / `LeonTournament` / `Projects/<Product>` in Engine sources | `Scripts/verify_ue_naming.py` |
+| No `Sandbox` / `LeonTournament` / `Projects/<Product>` in Engine sources | `Tools/verify_ue_naming.py` |
 | No game tokens in `Engine/Source` | `Tests/Gameplay/EngineGameSeparationTests.cpp` |
 | Engine test binary does not link game `.cpp` | `Tests/CMakeLists.txt` (`RendererTests`) |
 
@@ -33,7 +33,7 @@ Root CMake `LEON_PROJECT_DIR` selects the game to run. Extra monorepo games are 
 | Engine | Shaders, fonts, BRDF LUT, generic importers, `/Engine/...` |
 | Project | Maps, materials `M_*`, blend spaces `BS_*`, skeletons, BT/Blackboard assets, HDR used by that game |
 
-Sample-project HDR (`Projects/Sandbox/Content/HDR/DaySky1k.lhdr`) may be used as an **engine test fixture** because Sandbox is the blank sample game, analogous to a UE template — not because the engine ships that map. Engine **source** still must not embed that path; tests may.
+Sample-project HDR (`Samples/Sandbox/Content/HDR/DaySky1k.lhdr`) may be used as an **engine test fixture** because Sandbox is the blank sample game, analogous to a UE template — not because the engine ships that map. Engine **source** still must not embed that path; tests may.
 
 ## Plugin boundary
 
