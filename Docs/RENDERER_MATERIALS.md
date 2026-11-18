@@ -4,8 +4,8 @@ PBR materials for LeonEngine2. Contracts: [RENDERER_CONTRACT.md](RENDERER_CONTRA
 
 ## Features
 
-- Gram-Schmidt TBN in the fragment shader; `u_NormalScale`; fallback to geometric normal
-- Color maps (albedo, emissive): hardware sRGB decode via `.ltex` / `GL_SRGB8_ALPHA8`
+- Gram-Schmidt TBN in the pixel shader; normal strength in `u_SurfaceParams.w`; fallback to geometric normal
+- Color maps (albedo, emissive): hardware sRGB decode via `.ltex` / `RGBA8_UNorm_sRGB`
 - Data maps (normal, metallic, roughness, AO): linear
 - Alpha: `Opaque`, `Mask` (`discard`), `Blend` (depth write off)
 - UV tiling / offset; double-sided cull bypass

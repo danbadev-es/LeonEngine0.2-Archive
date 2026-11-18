@@ -1,6 +1,6 @@
 # Post-Processing & Anti-Aliasing
 
-Transforms linear HDR radiance from the forward PBR path into LDR display output. Order matches `FPostProcessPipeline::Render`. Index: [RENDERER.md](RENDERER.md).
+Transforms linear HDR radiance from the forward PBR path into LDR display output. Order matches `FPostProcessRHI::Render`. The shaders are `SSAO.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl` and `FXAA.hlsl` in `Engine/Shaders`. Index: [RENDERER.md](RENDERER.md).
 
 ## Pipeline flow
 
@@ -48,7 +48,7 @@ Order: **SSAO → Bloom → Tone map (exposure) → FXAA**.
                             │
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│           Target FFramebuffer / LDR Backbuffer          │
+│        Output texture (back buffer or viewport)        │
 │                (RGBA8, sRGB Presented)                 │
 └────────────────────────────────────────────────────────┘
 ```
@@ -57,7 +57,7 @@ Order: **SSAO → Bloom → Tone map (exposure) → FXAA**.
 
 ## 2. Bloom Pipeline (Dual-Kawase / Jimenez Pyramid)
 
-### 2.1 Soft-Knee Bright-Pass Extraction (`BloomBrightPass.glsl`)
+### 2.1 Soft-Knee Bright-Pass Extraction (`Bloom.hlsl`, `PSBrightPass`)
 Standard thresholding causes harsh, pixelated edges at the cutoff boundary. LeonEngine2 applies a continuous quadratic soft-knee threshold curve:
 
 $$\text{luma} = 0.2126 R + 0.7152 G + 0.0722 B$$
@@ -67,7 +67,7 @@ $$\text{soft} = \frac{\text{soft}^2}{4 \times \text{knee} + 10^{-5}}$$
 $$\text{contribution} = \frac{\max(\text{soft}, \text{luma} - \text{Threshold})}{\max(\text{luma}, 10^{-4})}$$
 $$\text{Color}_{\text{bright}} = \text{Color} \times \max(\text{contribution}, 0)$$
 
-### 2.2 Jimenez 13-Tap Downsampling (`BloomDownsample.glsl`)
+### 2.2 Jimenez 13-Tap Downsampling (`Bloom.hlsl`, `PSDownsample`)
 Downsampling uses Jorge Jimenez's 13-tap filter pattern (sampling 36 bilinear texels across 4 box groupings) with Karis luminance weighting on Mip 0 to prevent subpixel fireflies:
 
 $$\text{Weight}_{\text{Karis}}(C) = \frac{1}{1 + \text{Luma}(C)}$$
@@ -76,16 +76,16 @@ The 13-tap normalized filter weights sum strictly to $1.0$:
 - 4 Central box bilinear taps: weight $0.125$ each ($0.5$ total)
 - 4 Corner bilinear taps (top-left, top-right, bottom-left, bottom-right): weight $0.03125 \times 4 = 0.125$ per box ($0.5$ total)
 
-### 2.3 9-Tap Tent Upsampling with Additive Blending (`BloomUpsample.glsl`)
+### 2.3 9-Tap Tent Upsampling with Additive Blending (`Bloom.hlsl`, `PSUpsample`)
 Upsampling expands progressively from the lowest downsampled mip back up to Mip 0 using a $3\times 3$ tent filter kernel with configurable blur radius:
 
 $$\begin{bmatrix} 1 & 2 & 1 \\ 2 & 4 & 2 \\ 1 & 2 & 1 \end{bmatrix} \times \frac{1}{16}$$
 
-Each upsampling pass additively blends (`GL_ONE`, `GL_ONE`) the upsampled higher-blur mip with the corresponding downsampled mip, synthesizing a smooth, cinematic glow.
+Each upsampling pass additively blends (one, one) the upsampled higher-blur mip with the corresponding downsampled mip, synthesizing a smooth, cinematic glow.
 
 ---
 
-## 3. Tone Mapping & Color Grading (`ToneMapping.glsl`)
+## 3. Tone Mapping & Color Grading (`ToneMapping.hlsl`)
 
 ### 3.1 ACES Filmic Operator (Narkowicz Fit)
 The default photographic tone mapper utilizes Krzysztof Narkowicz's industry-standard rational approximation of the ACES S-curve:
@@ -106,7 +106,7 @@ Filmic curve offering independent toe, shoulder, and linear control points.
 
 ---
 
-## 4. FXAA 3.11 Anti-Aliasing (`FXAA.glsl`)
+## 4. FXAA 3.11 Anti-Aliasing (`FXAA.hlsl`)
 
 LeonEngine2 implements Timothy Lottes' complete FXAA 3.11 Quality algorithm operating on the sRGB LDR buffer:
 1. **Local Contrast Check**: Early-exits flat regions when $\Delta L < \max(0.03125, L_{\max} \times 0.125)$.

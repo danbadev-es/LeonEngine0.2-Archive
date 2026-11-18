@@ -12,10 +12,11 @@ Doc index: [RENDERER.md](RENDERER.md). Remediation backlog: [RENDERER_REMEDIATIO
 | Handedness | Right-handed |
 | Up | +Y |
 | Camera forward | −Z |
-| Clip / NDC | OpenGL (`z` in `[-1, 1]`, `y` up) |
+| Clip / NDC | In the engine (cameras, shadow maths, tests): `z` in `[-1, 1]`, `y` up. Converted to Direct3D's `z` in `[0, 1]` where matrices are handed to shaders (`ClipDepthZeroToOne` in `FShaderConstants.hpp`; see [ADR 0004](adr/0004-clip-space-converted-at-the-rhi-boundary.md)) |
 | Front face | CCW |
 | Culling | Back (unless the material is double-sided) |
-| Depth | Classic OpenGL, near `0.1`, far `1000`. Not reversed-Z. |
+| Depth | Near `0.1`, far `1000`, less-equal test, `D32_Float`. Not reversed-Z. |
+| Screen UV | Origin at the top left, like render targets |
 
 World scale: scenes on the order of meters. Near/far is sufficient for that range.
 
@@ -46,7 +47,7 @@ On-disk `.lmesh` version **5** matches this layout plus reduced LODs (v4 unique-
 
 ```
 MaterialColor  = linear
-TextureColor   = hardware-decoded linear (GL_SRGB8_ALPHA8 for sRGB color maps)
+TextureColor   = hardware-decoded linear (RGBA8_UNorm_sRGB for sRGB color maps)
 Data maps      = linear (normal, roughness, metallic, AO)
 Lighting       = linear HDR
 Display        = bloom → exposure → tone map → gamma 2.2 → LDR
@@ -82,21 +83,21 @@ Lo_diffuse = albedo / PI * E
 
 Prefilter: GGX/Karis split-sum. BRDF LUT uses IBL Smith (`k = a²/2`), texel centers `(x+0.5)/size`. Cache `.libl` **v6** hashes HDR content, algorithm version, resolutions, and sample counts. `saTexel` is the cubemap solid angle \(4\pi / (6 \cdot \mathrm{size}^2)\). **Exposure and environment intensity are not baked into IBL.** Perceptual roughness is clamped to `[0.04, 1]` on CPU and GPU.
 
-Runtime: IBL and skybox multiply `EnvironmentIntensity`. Scene `Exposure` is applied only in `ToneMapping.glsl`.
+Runtime: IBL and skybox multiply `EnvironmentIntensity`. Scene `Exposure` is applied only in `ToneMapping.hlsl`.
 
-The HDR skybox samples equirectangular 2D (`atan2(z,x)`). The u wrap at world −X would pick the 1×1 mip via implicit LOD; `Skybox.glsl` uses wrap-aware `textureGrad` so that seam is not a bright vertical line.
+The HDR skybox samples equirectangular 2D (`atan2(z,x)`). The u wrap at world −X would pick the 1×1 mip via implicit LOD; `Skybox.hlsl` uses wrap-aware `SampleGrad` so that seam is not a bright vertical line.
 
-Energy check: uniform `Li = 1` ⇒ `E = π`. Albedo `1` ⇒ `Lo_diffuse = 1` (`u_DebugMode == 35`).
+Energy check: uniform `Li = 1` ⇒ `E = π`. Albedo `1` ⇒ `Lo_diffuse = 1` (debug view 35).
 
 ## Shadows
 
-- Directional: CSM with up to 4 layers. `CascadeCount` is packed in `FCameraBufferData::ShadowSettings.z`. Unused layers are cleared and padded; the shader clamps index, blend, and far fade to that count.
+- Directional: CSM with up to 4 layers. `CascadeCount` is passed in `FLitPassConstants::ShadowSettings.z`. Unused layers are cleared and padded; the shader clamps index, blend, and far fade to that count.
 - Spotlight: **one** shadowed spot (`FShadowSettings.ShadowedSpotIndex`, default `0`). Viewport uses `SpotResolution`.
-- Point: **at most 4** cubemap-array slots (`FShadowSettings::kMaxShadowedPointLights`). `FGpuPointLight::Params.y` is the cube index (`-1` = unshadowed). Binding 14, `u_UsePointShadows`. Linear depth vs radius.
+- Point: **at most 4** cubemap-array slots (`FShadowSettings::kMaxShadowedPointLights`). `Params.y` of the light is the cube index (`-1` = unshadowed). Texture register `t14`, enabled by `u_ShadowFlags.z`. Linear depth vs radius.
 - `FShadowSettings.bEnableShadows` disables all shadow passes and GPU flags.
 - PCF / Poisson skip UV taps outside `[0,1]` and renormalize (no border-lit leaks).
 - Contact shadows: **removed**.
-- Depth: classical `GL_LEQUAL` compare on CSM/spot. Point cubes use `COMPARE_MODE = NONE` and a manual linear compare.
+- Depth: hardware less-equal compare on CSM/spot (`s_ShadowCompare`, clamped at the map's edge). Point cubes are read with a point sampler and compared by hand in linear depth.
 - Bias: constant + slope + normal offset.
 - Opaque geometry uses camera frustum AABB cull. Shadow casters are AABB-culled per cascade / spot / cubemap face. Skinned bounds are inflated by `kSkinnedShadowBoundsPadding`.
 
@@ -120,7 +121,7 @@ When a lightmap is bound, diffuse IBL is replaced by the lightmap; specular IBL 
 - GI estimator: cosine hemisphere sampling, `E += π * Lo_hit`, throughput `albedo` per extra bounce. Environment miss on later bounces adds `throughput * L_env`.
 - Receptor **emissive is runtime-only**. Other surfaces contribute emissive through GI `Li`.
 - Bake AO: when `bAmbientOcclusion` is true, `FLightBaker` **multiplies AO into stored `E`**. Material AO remains a runtime artistic term and is **not** applied again to baked Lambert.
-- Spotlight angular factor is the same Hermite smoothstep as `PBR_Lit.glsl` (`FLightAttenuation.hpp`).
+- Spotlight angular factor is the same Hermite smoothstep as `PBR_Lit.hlsl` (`FLightAttenuation.hpp`).
 
 `.llightmap` version **2**. Cache key includes baker algorithm version `5`, geometry, transforms, lights, skybox/HDR **file content** hash, materials, resolution, bounces, samples, AO settings. At play, `FLightmass::RefreshRuntimeLightmapTrust` skips sampling if `LightmapBakeHash` is missing or stale.
 
@@ -152,18 +153,18 @@ One scene exposure (`FSkyboxComponent::Exposure` → post-process `u_Exposure`).
 
 ## Planar reflections
 
-This is **not** Unreal Sphere/Box Reflection Captures. The engine renders the scene from a camera reflected through a world plane (`n·x + d = 0`) into an offscreen HDR FBO, then samples that map with **projective UVs** (`u_PlanarViewProjection * worldPos`). Screen-space UVs turn every mirror into a zoomed framebuffer portal.
+This is **not** Unreal Sphere/Box Reflection Captures. The engine renders the scene from a camera reflected through a world plane (`n·x + d = 0`) into an offscreen HDR target, then samples that map with **projective UVs** (`u_PlanarMatrix * worldPos`). Screen-space UVs turn every mirror into a zoomed portal of the screen.
 
-| Path | FBO / unit | When |
+| Path | Texture register | When |
 | :--- | :--- | :--- |
-| Floor | `PlanarReflectionFramebuffer` (unit 5) | Always, if any plane is registered |
-| Optional wall | `WallPlanarReflectionFramebuffer` (unit 13) | Camera faces a non-horizontal plane (`PlanarReflectionPlaneScore > 0.45`) |
+| Floor | `t5` | Always, if any plane is registered |
+| Optional wall | `t13` | Camera faces a non-horizontal plane (`PlanarReflectionPlaneScore > 0.45`) |
 
-Games register planes with `FWorldRenderer::AddPlanarReflectionPlane`. LeonTournament and Sandbox register **floor only** `{0,1,0}, 0`. The dual-FBO wall path stays in the engine for optional mirrors.
+Games register planes with `FWorldRenderer::AddPlanarReflectionPlane`. LeonTournament and Sandbox register **floor only** `{0,1,0}, 0`. The second (wall) capture stays in the engine for optional mirrors.
 
 `UsePlanarReflection` on a material is for surfaces **on** that plane (wet floors, glass panels). Curved chrome (Showcase `M_ChromeMirror` sphere) uses **cubemap IBL**. The fragment shader fades planar weight by distance to the plane (`smoothstep(0.08, 0.40)`) so off-plane meshes keep IBL even if the flag is left on.
 
-Capture skips hidden and **Movable** meshes. Nested planar is disabled in the capture pass (`u_UsePlanarReflection = 0`). Capture and sampling share the same mirrored view-projection (`playerProj * view * reflect`). Clip is the geometric plane. Planar capture draws the skybox with culling off before enabling clip distance (Skybox.glsl does not write `gl_ClipDistance`).
+Capture skips hidden and **Movable** meshes. Nested planar is disabled in the capture pass. Capture and sampling share the same mirrored view-projection (`playerProj * view * reflect`). Clip is the geometric plane. Geometry behind the plane is cut with `SV_ClipDistance` in the surface shader; the sky is drawn without it.
 
 Quality (`[/Script/Engine.RendererSettings]`):
 
@@ -172,11 +173,11 @@ Quality (`[/Script/Engine.RendererSettings]`):
 | `PlanarReflectionQuality` | `Low` / `Medium` / `High` / `Epic` (aliases `Max`) | 25% / 50% / 75% / 100% of viewport; Epic uses 5 color mips |
 | `PlanarReflectionResolutionScale` | optional `0.25`–`1.0` | Overrides the scale from quality |
 
-Default is **Epic**. Capture viewport size follows the FBO, not the full window. Runtime: `FWorldRenderer::SetPlanarReflectionQuality`. Types live in `FPlanarReflectionTypes.hpp`.
+Default is **Epic**. Capture viewport size follows the capture target, not the full window. Runtime: `FWorldRenderer::SetPlanarReflectionQuality`. Types live in `FPlanarReflectionTypes.hpp`.
 
 ## Resize
 
-Window resize → `UEngine` → `FWorldRenderer::OnViewportResize` → HDR FBO, planar FBOs, bloom/tone-map/FXAA targets, UI viewport.
+Window resize → `UEngine` → `FWorldRenderer::OnViewportResize` → HDR target, planar captures, bloom/tone-map/FXAA targets, UI viewport.
 
 ## Cache
 
@@ -222,8 +223,8 @@ Post-process `FPostProcessSettings::DebugMode` 5 visualizes SSAO (grayscale) bef
 
 ## Limitations
 
-- Forward renderer. Opaque draws with the same VA + material instance batch together (GPU instancing ≤64). No clustered lights, VSM, or GPU-driven path.
-- At most 16 point lights and 8 spot lights in the UBO; one shadowed spotlight. Excess lights are dropped with a per-frame warning.
+- Forward renderer. One draw per mesh section: instancing of repeated meshes has not been brought over from the OpenGL renderer yet. No clustered lights, VSM, or GPU-driven path.
+- At most 16 point lights and 8 spot lights in the pass constants; one shadowed spotlight. Excess lights are dropped with a per-frame warning.
 - Opaque: camera frustum AABB cull. Shadow casters: light-space AABB cull per cascade / spot.
 - Alpha-masked shadow casters: `EAlphaMode::Mask` clips in CSM and spot for procedural, static, and skinned meshes.
 - No local cubemap / sphere reflection probes. Planar is for registered planes; curved metals use IBL.
