@@ -18,9 +18,9 @@ namespace Leon::Editor {
     namespace {
 
         std::string NowTimestamp() {
-            using clock = std::chrono::system_clock;
-            const auto now = clock::now();
-            const std::time_t t = clock::to_time_t(now);
+            using FClock = std::chrono::system_clock;
+            const auto now = FClock::now();
+            const std::time_t t = FClock::to_time_t(now);
             std::tm local{};
 #if defined(_WIN32)
             localtime_s(&local, &t);

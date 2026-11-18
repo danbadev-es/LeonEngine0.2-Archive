@@ -130,6 +130,9 @@ def main() -> int:
         for m in RE_MEMBER_M.finditer(text):
             violations.append(f"{rel}: member prefix `{m.group(0)}`")
         for m in RE_MEMBER_S.finditer(text):
+            # The fixed samplers of the HLSL shaders; C++ tests quote shader source that uses them.
+            if m.group(0) in ("s_LinearWrap", "s_LinearClamp", "s_PointClamp", "s_PointWrap", "s_ShadowCompare"):
+                continue
             if len(m.group(0)) > 2 and (m.group(0)[2].isupper() or m.group(0)[2] == "b"):
                 violations.append(f"{rel}: static prefix `{m.group(0)}`")
 

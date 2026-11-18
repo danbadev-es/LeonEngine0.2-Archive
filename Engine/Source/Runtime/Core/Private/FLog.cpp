@@ -8,8 +8,8 @@
 namespace Leon {
 
     FLog::FSink& FLog::Sink() {
-        static FSink s_Sink;
-        return s_Sink;
+        static FSink sink;
+        return sink;
     }
 
     void FLog::Init() {
