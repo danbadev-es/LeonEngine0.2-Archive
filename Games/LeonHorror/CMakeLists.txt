@@ -28,7 +28,15 @@ if(LEON_BUILD_TESTS)
         glm
         stb_image
     )
-    add_test(NAME LeonHorrorTests COMMAND LeonHorrorTests WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")
+    # The suite that draws the start room and compares it with reference pictures is the golden one.
+    add_test(NAME LeonHorrorTests.unit
+        COMMAND LeonHorrorTests "--test-suite-exclude=LeonHorror rendering"
+        WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")
+    add_test(NAME LeonHorrorTests.golden
+        COMMAND LeonHorrorTests "--test-suite=LeonHorror rendering"
+        WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")
+    set_tests_properties(LeonHorrorTests.unit PROPERTIES LABELS "unit")
+    set_tests_properties(LeonHorrorTests.golden PROPERTIES LABELS "golden")
 endif()
 
 leon_apply_compile_options(LeonHorror)

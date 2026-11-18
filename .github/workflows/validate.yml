@@ -25,11 +25,15 @@ jobs:
       - name: Build engine, tools, editor and games
         run: cmake --build --preset ci
 
-      - name: Run engine tests
-        run: out/build/ci/bin/RendererTests.exe
+      # GPU and golden tests draw on WARP, the software Direct3D 12 adapter: no graphics card needed.
+      - name: Unit tests
+        run: ctest --preset ci -L unit
 
-      - name: Run LeonHorror tests
-        run: out/build/ci/bin/LeonHorrorTests.exe
+      - name: GPU tests
+        run: ctest --preset ci -L gpu
+
+      - name: Golden tests
+        run: ctest --preset ci -L golden
 
       - name: Validate Sandbox
         run: out/build/ci/bin/AssetTool.exe validate_project --project Samples/Sandbox/Sandbox.lproject

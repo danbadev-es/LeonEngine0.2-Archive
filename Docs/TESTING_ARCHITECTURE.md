@@ -49,6 +49,10 @@ card, so they run anywhere, including CI. `LEON_TEST_GPU=1` runs them on the mac
 | Device resources | `Tests/GPU/TextureUploadTests.cpp`, `Tests/Renderer/ViewportResizeTests.cpp`, `Tests/Asset/StaticMeshLODTests.cpp` | Half-float cube upload and readback, render targets at several sizes, video memory accounting, mesh buffers per LOD |
 | A real level | `Games/LeonHorror/Tests/RenderTests.cpp` | The game's start room from the player's camera (character, ceiling light, flashlight on and off) against stored pictures in `Games/LeonHorror/Tests/Reference` |
 
+CTest runs them by kind: `ctest --preset dev-debug -L unit`, `-L gpu` or `-L golden` (the reference
+pictures and the energy checks of a whole frame). CI runs the three. LeonTournament's suite is
+labelled `known-failing` and left out: fourteen of its cases have failed for a long time.
+
 Every GPU test also requires that the debug layer reported nothing. For the world renderer that covers
 each shader, pipeline, render pass and resource state a frame uses.
 

@@ -56,6 +56,7 @@ set(LEON_ENGINE_TEST_SOURCES
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
+    Lightmass/BakeHashTests.cpp
     RHI/ShaderConstantLayoutTests.cpp
     Shader/PostProcessPipelineTests.cpp
     Asset/MeshImportTests.cpp
@@ -124,7 +125,22 @@ add_executable(RendererTests ${LEON_ENGINE_TEST_SOURCES})
 leon_configure_test_exe(RendererTests)
 
 enable_testing()
-add_test(NAME EngineTests COMMAND RendererTests WORKING_DIRECTORY ${LEON_ENGINE_ROOT})
+# One executable, registered three times so CTest can run a kind on its own (ctest -L unit|gpu|golden).
+# The suites that create a Direct3D 12 device (on WARP, so they need no graphics card):
+set(LEON_GPU_TEST_SUITES "Shader GPU*,World renderer*,RHI Direct3D 12*,GPU - *,Renderer pipeline*,Lightmap bake hash")
+set(LEON_GOLDEN_TEST_SUITES "Renderer golden*")
+add_test(NAME EngineTests.unit
+    COMMAND RendererTests "--test-suite-exclude=${LEON_GPU_TEST_SUITES},${LEON_GOLDEN_TEST_SUITES}"
+    WORKING_DIRECTORY ${LEON_ENGINE_ROOT})
+add_test(NAME EngineTests.gpu
+    COMMAND RendererTests "--test-suite=${LEON_GPU_TEST_SUITES}"
+    WORKING_DIRECTORY ${LEON_ENGINE_ROOT})
+add_test(NAME EngineTests.golden
+    COMMAND RendererTests "--test-suite=${LEON_GOLDEN_TEST_SUITES}"
+    WORKING_DIRECTORY ${LEON_ENGINE_ROOT})
+set_tests_properties(EngineTests.unit PROPERTIES LABELS "unit")
+set_tests_properties(EngineTests.gpu PROPERTIES LABELS "gpu")
+set_tests_properties(EngineTests.golden PROPERTIES LABELS "golden")
 add_custom_target(EngineTests DEPENDS RendererTests)
 
 leon_apply_compile_options(RendererTests)

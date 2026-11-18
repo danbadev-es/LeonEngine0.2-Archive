@@ -29,6 +29,8 @@ if(LEON_BUILD_TESTS)
         stb_image
     )
     add_test(NAME LeonTournamentTests COMMAND LeonTournamentTests WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")
+    # Fourteen cases of this suite fail and have for a long time; it is not part of what CI runs.
+    set_tests_properties(LeonTournamentTests PROPERTIES LABELS "known-failing")
 endif()
 
 leon_apply_compile_options(LeonTournament)
