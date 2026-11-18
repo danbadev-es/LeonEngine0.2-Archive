@@ -47,6 +47,7 @@ card, so they run anywhere, including CI. `LEON_TEST_GPU=1` runs them on the mac
 | Shaders | `Tests/Shader/*.cpp`, `Tests/Renderer/GoldenSceneTests.cpp` | One quad or one full-screen pass per check: each term of the surface shader (Fresnel, GGX, fog, normal mapping, IBL, planar reflections), shadow sampling, and each post-process shader |
 | Post-process chain | `Tests/Shader/PostProcessPipelineTests.cpp` | `FPostProcessRHI` from an HDR texture to the 8-bit image, and its targets through resizes |
 | Device resources | `Tests/GPU/TextureUploadTests.cpp`, `Tests/Renderer/ViewportResizeTests.cpp`, `Tests/Asset/StaticMeshLODTests.cpp` | Half-float cube upload and readback, render targets at several sizes, video memory accounting, mesh buffers per LOD |
+| A real level | `Games/LeonHorror/Tests/RenderTests.cpp` | The game's start room from the player's camera (character, ceiling light, flashlight on and off) against stored pictures in `Games/LeonHorror/Tests/Reference` |
 
 Every GPU test also requires that the debug layer reported nothing. For the world renderer that covers
 each shader, pipeline, render pass and resource state a frame uses.
@@ -63,6 +64,11 @@ resources, and unregister it (`FRenderDriverRegistry::RegisterDriver(nullptr)`) 
 the suite runs without a driver, where those factories return null. `FHeadlessDevice::UseEngineResources`
 does both; the fixture in `WorldRendererTests.cpp` does it by hand.
 
+Reference pictures are compared with a tolerance small enough to notice the character in a wrong pose
+(checked by breaking skinning on purpose). When a change is meant to alter the picture, run the test
+with `LEON_UPDATE_REFERENCE=1`, look at the new pictures, and commit them with the change. A failed
+comparison leaves the frame it drew in `build/LeonHorrorTests/`.
+
 When a shader test is added or ported, break the shader on purpose once and see the test fail. The
 panorama seam test passed with the fix removed until its camera was turned by one pixel.
 
@@ -70,8 +76,6 @@ CPU math / IBL / cache suites live under `Tests/Math`, `Tests/IBL`, `Tests/PBR`,
 
 Known gaps:
 
-- No test draws a real game level. A golden image of the LeonHorror start room would have caught the
-  bugs that started the Direct3D 12 migration.
 - Headless tests cannot judge whether a frame looks right. See "Checking a change" in [RENDERER.md](RENDERER.md).
 
 ## Behavioral bar

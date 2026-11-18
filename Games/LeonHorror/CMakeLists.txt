@@ -22,6 +22,7 @@ if(LEON_BUILD_TESTS)
     )
     target_link_libraries(LeonHorrorTests PRIVATE
         LeonHorrorGame
+        Leon::Module::RHID3D12
         doctest
         glfw
         glm
