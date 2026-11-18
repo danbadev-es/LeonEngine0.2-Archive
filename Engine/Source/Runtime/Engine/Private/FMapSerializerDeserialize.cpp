@@ -13,6 +13,7 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/APlayerState.hpp"
+#include "Gameplay/ATriggerVolume.hpp"
 #include "Gameplay/AWorldSettings.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 #include "Assets/UAssetManager.hpp"
@@ -116,6 +117,11 @@ namespace Leon {
 
         bool bHasText = false;
         FTextComponent TextComp;
+
+        bool bHasBoxCollision = false;
+        FBoxCollisionComponent BoxCollision;
+        bool bTriggerEnabled = true;
+        bool bPlayerStartEnabled = true;
     };
 
     bool FMapSerializer::DeserializeText(const std::string& InYamlString) {
@@ -148,6 +154,13 @@ namespace Leon {
         bool bHasMapName = false;
         std::string mapVersion;
 
+        // Format 2.2+ escapes quotes, backslashes and line breaks inside quoted strings. The version line
+        // comes after the map name, so it is looked up before parsing starts.
+        const bool bEscapedStrings = MapTextUsesEscapes(InYamlString);
+        auto unquote = [bEscapedStrings](const std::string& InValue) {
+            return StripQuotes(InValue, bEscapedStrings);
+        };
+
         enum class EParserSection { None, Map, OutlinerFolders, Environment, WorldSettings, Skybox, Actors, InActor };
         enum class EActorComponentSection {
             None,
@@ -161,7 +174,8 @@ namespace Leon {
             DirectionalLight,
             PointLight,
             SpotLight,
-            Text
+            Text,
+            BoxCollision
         };
 
         EParserSection currentSection = EParserSection::None;
@@ -191,7 +205,7 @@ namespace Leon {
                 size_t colon = trimmed.find(':');
                 std::string val = FStringUtils::Trim(trimmed.substr(colon + 1));
                 if (!val.empty()) {
-                    mapName = StripQuotes(val);
+                    mapName = unquote(val);
                     bHasMapName = true;
                 }
                 continue;
@@ -219,7 +233,7 @@ namespace Leon {
                 }
                 if (currentSection == EParserSection::OutlinerFolders) {
                     if (trimmed.rfind("- ", 0) == 0) {
-                        outlinerFolders.push_back(StripQuotes(FStringUtils::Trim(trimmed.substr(2))));
+                        outlinerFolders.push_back(unquote(FStringUtils::Trim(trimmed.substr(2))));
                         continue;
                     }
                     // Fall through to other Map keys if list ended
@@ -228,7 +242,7 @@ namespace Leon {
                 size_t colon = trimmed.find(':');
                 if (colon != std::string::npos) {
                     std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
-                    std::string val = StripQuotes(trimmed.substr(colon + 1));
+                    std::string val = unquote(trimmed.substr(colon + 1));
                     if (key == "Name") {
                         mapName = val;
                         bHasMapName = true;
@@ -293,7 +307,7 @@ namespace Leon {
                     size_t colon = trimmed.find(':');
                     if (colon != std::string::npos) {
                         std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
-                        std::string val = StripQuotes(trimmed.substr(colon + 1));
+                        std::string val = unquote(trimmed.substr(colon + 1));
                         applyBakeKey(worldSettings, key, val);
                     }
                     continue;
@@ -303,7 +317,7 @@ namespace Leon {
                     size_t colon = trimmed.find(':');
                     if (colon != std::string::npos) {
                         std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
-                        std::string val = StripQuotes(trimmed.substr(colon + 1));
+                        std::string val = unquote(trimmed.substr(colon + 1));
 
                         if (key == "Enabled")
                             skybox.bEnabled = (val == "true");
@@ -361,7 +375,7 @@ namespace Leon {
 
                     size_t colon = trimmed.find(':');
                     if (colon != std::string::npos) {
-                        currentActor.Name = StripQuotes(trimmed.substr(colon + 1));
+                        currentActor.Name = unquote(trimmed.substr(colon + 1));
                     }
                     continue;
                 }
@@ -404,6 +418,10 @@ namespace Leon {
                     currentCompSection = EActorComponentSection::Text;
                     currentActor.bHasText = true;
                     continue;
+                } else if (trimmed == "BoxCollision:" || trimmed == "BoxCollisionComponent:") {
+                    currentCompSection = EActorComponentSection::BoxCollision;
+                    currentActor.bHasBoxCollision = true;
+                    continue;
                 }
 
                 // Material Overrides List items (- Slot: 0)
@@ -421,7 +439,7 @@ namespace Leon {
                 size_t colon = trimmed.find(':');
                 if (colon != std::string::npos) {
                     std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
-                    std::string val = StripQuotes(trimmed.substr(colon + 1));
+                    std::string val = unquote(trimmed.substr(colon + 1));
 
                     switch (currentCompSection) {
                     case EActorComponentSection::None:
@@ -435,6 +453,25 @@ namespace Leon {
                             currentActor.PlayerStartTag = val;
                         else if (key == "TeamIndex")
                             currentActor.TeamIndex = std::stoi(val);
+                        else if (key == "PlayerStartEnabled")
+                            currentActor.bPlayerStartEnabled = (val == "true");
+                        else if (key == "TriggerEnabled")
+                            currentActor.bTriggerEnabled = (val == "true");
+                        break;
+
+                    case EActorComponentSection::BoxCollision:
+                        if (key == "Min" || key == "LocalMin") {
+                            auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                currentActor.BoxCollision.LocalMin = {v[0], v[1], v[2]};
+                        } else if (key == "Max" || key == "LocalMax") {
+                            auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                currentActor.BoxCollision.LocalMax = {v[0], v[1], v[2]};
+                        } else if (key == "BlockMovement")
+                            currentActor.BoxCollision.bBlockMovement = (val == "true");
+                        else if (key == "Channel")
+                            currentActor.BoxCollision.Channel = static_cast<ECollisionChannel>(std::stoi(val));
                         break;
 
                     case EActorComponentSection::Transform:
@@ -747,7 +784,19 @@ namespace Leon {
                     start->SetPlayerStartTag(actorData.PlayerStartTag);
                 if (actorData.TeamIndex != 0)
                     start->SetTeamIndex(actorData.TeamIndex);
+                start->SetEnabled(actorData.bPlayerStartEnabled);
             }
+
+            // Box collision: volume classes create the component themselves, so assign rather than add.
+            if (actorData.bHasBoxCollision) {
+                if (entity->HasComponent<FBoxCollisionComponent>())
+                    entity->GetComponent<FBoxCollisionComponent>() = actorData.BoxCollision;
+                else
+                    entity->AddComponent<FBoxCollisionComponent>(actorData.BoxCollision);
+            }
+            // After the box: a trigger forces its bounds to be non-blocking.
+            if (auto* trigger = dynamic_cast<ATriggerVolume*>(entity))
+                trigger->SetEnabled(actorData.bTriggerEnabled);
 
             // Transform
             auto& transform = entity->GetComponent<FTransformComponent>();

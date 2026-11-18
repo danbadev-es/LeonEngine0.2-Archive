@@ -2,10 +2,15 @@
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/APlayerStart.hpp"
+#include "Gameplay/ATriggerVolume.hpp"
 
 #include <doctest/doctest.h>
 
+#include <filesystem>
 #include <string>
+#include <system_error>
+#include <vector>
 
 // Robustness of the .lmap reader: a malformed or unsupported file must be refused as a whole and must
 // leave the world it was being loaded into exactly as it was.
@@ -180,6 +185,182 @@ Actors:
             CHECK(restored->GetActorLocation().z == doctest::Approx(-2.0f));
             CHECK(restored->HasComponent<FPointLightComponent>());
             CHECK(restored->GetActorGuid() == lamp->GetActorGuid());
+        }
+    }
+
+    TEST_SUITE("Map serializer writer") {
+
+        TEST_CASE("floats round-trip exactly instead of being cut to six digits") {
+            auto src = UWorld::Create("Precision");
+            AActor* actor = src->SpawnActor<AActor>("Precise");
+            // None of these survive a 6-significant-digit text representation.
+            const glm::vec3 location{1234.5678f, -0.123456789f, 1.0f / 3.0f};
+            const glm::vec3 rotation{0.000123456f, 359.99997f, 12.345678f};
+            actor->SetActorLocation(location);
+            actor->SetActorRotation(rotation);
+
+            std::string text;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            auto dst = UWorld::Create("PrecisionDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(text));
+            AActor* restored = dst->FindActorByName("Precise");
+            REQUIRE(restored);
+            // Bit-exact: repeated saves no longer drift.
+            CHECK(restored->GetActorLocation().x == location.x);
+            CHECK(restored->GetActorLocation().y == location.y);
+            CHECK(restored->GetActorLocation().z == location.z);
+            CHECK(restored->GetActorRotation().x == rotation.x);
+            CHECK(restored->GetActorRotation().y == rotation.y);
+            CHECK(restored->GetActorRotation().z == rotation.z);
+
+            // Saving the reloaded world writes the same actor records (stable fixed point). Only the actor
+            // section is compared: loading materialises an environment actor, which changes the header.
+            std::string again;
+            REQUIRE(FMapSerializer(dst).SerializeText(again));
+            const auto actorSection = [](const std::string& InText) {
+                const size_t at = InText.find("\nActors:");
+                return at == std::string::npos ? std::string() : InText.substr(at);
+            };
+            REQUIRE_FALSE(actorSection(text).empty());
+            CHECK(actorSection(again) == actorSection(text));
+        }
+
+        TEST_CASE("round values keep their short text form") {
+            // Existing maps must not be rewritten as noise such as 0.100000001.
+            auto src = UWorld::Create("Short");
+            AActor* actor = src->SpawnActor<AActor>("Round");
+            actor->SetActorLocation({1.0f, 0.125f, -0.25f});
+            actor->SetActorRotation({64.0f, 0.1f, 0.0f});
+            std::string text;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            CHECK(text.find("Translation: [1, 0.125, -0.25]") != std::string::npos);
+            CHECK(text.find("Rotation: [64, 0.1, 0]") != std::string::npos);
+            CHECK(text.find("Scale: [1, 1, 1]") != std::string::npos);
+        }
+
+        TEST_CASE("quotes, backslashes and line breaks in strings survive a round trip") {
+            auto src = UWorld::Create("Map \"with\" quotes");
+            AActor* named = src->SpawnActor<AActor>("Door \"A\" \\ east");
+            named->SetFolderPath("Props/He said \"hi\"");
+            AActor* note = src->SpawnActor<AActor>("Note");
+            auto& text = note->AddComponent<FTextComponent>();
+            text.Text = "First line\nSecond \"quoted\" line\\end";
+
+            std::string yaml;
+            REQUIRE(FMapSerializer(src).SerializeText(yaml));
+            CHECK(yaml.find("Version: \"2.2\"") != std::string::npos);
+
+            auto dst = UWorld::Create("Dst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(yaml));
+            CHECK(dst->GetName() == "Map \"with\" quotes");
+            AActor* restoredNamed = dst->FindActorByName("Door \"A\" \\ east");
+            REQUIRE(restoredNamed);
+            CHECK(restoredNamed->GetFolderPath() == "Props/He said \"hi\"");
+            AActor* restoredNote = dst->FindActorByName("Note");
+            REQUIRE(restoredNote);
+            REQUIRE(restoredNote->HasComponent<FTextComponent>());
+            CHECK(restoredNote->GetComponent<FTextComponent>().Text == "First line\nSecond \"quoted\" line\\end");
+            // The line break did not split the record: exactly the two authored actors came back.
+            CHECK(CountNamed(*dst, "Note") == 1);
+        }
+
+        TEST_CASE("a 2.1 file keeps its raw backslashes") {
+            // In a 2.1 file "\n" and "\t" are a backslash followed by a letter (Windows paths), not escapes.
+            const char* kOld = "Map:\n  Name: \"Old\"\n  Version: \"2.1\"\nActors:\n"
+                               "  - Name: \"C:\\Art\\new\\table\"\n";
+            const std::string expected = "C:\\Art\\new\\table";
+            auto world = UWorld::Create("Old");
+            REQUIRE(FMapSerializer(world).DeserializeText(kOld));
+            REQUIRE(world->FindActorByName(expected));
+
+            // Re-saving upgrades to 2.2 and escapes them, so the value is still preserved.
+            std::string yaml;
+            REQUIRE(FMapSerializer(world).SerializeText(yaml));
+            CHECK(yaml.find("C:\\\\Art\\\\new\\\\table") != std::string::npos);
+            auto again = UWorld::Create("Again");
+            REQUIRE(FMapSerializer(again).DeserializeText(yaml));
+            CHECK(again->FindActorByName(expected) != nullptr);
+        }
+
+        TEST_CASE("box collision, trigger state and player start state are persisted") {
+            auto src = UWorld::Create("Volumes");
+            AActor* blocker = src->SpawnActor<AActor>("Blocker");
+            blocker->AddComponent<FBoxCollisionComponent>(glm::vec3(-2.0f, 0.0f, -1.5f), glm::vec3(2.0f, 3.25f, 1.5f),
+                                                          false, ECollisionChannel::WorldDynamic);
+            auto* trigger = src->SpawnActor<ATriggerVolume>("Trigger");
+            trigger->SetEnabled(false);
+            auto* start = src->SpawnActor<APlayerStart>("Start");
+            start->SetEnabled(false);
+            auto* startOn = src->SpawnActor<APlayerStart>("StartOn");
+
+            std::string yaml;
+            REQUIRE(FMapSerializer(src).SerializeText(yaml));
+
+            auto dst = UWorld::Create("VolumesDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(yaml));
+
+            AActor* restoredBlocker = dst->FindActorByName("Blocker");
+            REQUIRE(restoredBlocker);
+            REQUIRE(restoredBlocker->HasComponent<FBoxCollisionComponent>());
+            const auto& box = restoredBlocker->GetComponent<FBoxCollisionComponent>();
+            CHECK(box.LocalMin.x == -2.0f);
+            CHECK(box.LocalMax.y == 3.25f);
+            CHECK(box.LocalMax.z == 1.5f);
+            CHECK_FALSE(box.bBlockMovement);
+            CHECK(box.Channel == ECollisionChannel::WorldDynamic);
+
+            auto* restoredTrigger = dynamic_cast<ATriggerVolume*>(dst->FindActorByName("Trigger"));
+            REQUIRE(restoredTrigger);
+            CHECK_FALSE(restoredTrigger->IsEnabled());
+            auto* restoredStart = dynamic_cast<APlayerStart*>(dst->FindActorByName("Start"));
+            REQUIRE(restoredStart);
+            CHECK_FALSE(restoredStart->IsEnabled());
+            auto* restoredStartOn = dynamic_cast<APlayerStart*>(dst->FindActorByName("StartOn"));
+            REQUIRE(restoredStartOn);
+            CHECK(restoredStartOn->IsEnabled());
+            (void)startOn;
+        }
+
+        TEST_CASE("saving to disk is atomic and keeps a backup of the previous file") {
+            namespace fs = std::filesystem;
+            const std::string path = "build/atomic_save_test.lmap";
+            std::error_code ec;
+            fs::remove(path, ec);
+            fs::remove(path + ".bak", ec);
+            fs::remove(path + ".tmp", ec);
+
+            auto first = UWorld::Create("FirstVersion");
+            first->SpawnActor<AActor>("OnlyInFirst");
+            REQUIRE(FMapSerializer(first).Serialize(path));
+            CHECK(fs::exists(path));
+            CHECK_FALSE(fs::exists(path + ".tmp"));
+            CHECK_FALSE(fs::exists(path + ".bak")); // nothing to back up on the first save
+
+            auto second = UWorld::Create("SecondVersion");
+            second->SpawnActor<AActor>("OnlyInSecond");
+            REQUIRE(FMapSerializer(second).Serialize(path));
+            CHECK_FALSE(fs::exists(path + ".tmp"));
+            REQUIRE(fs::exists(path + ".bak"));
+
+            auto current = UWorld::Create("Current");
+            REQUIRE(FMapSerializer(current).Deserialize(path));
+            CHECK(current->FindActorByName("OnlyInSecond") != nullptr);
+            auto backup = UWorld::Create("Backup");
+            REQUIRE(FMapSerializer(backup).Deserialize(path + ".bak"));
+            CHECK(backup->FindActorByName("OnlyInFirst") != nullptr);
+
+            SUBCASE("a save that cannot be written leaves the existing map intact") {
+                auto third = UWorld::Create("Third");
+                third->SpawnActor<AActor>("OnlyInThird");
+                // The target directory does not exist, so the temp file cannot be created.
+                CHECK_FALSE(FMapSerializer(third).Serialize("build/no_such_dir/atomic_save_test.lmap"));
+                auto stillThere = UWorld::Create("Still");
+                REQUIRE(FMapSerializer(stillThere).Deserialize(path));
+                CHECK(stillThere->FindActorByName("OnlyInSecond") != nullptr);
+            }
+
+            fs::remove(path, ec);
+            fs::remove(path + ".bak", ec);
         }
     }
 

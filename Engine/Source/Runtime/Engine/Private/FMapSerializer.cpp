@@ -13,6 +13,7 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/APlayerState.hpp"
+#include "Gameplay/ATriggerVolume.hpp"
 #include "Gameplay/AWorldSettings.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 #include "Assets/UAssetManager.hpp"
@@ -22,9 +23,11 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <system_error>
 #include <string>
 #include <vector>
 
@@ -38,14 +41,49 @@ namespace Leon {
             return false;
         }
 
-        std::ofstream fout(InFilePath);
-        if (!fout.is_open()) {
-            LE_CORE_ERROR("FMapSerializer: Failed to open file for writing: {0}", InFilePath);
+        // Atomic save: write a sibling temp file, verify it, then swap it over the target. A full disk or a
+        // crash mid-write can no longer truncate the map; the previous version is kept as <file>.bak.
+        namespace fs = std::filesystem;
+        const fs::path target(InFilePath);
+        fs::path tempPath = target;
+        tempPath += ".tmp";
+        fs::path backupPath = target;
+        backupPath += ".bak";
+        std::error_code ec;
+
+        {
+            std::ofstream fout(tempPath, std::ios::out | std::ios::trunc);
+            if (!fout.is_open()) {
+                LE_CORE_ERROR("FMapSerializer: Failed to open file for writing: {0}", tempPath.string());
+                return false;
+            }
+            fout << yaml;
+            fout.flush();
+            if (!fout.good()) {
+                fout.close();
+                fs::remove(tempPath, ec);
+                LE_CORE_ERROR("FMapSerializer: Write failed for '{0}'; the existing map was left untouched.",
+                              InFilePath);
+                return false;
+            }
+        }
+
+        if (fs::exists(target, ec)) {
+            fs::copy_file(target, backupPath, fs::copy_options::overwrite_existing, ec);
+            if (ec)
+                LE_CORE_WARN("FMapSerializer: Could not write backup '{0}': {1}", backupPath.string(), ec.message());
+        }
+
+        ec.clear();
+        fs::rename(tempPath, target, ec);
+        if (ec) {
+            LE_CORE_ERROR("FMapSerializer: Could not replace '{0}': {1}. The existing map was left untouched.",
+                          InFilePath, ec.message());
+            std::error_code cleanup;
+            fs::remove(tempPath, cleanup);
             return false;
         }
 
-        fout << yaml;
-        fout.close();
         LE_CORE_INFO("FMapSerializer: Successfully saved Map to '{0}'", InFilePath);
         return true;
     }
@@ -56,14 +94,14 @@ namespace Leon {
             return false;
         }
 
-        std::stringstream ss;
+        FMapTextWriter ss;
         ss << "# LeonEngine2 Map Asset File (.lmap)\n";
         ss << "# Human-Readable & Deterministic Serialization\n";
         ss << "Map:\n";
         Indent(ss, 1);
-        ss << "Name: \"" << World->GetName() << "\"\n";
+        ss << "Name: " << QuoteMapString(World->GetName()) << "\n";
         Indent(ss, 1);
-        ss << "Version: \"2.1\"\n";
+        ss << "Version: " << QuoteMapString(kMapFormatVersion) << "\n";
 
         // Collect outliner folders (registered + implied by actors)
         std::vector<std::string> folders = World->GetEditorFolders();
@@ -90,7 +128,7 @@ namespace Leon {
             ss << "OutlinerFolders:\n";
             for (const auto& folder : folders) {
                 Indent(ss, 2);
-                ss << "- \"" << folder << "\"\n";
+                ss << "- " << QuoteMapString(folder) << "\n";
             }
         }
         ss << "\n";
@@ -125,7 +163,7 @@ namespace Leon {
             Indent(ss, 2);
             ss << "UseHDREnvironmentMap: " << (sky.bUseHDREnvironmentMap ? "true" : "false") << "\n";
             Indent(ss, 2);
-            ss << "HDREnvironmentMap: \"" << sky.HDREnvironmentMapPath << "\"\n";
+            ss << "HDREnvironmentMap: " << QuoteMapString(sky.HDREnvironmentMapPath) << "\n";
             Indent(ss, 2);
             ss << "SkyZenithColor: [" << sky.SkyZenithColor.r << ", " << sky.SkyZenithColor.g << ", "
                << sky.SkyZenithColor.b << "]\n";
@@ -160,25 +198,36 @@ namespace Leon {
             }
 
             Indent(ss, 1);
-            ss << "- Name: \""
-               << (entity.HasComponent<FTagComponent>() ? entity.GetComponent<FTagComponent>().Tag : entity.GetName())
-               << "\"\n";
+            ss << "- Name: "
+               << QuoteMapString(entity.HasComponent<FTagComponent>() ? entity.GetComponent<FTagComponent>().Tag
+                                                                      : entity.GetName())
+               << "\n";
             Indent(ss, 2);
-            ss << "Class: \"" << entity.GetClass() << "\"\n";
+            ss << "Class: " << QuoteMapString(entity.GetClass()) << "\n";
             Indent(ss, 2);
-            ss << "GUID: \"" << entity.GetActorGuid().ToString() << "\"\n";
+            ss << "GUID: " << QuoteMapString(entity.GetActorGuid().ToString()) << "\n";
             if (!entity.GetFolderPath().empty()) {
                 Indent(ss, 2);
-                ss << "FolderPath: \"" << entity.GetFolderPath() << "\"\n";
+                ss << "FolderPath: " << QuoteMapString(entity.GetFolderPath()) << "\n";
             }
             if (const auto* start = dynamic_cast<const APlayerStart*>(&entity)) {
                 if (!start->GetPlayerStartTag().empty()) {
                     Indent(ss, 2);
-                    ss << "PlayerStartTag: \"" << start->GetPlayerStartTag() << "\"\n";
+                    ss << "PlayerStartTag: " << QuoteMapString(start->GetPlayerStartTag()) << "\n";
                 }
                 if (start->GetTeamIndex() != 0) {
                     Indent(ss, 2);
                     ss << "TeamIndex: " << start->GetTeamIndex() << "\n";
+                }
+                if (!start->IsEnabled()) {
+                    Indent(ss, 2);
+                    ss << "PlayerStartEnabled: false\n";
+                }
+            }
+            if (const auto* trigger = dynamic_cast<const ATriggerVolume*>(&entity)) {
+                if (!trigger->IsEnabled()) {
+                    Indent(ss, 2);
+                    ss << "TriggerEnabled: false\n";
                 }
             }
 
@@ -194,6 +243,21 @@ namespace Leon {
                 ss << "Rotation: [" << tc.Rotation.x << ", " << tc.Rotation.y << ", " << tc.Rotation.z << "]\n";
                 Indent(ss, 3);
                 ss << "Scale: [" << tc.Scale.x << ", " << tc.Scale.y << ", " << tc.Scale.z << "]\n";
+            }
+
+            // Box collision (blocking / trigger bounds edited in the Details panel)
+            if (entity.HasComponent<FBoxCollisionComponent>()) {
+                const auto& box = entity.GetComponent<FBoxCollisionComponent>();
+                Indent(ss, 2);
+                ss << "BoxCollision:\n";
+                Indent(ss, 3);
+                ss << "Min: [" << box.LocalMin.x << ", " << box.LocalMin.y << ", " << box.LocalMin.z << "]\n";
+                Indent(ss, 3);
+                ss << "Max: [" << box.LocalMax.x << ", " << box.LocalMax.y << ", " << box.LocalMax.z << "]\n";
+                Indent(ss, 3);
+                ss << "BlockMovement: " << (box.bBlockMovement ? "true" : "false") << "\n";
+                Indent(ss, 3);
+                ss << "Channel: " << static_cast<int>(box.Channel) << "\n";
             }
 
             // Camera Component
@@ -217,7 +281,7 @@ namespace Leon {
                 Indent(ss, 2);
                 ss << "StaticMesh:\n";
                 Indent(ss, 3);
-                ss << "Asset: \"" << smc.AssetPath << "\"\n";
+                ss << "Asset: " << QuoteMapString(smc.AssetPath) << "\n";
                 Indent(ss, 3);
                 ss << "CastShadows: " << (smc.bCastShadows ? "true" : "false") << "\n";
                 Indent(ss, 3);
@@ -238,7 +302,7 @@ namespace Leon {
                 }
                 if (!smc.LightmapAssetPath.empty()) {
                     Indent(ss, 3);
-                    ss << "LightmapAsset: \"" << smc.LightmapAssetPath << "\"\n";
+                    ss << "LightmapAsset: " << QuoteMapString(smc.LightmapAssetPath) << "\n";
                 }
 
                 if (!smc.MaterialOverridePaths.empty()) {
@@ -249,7 +313,7 @@ namespace Leon {
                             Indent(ss, 4);
                             ss << "- Slot: " << slot << "\n";
                             Indent(ss, 5);
-                            ss << "Asset: \"" << smc.MaterialOverridePaths[slot] << "\"\n";
+                            ss << "Asset: " << QuoteMapString(smc.MaterialOverridePaths[slot]) << "\n";
                         }
                     }
                 }
@@ -261,7 +325,7 @@ namespace Leon {
                 Indent(ss, 2);
                 ss << "StaticMesh:\n";
                 Indent(ss, 3);
-                ss << "Type: \"" << mc.MeshType << "\"\n";
+                ss << "Type: " << QuoteMapString(mc.MeshType) << "\n";
                 Indent(ss, 3);
                 ss << "Size: " << mc.MeshSize << "\n";
                 Indent(ss, 3);
@@ -279,7 +343,7 @@ namespace Leon {
                 Indent(ss, 3);
                 ss << "SubdivisionsZ: " << mc.MeshSubdivZ << "\n";
                 Indent(ss, 3);
-                ss << "Shader: \"" << mc.ShaderPath << "\"\n";
+                ss << "Shader: " << QuoteMapString(mc.ShaderPath) << "\n";
                 Indent(ss, 3);
                 ss << "CastShadows: " << (mc.bCastShadows ? "true" : "false") << "\n";
                 Indent(ss, 3);
@@ -300,7 +364,7 @@ namespace Leon {
                 }
                 if (!mc.LightmapAssetPath.empty()) {
                     Indent(ss, 3);
-                    ss << "LightmapAsset: \"" << mc.LightmapAssetPath << "\"\n";
+                    ss << "LightmapAsset: " << QuoteMapString(mc.LightmapAssetPath) << "\n";
                 }
             }
 
@@ -310,7 +374,7 @@ namespace Leon {
                 Indent(ss, 2);
                 ss << "Material:\n";
                 Indent(ss, 3);
-                ss << "Asset: \"" << matComp.AssetPath << "\"\n";
+                ss << "Asset: " << QuoteMapString(matComp.AssetPath) << "\n";
             }
 
             // Directional Light Component
@@ -381,7 +445,7 @@ namespace Leon {
                 Indent(ss, 2);
                 ss << "Text:\n";
                 Indent(ss, 3);
-                ss << "Content: \"" << txt.Text << "\"\n";
+                ss << "Content: " << QuoteMapString(txt.Text) << "\n";
                 Indent(ss, 3);
                 ss << "Color: [" << txt.Color.r << ", " << txt.Color.g << ", " << txt.Color.b << ", " << txt.Color.a
                    << "]\n";
