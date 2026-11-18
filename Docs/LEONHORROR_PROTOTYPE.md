@@ -16,12 +16,12 @@ Run everything from the repository root.
 | Build and run the game | `python Scripts/run_project.py --project Projects/LeonHorror/LeonHorror.lproject` |
 | Build only | `python Scripts/build_project.py --project Projects/LeonHorror/LeonHorror.lproject --target LeonHorror` |
 | Build the tests | `python Scripts/build_project.py --project Projects/LeonHorror/LeonHorror.lproject --target LeonHorrorTests` |
-| Run the tests | `out/Projects/LeonHorror/_project/LeonHorrorTests.exe` |
-| Smoke run (exits by itself) | `out/Projects/LeonHorror/_project/LeonHorror.exe --validate-seconds=10` |
+| Run the tests | `out/build/dev-debug/bin/LeonHorrorTests.exe` |
+| Smoke run (exits by itself) | `out/build/dev-debug/bin/LeonHorror.exe --validate-seconds=10` |
 | Open in the editor | `python Scripts/run_editor.py`, then pick LeonHorror in the Project Hub |
 
 After adding a source or test file to `Projects/LeonHorror/Sources.cmake`, reconfigure once:
-`cmake -S . -B out/Projects/LeonHorror`.
+`cmake --preset dev-debug`.
 
 ## Controls
 

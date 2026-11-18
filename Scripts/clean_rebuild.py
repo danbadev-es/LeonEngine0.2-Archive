@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 LeonEngine2 - Clean Rebuild (From Scratch)
-Deletes out/Projects/<Name> (via --clean) and rebuilds the given project via build_project.py.
+Deletes the build tree (via --clean) and rebuilds the given project via build_project.py.
 Requires --project or LEON_PROJECT.
 """
 

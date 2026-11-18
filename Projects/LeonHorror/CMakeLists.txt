@@ -30,3 +30,4 @@ target_link_libraries(LeonHorrorTests PRIVATE
     glm
     stb_image
 )
+add_test(NAME LeonHorrorTests COMMAND LeonHorrorTests WORKING_DIRECTORY "${LEON_ENGINE_ROOT}")

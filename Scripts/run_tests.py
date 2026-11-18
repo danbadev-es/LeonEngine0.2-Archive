@@ -14,24 +14,11 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _leon_paths import engine_root  # noqa: E402, F401
+import _leon_paths as leon  # noqa: E402
 
 SUMMARY_RE = re.compile(
     r"test cases:\s+(\d+)\s+\|\s+(\d+) passed\s+\|\s+(\d+) failed(?:\s+\|\s+(\d+) skipped)?"
 )
-
-
-def find_exe(build_dir: str, name: str) -> str:
-    exe = f"{name}.exe" if sys.platform == "win32" else name
-    candidates = [
-        os.path.join(build_dir, "Tests", exe),
-        os.path.join(build_dir, "_leon_tests", exe),
-        os.path.join(build_dir, exe),
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-    return candidates[0]
 
 
 def parse_summary(output: str) -> tuple[int, int, int, int]:
@@ -60,48 +47,25 @@ def run_suite(name: str, exe_path: str, extra_args: list[str], cwd: str) -> tupl
 
 
 def main() -> int:
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    build_dir = os.path.join(project_root, "out", "Engine")
+    project_root = leon.engine_root()
+    config = os.environ.get("LEON_BUILD_CONFIG", "Release")
 
     print("=" * 80)
-    print("   LeonEngine2 - Engine and LeonTournament Test Suites")
+    print("   LeonEngine2 - Engine Test Suite")
     print("=" * 80)
-    print("[BUILD] Compiling RendererTests and LeonTournamentTests...")
-
-    cache = os.path.join(build_dir, "CMakeCache.txt")
-    if not os.path.isfile(cache):
-        cfg = os.environ.get("LEON_BUILD_CONFIG", "Release")
-        config_cmd = [
-            "cmake",
-            "-S",
-            ".",
-            "-B",
-            build_dir,
-            "-G",
-            "Ninja",
-            f"-DCMAKE_BUILD_TYPE={cfg}",
-            "-DLEON_PRODUCT=Engine",
-        ]
-        conf = subprocess.run(config_cmd, cwd=project_root, capture_output=True, text=True)
-        if conf.returncode != 0:
-            print("[ERROR] Configure failed:")
-            print(conf.stderr or conf.stdout)
-            return 1
-
-    t0 = time.perf_counter()
-    build_cmd = ["cmake", "--build", build_dir, "--target", "RendererTests"]
-    res = subprocess.run(build_cmd, cwd=project_root, capture_output=True, text=True)
-    t_build = (time.perf_counter() - t0) * 1000.0
-    if res.returncode != 0:
-        print("[ERROR] Build failed:")
-        print(res.stderr or res.stdout)
+    print(f"[BUILD] Compiling RendererTests ({config})...")
+    if leon.configure(config) != 0:
+        print("[ERROR] Configure failed")
         return 1
-    print(f"[SUCCESS] Built Engine test binary in {t_build:.1f} ms\n")
+    t0 = time.perf_counter()
+    if leon.build_targets(config, ["RendererTests"]) != 0:
+        print("[ERROR] Build failed")
+        return 1
+    print(f"[SUCCESS] Built Engine test binary in {(time.perf_counter() - t0) * 1000.0:.1f} ms\n")
 
     extra_args = sys.argv[1:]
     suites = [
-        ("Engine (RendererTests)", find_exe(build_dir, "RendererTests")),
+        ("Engine (RendererTests)", leon.find_executable("RendererTests", config)),
     ]
 
     grand_passed = grand_failed = grand_skipped = 0

@@ -49,11 +49,12 @@ def find_blender() -> str:
 
 
 def find_asset_tool() -> str:
-    for build in ("out/Engine", "out/Projects/LeonHorror"):
-        for sub in ("_tools/AssetTool/AssetTool.exe", "_tools/AssetTool/AssetTool"):
-            path = os.path.join(REPO, build, sub)
-            if os.path.isfile(path):
-                return path
+    sys.path.insert(0, os.path.join(REPO, "Scripts"))
+    import _leon_paths as leon
+
+    path = leon.find_executable("AssetTool")
+    if os.path.isfile(path):
+        return path
     raise SystemExit("AssetTool not built. Run: python Scripts/build_engine.py --target AssetTool")
 
 

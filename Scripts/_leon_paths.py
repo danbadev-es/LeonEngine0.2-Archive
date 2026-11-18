@@ -107,6 +107,71 @@ def safe_rmtree(path: str) -> None:
         shutil.rmtree(path, onerror=_onerror)
 
 
+# One build tree per configuration; see CMakePresets.json.
+PRESET_BY_CONFIG = {"Debug": "dev-debug", "Release": "dev-release", "RelWithDebInfo": "dev-relwithdebinfo"}
+BUILD_CONFIGS = list(PRESET_BY_CONFIG)
+
+
+def default_config() -> str:
+    return os.environ.get("LEON_BUILD_CONFIG", "Debug")
+
+
+def preset_for(config: Optional[str] = None) -> str:
+    config = config or default_config()
+    if config not in PRESET_BY_CONFIG:
+        raise SystemExit(f"[ERROR] Unknown configuration '{config}'. Use one of: {', '.join(BUILD_CONFIGS)}")
+    return PRESET_BY_CONFIG[config]
+
+
+def build_dir(config: Optional[str] = None) -> str:
+    """The single CMake tree for a configuration: out/build/<preset>."""
+    return os.path.join(engine_root(), "out", "build", preset_for(config))
+
+
+def bin_dir(config: Optional[str] = None) -> str:
+    return os.path.join(build_dir(config), "bin")
+
+
+def configure(config: Optional[str] = None, clean: bool = False, defines: Optional[list[str]] = None) -> int:
+    """Configure the tree if it is new, was cleaned, or cache values are being changed."""
+    tree = build_dir(config)
+    if clean and os.path.exists(tree):
+        print(f"[INFO] Cleaning {tree}...")
+        safe_rmtree(tree)
+    if os.path.isfile(os.path.join(tree, "CMakeCache.txt")) and not defines:
+        return 0
+    print(f"[INFO] Configuring CMake preset '{preset_for(config)}'...")
+    cmd = ["cmake", "--preset", preset_for(config)] + [f"-D{d}" for d in (defines or [])]
+    return subprocess.run(cmd, cwd=engine_root()).returncode
+
+
+def build_targets(config: Optional[str] = None, targets: Optional[list[str]] = None, rebuild: bool = False) -> int:
+    cmd = ["cmake", "--build", build_dir(config)]
+    if targets:
+        cmd += ["--target", *targets]
+    if rebuild:
+        cmd.append("--clean-first")
+    return subprocess.run(cmd, cwd=engine_root()).returncode
+
+
+def find_executable(name: str, config: Optional[str] = None) -> str:
+    """
+    Path of a built executable. With no configuration given, the most recently built copy across
+    all trees is returned. The path is returned even when the file does not exist yet.
+    """
+    exe = f"{name}.exe" if sys.platform == "win32" else name
+    configs = [config] if config else BUILD_CONFIGS
+    found: list[str] = []
+    for cfg in configs:
+        for sub in ("", "Editor"):
+            candidate = os.path.join(bin_dir(cfg), sub, exe)
+            if os.path.isfile(candidate):
+                found.append(candidate)
+    if found:
+        return max(found, key=os.path.getmtime)
+    return os.path.join(bin_dir(config), exe)
+
+
 def engine_root() -> str:
     env = os.environ.get("LEON_ENGINE_ROOT", "").strip()
     if env:
@@ -215,75 +280,25 @@ def resolve_default_map_path(lproject: str, map_arg: Optional[str] = None) -> st
 
 
 def find_tool(tool_name: str = "AssetTool") -> str:
-    """Locate a built tool under out/Engine or out/Projects."""
-    root = engine_root()
-    exe = f"{tool_name}.exe" if sys.platform == "win32" else tool_name
-    search_roots = [
-        os.path.join(root, "out", "Engine"),
-        os.path.join(root, "out", "Projects"),
-        os.path.join(root, "build"),
-    ]
-    for sroot in search_roots:
-        if not os.path.exists(sroot):
-            continue
-        for dp, _, files in os.walk(sroot):
-            if exe in files:
-                return os.path.join(dp, exe)
-    return os.path.join(search_roots[0], exe)
+    """Locate a built tool (most recent build across configurations)."""
+    return find_executable(tool_name)
 
 
 def ensure_tool_built(tool_name: str = "AssetTool", config: Optional[str] = None) -> str:
     path = find_tool(tool_name)
     if os.path.isfile(path):
         return path
-
-    root = engine_root()
-    build_dir = os.path.join(root, "out", "Engine")
-    cfg = config or os.environ.get("LEON_BUILD_CONFIG", "Debug")
     print(f"[INFO] Building {tool_name}...")
-    cache = os.path.join(build_dir, "CMakeCache.txt")
-    if not os.path.isfile(cache):
-        r = subprocess.run(
-            [
-                "cmake",
-                "-S",
-                ".",
-                "-B",
-                build_dir,
-                "-G",
-                "Ninja",
-                f"-DCMAKE_BUILD_TYPE={cfg}",
-                "-DLEON_PRODUCT=Engine",
-            ],
-            cwd=root,
-        )
-        if r.returncode != 0:
-            raise SystemExit("[ERROR] CMake configure failed")
-    r = subprocess.run(["cmake", "--build", build_dir, "--target", tool_name], cwd=root)
-    if r.returncode != 0:
+    if configure(config) != 0:
+        raise SystemExit("[ERROR] CMake configure failed")
+    if build_targets(config, [tool_name]) != 0:
         raise SystemExit(f"[ERROR] Failed to build {tool_name}")
-    path = find_tool(tool_name)
+    path = find_executable(tool_name, config or default_config())
     if not os.path.isfile(path):
         raise SystemExit(f"[ERROR] {tool_name} not found after build")
     return path
 
 
-def find_project_executable(build_dir: str, target: str, project_folder_name: str = "") -> str:
-    exe_name = f"{target}.exe" if sys.platform == "win32" else target
-    candidates = [
-        os.path.join(build_dir, "_project", exe_name),
-        os.path.join(build_dir, exe_name),
-        os.path.join(build_dir, "Projects", target, exe_name),
-        os.path.join(build_dir, "Projects", project_folder_name, exe_name) if project_folder_name else "",
-    ]
-    candidates = [c for c in candidates if c]
-    projects_root = os.path.join(build_dir, "Projects")
-    if os.path.isdir(projects_root):
-        for name in os.listdir(projects_root):
-            cand = os.path.join(projects_root, name, exe_name)
-            if cand not in candidates:
-                candidates.append(cand)
-    for c in candidates:
-        if os.path.isfile(c):
-            return c
-    return candidates[0]
+def find_project_executable(build_dir_unused: str, target: str, project_folder_name: str = "") -> str:
+    """Kept for callers that still pass a build directory; the tree layout no longer depends on it."""
+    return find_executable(target)

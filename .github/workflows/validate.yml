@@ -14,40 +14,22 @@ jobs:
       - name: Install Ninja
         run: choco install ninja -y
 
-      - name: Verify Unreal naming
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Verify naming
         run: python Scripts/verify_ue_naming.py
 
-      - name: Configure Engine
-        run: cmake -S . -B out/Engine -G Ninja -DCMAKE_BUILD_TYPE=Release -DLEON_PRODUCT=Engine
+      - name: Configure
+        run: cmake --preset ci
 
-      - name: Build tests and tools
-        run: cmake --build out/Engine --config Release --target RendererTests AssetTool LightmassTool ProjectTool
+      - name: Build engine, tools, editor and games
+        run: cmake --build --preset ci
 
-      - name: Run unit tests
-        run: python Scripts/run_tests.py
+      - name: Run engine tests
+        run: out/build/ci/bin/RendererTests.exe
 
-      - name: Build and validate Sandbox
-        run: |
-          python Scripts/build_project.py --project Projects/Sandbox/Sandbox.lproject --config Release
-          python Scripts/validate_project.py --project Projects/Sandbox/Sandbox.lproject
-        env:
-          LEON_BUILD_CONFIG: Release
+      - name: Run LeonHorror tests
+        run: out/build/ci/bin/LeonHorrorTests.exe
 
-      - name: Build LeonTournament
-        run: python Scripts/build_project.py --project Projects/LeonTournament/LeonTournament.lproject --config Release
-        env:
-          LEON_BUILD_CONFIG: Release
-
-  build-editor:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Ninja
-        run: choco install ninja -y
-
-      - name: Configure Editor
-        run: cmake -S Editor -B out/Editor -G Ninja -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build LeonEditor
-        run: cmake --build out/Editor --config Release --target LeonEditor
+      - name: Validate Sandbox
+        run: out/build/ci/bin/AssetTool.exe validate_project --project Projects/Sandbox/Sandbox.lproject

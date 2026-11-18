@@ -1,47 +1,6 @@
-# Leon Editor — separate product entry point (Docs/NAMING.md skeleton).
-#   cmake -S Editor -B out/Editor -G Ninja -DCMAKE_BUILD_TYPE=Debug
-#   cmake --build out/Editor --target LeonEditor
+# Leon Editor. Built as part of the root tree (cmake --preset dev-debug; target LeonEditor).
+# The engine stack and ImGui are provided by the root CMakeLists before this directory is added.
 
-cmake_minimum_required(VERSION 3.20)
-project(LeonEditor VERSION 0.1.0 LANGUAGES C CXX)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# ── MSVC CRT linkage ─────────────────────────────────────────────────────────
-# Must be set BEFORE any include() or add_subdirectory() so that ALL targets
-# (Engine, ThirdParty, ImGui, Jolt, GLFW …) share the same CRT.
-# /MDd = MultiThreadedDebugDLL (Debug)  → links msvcrtd.lib
-# /MD  = MultiThreadedDLL      (Release) → links msvcrt.lib
-# Without this, Ninja+MSVC leaves the CRT undefined → LNK2001 on operator delete.
-if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY
-        "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
-        CACHE STRING "MSVC CRT: DLL runtime (/MDd or /MD)" FORCE
-    )
-endif()
-# ─────────────────────────────────────────────────────────────────────────────
-
-if(CMAKE_CONFIGURATION_TYPES)
-    foreach(_cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
-        string(TOUPPER "${_cfg}" _cfg_up)
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${_cfg_up} "${CMAKE_BINARY_DIR}/${_cfg}")
-    endforeach()
-else()
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-endif()
-
-get_filename_component(LEON_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
-set(LEON_ENGINE_ROOT "${LEON_REPO_ROOT}" CACHE PATH "LeonEngine2 repository root")
-
-set(LEON_STACK_WITH_ENET ON)
-set(LEON_STACK_WITH_TOOLS OFF)
-set(LEON_STACK_WITH_TESTS OFF)
-include("${LEON_ENGINE_ROOT}/CMake/LeonEngineStack.cmake")
-include("${LEON_ENGINE_ROOT}/CMake/EditorDependencies.cmake")
-include("${LEON_ENGINE_ROOT}/CMake/LeonCompileOptions.cmake")
 include("${LEON_ENGINE_ROOT}/CMake/EditorTournamentModule.cmake")
 # LeonHorror is linked in-process too; its source list lives with the project.
 include("${LEON_ENGINE_ROOT}/Projects/LeonHorror/Sources.cmake")
@@ -120,7 +79,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         "-Wl,--end-group"
     )
 endif()
-set_target_properties(LeonEditor PROPERTIES OUTPUT_NAME LeonEditor)
+set_target_properties(LeonEditor PROPERTIES
+    OUTPUT_NAME LeonEditor
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Editor"
+)
 
 # Windows: embed .ico for Explorer / taskbar before GLFW sets the live icon.
 if(WIN32)
