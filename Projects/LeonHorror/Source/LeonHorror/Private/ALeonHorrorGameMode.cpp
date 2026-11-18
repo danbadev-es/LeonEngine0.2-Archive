@@ -26,7 +26,7 @@ namespace Leon {
         SetClass("ALeonHorrorGameMode");
         DefaultPawnClass = "ALeonHorrorCharacter";
         PlayerControllerClass = "ALeonHorrorPlayerController";
-        HUDClass = "AHUD";
+        HUDClass = "ALeonHorrorHUD";
         GameStateClass = "AGameStateBase";
         PlayerStateClass = "APlayerState";
         MaxPlayers = 1;
@@ -160,7 +160,7 @@ namespace Leon {
 
     FLeonHorrorSaveGame ALeonHorrorGameMode::CaptureSave(const ALeonHorrorCharacter& InPlayer) const {
         FLeonHorrorSaveGame save;
-        save.MapName = World ? World->GetName() : std::string();
+        save.MapName = GetCurrentMapPath();
         save.PlayerLocation = InPlayer.GetActorLocation();
         save.PlayerYaw = InPlayer.GetControlYaw();
         save.PlayerPitch = InPlayer.GetControlPitch();
@@ -242,7 +242,7 @@ namespace Leon {
     }
 
     void ALeonHorrorGameMode::ApplyPendingSaveFromInstance() {
-        if (!FApplication::HasInstance())
+        if (!UEngine::HasInstance())
             return;
         auto instance = std::dynamic_pointer_cast<ULeonHorrorGameInstance>(UEngine::Get().GetGameInstance());
         if (!instance)
@@ -255,22 +255,39 @@ namespace Leon {
         FLeonHorrorSaveGame save;
         if (!FLeonHorrorSaveGame::LoadFromFile(GetSaveFilePath(), save))
             return RestartMap();
-        if (!FApplication::HasInstance() || !World)
+        LastTravelRequest = ELeonHorrorTravel::LoadSave;
+        if (!UEngine::HasInstance() || !World)
             return false;
         auto instance = std::dynamic_pointer_cast<ULeonHorrorGameInstance>(UEngine::Get().GetGameInstance());
         if (!instance)
             return false;
         // Reload the map so everything destroyed since the save exists again, then apply the save.
         instance->SetPendingSave(save);
-        UGameplayStatics::OpenLevel(World, "/Game/Maps/" + (save.MapName.empty() ? World->GetName() : save.MapName));
+        std::string map = save.MapName.empty() ? GetCurrentMapPath() : save.MapName;
+        if (map.empty() || map[0] != '/')
+            map = "/Game/Maps/" + map;
+        UGameplayStatics::OpenLevel(World, map);
         return true;
     }
 
     bool ALeonHorrorGameMode::RestartMap() {
-        if (!FApplication::HasInstance() || !World)
+        LastTravelRequest = ELeonHorrorTravel::Restart;
+        if (!UEngine::HasInstance() || !World)
             return false;
-        UGameplayStatics::OpenLevel(World, "/Game/Maps/" + World->GetName());
+        UGameplayStatics::OpenLevel(World, GetCurrentMapPath());
         return true;
+    }
+
+    std::string ALeonHorrorGameMode::GetCurrentMapPath() const {
+        if (UEngine::HasInstance() && !UEngine::Get().GetCurrentMapName().empty())
+            return UEngine::Get().GetCurrentMapName();
+        return World ? World->GetName() : std::string();
+    }
+
+    void ALeonHorrorGameMode::RequestQuit() {
+        bQuitRequested = true;
+        if (FApplication::HasInstance())
+            FApplication::Get().Close();
     }
 
     void ALeonHorrorGameMode::NotifySliceCompleted() {
@@ -281,7 +298,7 @@ namespace Leon {
 
     void ALeonHorrorGameMode::TickSmokeRun() {
         // Only meaningful in the real executable; headless tests have no application or engine.
-        if (bSmokeRunFinished || !FApplication::HasInstance())
+        if (bSmokeRunFinished || !FApplication::HasInstance() || !UEngine::HasInstance())
             return;
         auto instance = std::dynamic_pointer_cast<ULeonHorrorGameInstance>(UEngine::Get().GetGameInstance());
         if (!instance || instance->GetValidateSeconds() <= 0.0f)

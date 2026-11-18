@@ -11,6 +11,9 @@ namespace Leon {
         /** Accept / dismiss: E, Enter or the gamepad A button. */
         bool bConfirmPressed = false;
         bool bUseMedkitPressed = false;
+        /** Pause menu only. */
+        bool bLoadPressed = false;
+        bool bQuitPressed = false;
     };
 
     /**
@@ -35,6 +38,8 @@ namespace Leon {
         bool bPauseWasDown = false;
         bool bConfirmWasDown = false;
         bool bMedkitWasDown = false;
+        bool bLoadWasDown = false;
+        bool bQuitWasDown = false;
     };
 
 } // namespace Leon

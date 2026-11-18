@@ -19,6 +19,9 @@ namespace Leon {
     /** The one full-screen state the player is in, highest priority first when several apply. */
     enum class ELeonHorrorScreen : uint8_t { None, Inventory, Pause, Note, Dead, Completed };
 
+    /** What the game last asked the engine to travel to. */
+    enum class ELeonHorrorTravel : uint8_t { None, LoadSave, Restart };
+
     /** Lock and open state of a door, as stored in a save. */
     struct FLeonHorrorDoorState {
         bool bLocked = false;
@@ -86,6 +89,12 @@ namespace Leon {
         bool LoadLastSave();
         /** Reloads the map as authored, discarding progress. Needs the running engine. */
         bool RestartMap();
+        /** Recorded even when there is no engine to travel with (headless tests). */
+        ELeonHorrorTravel GetLastTravelRequest() const { return LastTravelRequest; }
+
+        /** Closes the game (from the pause menu). */
+        void RequestQuit();
+        bool IsQuitRequested() const { return bQuitRequested; }
 
         void NotifySliceCompleted();
         bool IsSliceCompleted() const { return bSliceCompleted; }
@@ -128,8 +137,13 @@ namespace Leon {
         void RefreshPause();
         void ApplyPendingSaveFromInstance();
 
+        /** Virtual path of the running map, e.g. /Game/Maps/Slice. */
+        std::string GetCurrentMapPath() const;
+
         std::string SaveFilePath;
         bool bPendingSaveChecked = false;
+        ELeonHorrorTravel LastTravelRequest = ELeonHorrorTravel::None;
+        bool bQuitRequested = false;
     };
 
 } // namespace Leon

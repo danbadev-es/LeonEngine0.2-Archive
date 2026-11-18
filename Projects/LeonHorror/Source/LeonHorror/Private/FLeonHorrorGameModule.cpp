@@ -4,6 +4,7 @@
 #include "LeonHorror/ALeonHorrorEnemy.hpp"
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
+#include "LeonHorror/ALeonHorrorHUD.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ALeonHorrorPlayerController.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
@@ -15,6 +16,7 @@ namespace Leon {
         InRegistry.RegisterClass<ALeonHorrorCharacter>("ALeonHorrorCharacter");
         InRegistry.RegisterClass<ALeonHorrorFlashlight>("ALeonHorrorFlashlight");
         InRegistry.RegisterClass<ALeonHorrorPlayerController>("ALeonHorrorPlayerController");
+        InRegistry.RegisterClass<ALeonHorrorHUD>("ALeonHorrorHUD");
         InRegistry.RegisterClass<ALeonHorrorEnemy>("ALeonHorrorEnemy");
         InRegistry.RegisterClass<ALeonHorrorEnemyController>("ALeonHorrorEnemyController");
         InRegistry.RegisterClass<ALeonHorrorEnemySpawn>("ALeonHorrorEnemySpawn");

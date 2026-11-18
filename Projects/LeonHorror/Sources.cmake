@@ -11,6 +11,7 @@ set(LEONHORROR_GAME_SOURCES
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorFlashlight.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorInteractable.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorPlayerController.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorHUD.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorInventoryComponent.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorInputState.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorSaveGame.cpp"
@@ -29,6 +30,7 @@ set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/CombatTests.cpp"
     "${LEONHORROR_ROOT}/Tests/EnemyTests.cpp"
     "${LEONHORROR_ROOT}/Tests/SaveTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/HudTests.cpp"
 )
 
 function(leonhorror_add_game_library)

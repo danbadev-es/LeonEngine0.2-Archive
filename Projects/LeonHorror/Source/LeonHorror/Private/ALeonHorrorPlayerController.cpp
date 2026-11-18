@@ -28,6 +28,8 @@ namespace Leon {
         bool bPause = FInput::IsKeyPressed(Key::Escape);
         bool bConfirm = FInput::IsKeyPressed(Key::E) || FInput::IsKeyPressed(Key::Enter);
         bool bMedkit = FInput::IsKeyPressed(Key::H);
+        const bool bLoad = FInput::IsKeyPressed(Key::L);
+        const bool bQuit = FInput::IsKeyPressed(Key::Q);
         if (settings.bEnableGamepad && FInput::IsGamepadConnected(settings.GamepadId)) {
             const int pad = settings.GamepadId;
             bInventory = bInventory || FInput::IsGamepadButtonPressed(GamepadButton::Back, pad);
@@ -45,6 +47,10 @@ namespace Leon {
         bPauseWasDown = bPause;
         bConfirmWasDown = bConfirm;
         bMedkitWasDown = bMedkit;
+        input.bLoadPressed = bLoad && !bLoadWasDown;
+        input.bQuitPressed = bQuit && !bQuitWasDown;
+        bLoadWasDown = bLoad;
+        bQuitWasDown = bQuit;
         return input;
     }
 
@@ -60,8 +66,14 @@ namespace Leon {
                 gameMode->DismissNote();
             break;
         case ELeonHorrorScreen::Pause:
-            if (InInput.bPausePressed || InInput.bConfirmPressed)
+            if (InInput.bPausePressed || InInput.bConfirmPressed) {
                 gameMode->SetPauseMenuOpen(false);
+            } else if (InInput.bLoadPressed) {
+                gameMode->SetPauseMenuOpen(false);
+                gameMode->LoadLastSave();
+            } else if (InInput.bQuitPressed) {
+                gameMode->RequestQuit();
+            }
             break;
         case ELeonHorrorScreen::Inventory:
             if (InInput.bInventoryPressed || InInput.bPausePressed)
