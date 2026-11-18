@@ -50,7 +50,7 @@ namespace Leon {
     void ULeonHorrorCombatComponent::BeginPlay() {
         ALeonHorrorCharacter* player = GetPlayer();
         if (auto* inventory = player ? player->GetInventory() : nullptr)
-            inventory->OnChanged.push_back([this](const std::string& InItem) { OnInventoryChanged(InItem); });
+            inventory->OnChanged.Add([this](const std::string& InItem) { OnInventoryChanged(InItem); });
     }
 
     void ULeonHorrorCombatComponent::OnInventoryChanged(const std::string& InItemId) {

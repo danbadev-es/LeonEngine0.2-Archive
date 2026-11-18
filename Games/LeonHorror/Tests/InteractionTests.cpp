@@ -56,7 +56,7 @@ namespace Leon {
         TEST_CASE("items are counted, removal is all-or-nothing and changes are announced") {
             ULeonHorrorInventoryComponent inventory;
             std::vector<std::string> changes;
-            inventory.OnChanged.push_back([&](const std::string& InItem) { changes.push_back(InItem); });
+            inventory.OnChanged.Add([&](const std::string& InItem) { changes.push_back(InItem); });
 
             CHECK(inventory.AddItem(LeonHorrorItems::PistolAmmo, 6) == 6);
             CHECK(inventory.AddItem(LeonHorrorItems::PistolAmmo, 4) == 10);

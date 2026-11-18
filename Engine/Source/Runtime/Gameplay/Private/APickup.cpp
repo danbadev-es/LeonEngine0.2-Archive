@@ -22,7 +22,7 @@ namespace Leon {
         OverlapSphere->SetCollisionObjectType(ECollisionChannel::WorldDynamic);
         OverlapSphere->SetCollisionResponseToAllChannels(ECollisionResponse::Overlap);
         OverlapSphere->SetGenerateOverlapEvents(true);
-        OverlapSphere->OnComponentBeginOverlap.push_back(
+        OverlapSphere->OnComponentBeginOverlap.Add(
             [this](UPrimitiveComponent*, AActor* Other, UPrimitiveComponent*, const FHitResult&) {
                 if (auto* pawn = dynamic_cast<APawn*>(Other))
                     OnOverlapPawn(pawn);

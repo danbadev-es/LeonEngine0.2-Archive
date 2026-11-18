@@ -140,10 +140,10 @@ namespace Leon {
         StatsText->SetJustification(ETextAlignment::Center);
 
         auto back = FLeonTournamentUILayout::MakeThemedButton("Return", "RETURN TO MENU", kFsButton, 260.0f, 44.0f);
-        back->OnClicked.AddLambda([this]() { OnReturn(); });
+        back->OnClicked.Add([this]() { OnReturn(); });
 
         RematchButton = FLeonTournamentUILayout::MakeThemedButton("Rematch", "PLAY AGAIN", kFsButton, 260.0f, 44.0f);
-        RematchButton->OnClicked.AddLambda([this]() { OnRematch(); });
+        RematchButton->OnClicked.Add([this]() { OnRematch(); });
 
         const float titleH = MeasurePadded("WIN", kFsHero).y;
         const float statsH = MeasurePadded(StatsText->GetText(), kFsBody).y + 24.0f;

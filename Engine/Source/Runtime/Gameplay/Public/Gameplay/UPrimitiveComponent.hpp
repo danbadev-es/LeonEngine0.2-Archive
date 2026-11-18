@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gameplay/USceneComponent.hpp"
+#include "Core/TMulticastDelegate.hpp"
 #include "Physics/ECollisionTypes.hpp"
 #include "Physics/FHitResult.hpp"
 #include "Physics/IPhysicsScene.hpp"
@@ -51,13 +52,13 @@ namespace Leon {
         void SetGenerateOverlapEvents(bool bEnabled) { bGenerateOverlapEvents = bEnabled; }
         bool GetGenerateOverlapEvents() const { return bGenerateOverlapEvents; }
 
-        using FOverlapEvent = std::function<void(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                                 UPrimitiveComponent* OtherComp, const FHitResult& SweepResult)>;
-        using FHitEvent = std::function<void(UPrimitiveComponent* HitComponent, AActor* OtherActor,
-                                             UPrimitiveComponent* OtherComp, const FHitResult& Hit)>;
-        std::vector<FOverlapEvent> OnComponentBeginOverlap;
-        std::vector<FOverlapEvent> OnComponentEndOverlap;
-        std::vector<FHitEvent> OnComponentHit;
+        using FOverlapEvent = TMulticastDelegate<void(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+                                                      UPrimitiveComponent* OtherComp, const FHitResult& SweepResult)>;
+        using FHitEvent = TMulticastDelegate<void(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+                                                  UPrimitiveComponent* OtherComp, const FHitResult& Hit)>;
+        FOverlapEvent OnComponentBeginOverlap;
+        FOverlapEvent OnComponentEndOverlap;
+        FHitEvent OnComponentHit;
 
         /** Called by UWorld after physics; diffs query results vs last frame. */
         void UpdateOverlaps(const std::vector<UPrimitiveComponent*>& InCandidates);

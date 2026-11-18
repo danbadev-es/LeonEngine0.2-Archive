@@ -19,8 +19,7 @@ namespace Leon {
         if (std::abs(t - Value) < 1e-5f)
             return;
         Value = t;
-        if (OnValueChanged)
-            OnValueChanged(Value);
+        OnValueChanged.Broadcast(Value);
     }
 
     void USlider::Paint(const FGeometry& InAllottedGeometry) {

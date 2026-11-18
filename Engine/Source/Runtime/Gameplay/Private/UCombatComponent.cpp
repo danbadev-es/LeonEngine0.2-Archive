@@ -19,10 +19,7 @@ namespace Leon {
         if (!CanAttack())
             return false;
         CooldownRemaining = AttackCooldown;
-        for (auto& cb : OnAttack) {
-            if (cb)
-                cb();
-        }
+        OnAttack.Broadcast();
         return true;
     }
 

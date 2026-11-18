@@ -1214,12 +1214,8 @@ namespace Leon {
                 hit.Normal = N;
                 hit.ImpactNormal = N;
                 hit.bBlockingHit = true;
-                // Copy: a callback may destroy the owner, whose EndPlay clears the live vector.
-                const auto callbacks = prim->OnComponentHit;
-                for (const auto& cb : callbacks) {
-                    if (cb)
-                        cb(prim, OtherActor, hit.Component, hit);
-                }
+                // A listener may destroy the owner; the delegate copes with that.
+                prim->OnComponentHit.Broadcast(prim, OtherActor, hit.Component, hit);
             };
             auto fireOverlap = [](UActorComponent* Comp, AActor* OtherActor, UActorComponent* OtherComp,
                                   const glm::vec3& Loc, bool bBegin) {
@@ -1232,12 +1228,9 @@ namespace Leon {
                 hit.Location = Loc;
                 hit.ImpactPoint = Loc;
                 hit.bBlockingHit = false;
-                // Copy: a callback may destroy the owner, whose EndPlay clears the live vector.
-                const auto callbacks = bBegin ? prim->OnComponentBeginOverlap : prim->OnComponentEndOverlap;
-                for (const auto& cb : callbacks) {
-                    if (cb)
-                        cb(prim, OtherActor, hit.Component, hit);
-                }
+                // A listener may destroy the owner; the delegate copes with that.
+                (bBegin ? prim->OnComponentBeginOverlap : prim->OnComponentEndOverlap)
+                    .Broadcast(prim, OtherActor, hit.Component, hit);
             };
 
             if (c.Kind == EPhysicsContactKind::Hit) {

@@ -162,7 +162,7 @@ namespace Leon {
         y += MeasurePadded(botsTitle->GetText(), botsTitle->GetFontScale()).y + 6.0f;
 
         auto t1Minus = FLeonTournamentUILayout::MakeThemedButton("T1BotsMinus", "-", kFsLabel, 48.0f, 44.0f);
-        t1Minus->OnClicked.AddLambda([this]() { OnAdjustBotsTeam1(-1); });
+        t1Minus->OnClicked.Add([this]() { OnAdjustBotsTeam1(-1); });
         PlaceButtonTL(*Root, t1Minus, leftX, y);
 
         BotsTeam1Label = std::make_shared<UTextBlock>("T1BotsLabel");
@@ -176,12 +176,12 @@ namespace Leon {
                              botsLabelW, botsLabelH));
 
         auto t1Plus = FLeonTournamentUILayout::MakeThemedButton("T1BotsPlus", "+", kFsLabel, 48.0f, 44.0f);
-        t1Plus->OnClicked.AddLambda([this]() { OnAdjustBotsTeam1(1); });
+        t1Plus->OnClicked.Add([this]() { OnAdjustBotsTeam1(1); });
         PlaceButtonTL(*Root, t1Plus, leftX + t1Minus->GetSize().x + 8.0f + botsLabelW + 8.0f, y);
         y += t1Minus->GetSize().y + 8.0f;
 
         auto t2Minus = FLeonTournamentUILayout::MakeThemedButton("T2BotsMinus", "-", kFsLabel, 48.0f, 44.0f);
-        t2Minus->OnClicked.AddLambda([this]() { OnAdjustBotsTeam2(-1); });
+        t2Minus->OnClicked.Add([this]() { OnAdjustBotsTeam2(-1); });
         PlaceButtonTL(*Root, t2Minus, leftX, y);
 
         BotsTeam2Label = std::make_shared<UTextBlock>("T2BotsLabel");
@@ -193,7 +193,7 @@ namespace Leon {
                              botsLabelW, botsLabelH));
 
         auto t2Plus = FLeonTournamentUILayout::MakeThemedButton("T2BotsPlus", "+", kFsLabel, 48.0f, 44.0f);
-        t2Plus->OnClicked.AddLambda([this]() { OnAdjustBotsTeam2(1); });
+        t2Plus->OnClicked.Add([this]() { OnAdjustBotsTeam2(1); });
         PlaceButtonTL(*Root, t2Plus, leftX + t2Minus->GetSize().x + 8.0f + botsLabelW + 8.0f, y);
         y += t2Minus->GetSize().y + 8.0f;
 
@@ -212,7 +212,7 @@ namespace Leon {
         y += MeasurePadded(mapTitle->GetText(), mapTitle->GetFontScale()).y + 6.0f;
 
         auto prevMap = FLeonTournamentUILayout::MakeThemedButton("LobbyPrevMap", "<", kFsSub, 48.0f, 44.0f);
-        prevMap->OnClicked.AddLambda([this]() { OnPrevMap(); });
+        prevMap->OnClicked.Add([this]() { OnPrevMap(); });
         PlaceButtonTL(*Root, prevMap, leftX, y);
 
         MapLabel = std::make_shared<UTextBlock>("LobbyMapName");
@@ -228,7 +228,7 @@ namespace Leon {
         RefreshMapLabel();
 
         auto nextMap = FLeonTournamentUILayout::MakeThemedButton("LobbyNextMap", ">", kFsSub, 48.0f, 44.0f);
-        nextMap->OnClicked.AddLambda([this]() { OnNextMap(); });
+        nextMap->OnClicked.Add([this]() { OnNextMap(); });
         PlaceButtonTL(*Root, nextMap, leftX + prevMap->GetSize().x + 8.0f + cycleLabelW + 8.0f, y);
         y += prevMap->GetSize().y + 10.0f;
 
@@ -240,7 +240,7 @@ namespace Leon {
         y += MeasurePadded(modeTitle->GetText(), modeTitle->GetFontScale()).y + 6.0f;
 
         auto prevMode = FLeonTournamentUILayout::MakeThemedButton("LobbyPrevMode", "<", kFsSub, 48.0f, 44.0f);
-        prevMode->OnClicked.AddLambda([this]() { OnPrevGameMode(); });
+        prevMode->OnClicked.Add([this]() { OnPrevGameMode(); });
         PlaceButtonTL(*Root, prevMode, leftX, y);
 
         GameModeLabel = std::make_shared<UTextBlock>("LobbyModeName");
@@ -254,7 +254,7 @@ namespace Leon {
         RefreshGameModeLabel();
 
         auto nextMode = FLeonTournamentUILayout::MakeThemedButton("LobbyNextMode", ">", kFsSub, 48.0f, 44.0f);
-        nextMode->OnClicked.AddLambda([this]() { OnNextGameMode(); });
+        nextMode->OnClicked.Add([this]() { OnNextGameMode(); });
         PlaceButtonTL(*Root, nextMode, leftX + prevMode->GetSize().x + 8.0f + cycleLabelW + 8.0f, y);
         y += prevMode->GetSize().y + 10.0f;
 
@@ -266,7 +266,7 @@ namespace Leon {
         y += MeasurePadded(diffTitle->GetText(), diffTitle->GetFontScale()).y + 6.0f;
 
         auto prevDiff = FLeonTournamentUILayout::MakeThemedButton("LobbyPrevDiff", "<", kFsSub, 48.0f, 44.0f);
-        prevDiff->OnClicked.AddLambda([this]() { OnPrevBotDifficulty(); });
+        prevDiff->OnClicked.Add([this]() { OnPrevBotDifficulty(); });
         PlaceButtonTL(*Root, prevDiff, leftX, y);
 
         BotDifficultyLabel = std::make_shared<UTextBlock>("LobbyDiffName");
@@ -280,20 +280,20 @@ namespace Leon {
         RefreshBotDifficultyLabel();
 
         auto nextDiff = FLeonTournamentUILayout::MakeThemedButton("LobbyNextDiff", ">", kFsSub, 48.0f, 44.0f);
-        nextDiff->OnClicked.AddLambda([this]() { OnNextBotDifficulty(); });
+        nextDiff->OnClicked.Add([this]() { OnNextBotDifficulty(); });
         PlaceButtonTL(*Root, nextDiff, leftX + prevDiff->GetSize().x + 8.0f + cycleLabelW + 8.0f, y);
         y += prevDiff->GetSize().y + 16.0f;
 
         auto start = FLeonTournamentUILayout::MakeThemedButton("Start", "START MATCH", kFsButton, 220.0f);
-        start->OnClicked.AddLambda([this]() { OnStart(); });
+        start->OnClicked.Add([this]() { OnStart(); });
         PlaceButtonTL(*Root, start, leftX, y);
 
         auto back = FLeonTournamentUILayout::MakeThemedButton("Back", "BACK", kFsButton, 140.0f);
-        back->OnClicked.AddLambda([this]() { OnBack(); });
+        back->OnClicked.Add([this]() { OnBack(); });
         PlaceButtonTL(*Root, back, leftX + start->GetSize().x + 12.0f, y);
 
         PrevCharBtn = FLeonTournamentUILayout::MakeThemedButton("LobbyPrevChar", "<", kFsSub, 56.0f, 52.0f);
-        PrevCharBtn->OnClicked.AddLambda([this]() { OnPrevCharacter(); });
+        PrevCharBtn->OnClicked.Add([this]() { OnPrevCharacter(); });
 
         CharacterLabel = std::make_shared<UTextBlock>("LobbyCharName");
         CharacterLabel->SetFontScale(kFsSub);
@@ -303,7 +303,7 @@ namespace Leon {
         RefreshCharacterLabel();
 
         NextCharBtn = FLeonTournamentUILayout::MakeThemedButton("LobbyNextChar", ">", kFsSub, 56.0f, 52.0f);
-        NextCharBtn->OnClicked.AddLambda([this]() { OnNextCharacter(); });
+        NextCharBtn->OnClicked.Add([this]() { OnNextCharacter(); });
 
         RefreshBotLabels();
         DesignContentHeight = y + std::max(start->GetSize().y, back->GetSize().y) + 8.0f;

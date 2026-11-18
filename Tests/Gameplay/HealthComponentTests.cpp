@@ -33,10 +33,10 @@ namespace Leon {
             CHECK_FALSE(health.IsDead());
 
             int changed = 0, damaged = 0, healed = 0, deaths = 0;
-            health.OnHealthChanged.push_back([&](float, float, float) { ++changed; });
-            health.OnDamage.push_back([&](const FDamageInfo&) { ++damaged; });
-            health.OnHealed.push_back([&](float, float) { ++healed; });
-            health.OnDeath.push_back([&](const FDamageInfo&) { ++deaths; });
+            health.OnHealthChanged.Add([&](float, float, float) { ++changed; });
+            health.OnDamage.Add([&](const FDamageInfo&) { ++damaged; });
+            health.OnHealed.Add([&](float, float) { ++healed; });
+            health.OnDeath.Add([&](const FDamageInfo&) { ++deaths; });
 
             health.ApplyDamage(40.0f);
             CHECK(health.GetHealth() == doctest::Approx(60.0f));
@@ -66,7 +66,7 @@ namespace Leon {
         TEST_CASE("EndPlay clears death callbacks") {
             UHealthComponent health;
             int deaths = 0;
-            health.OnDeath.push_back([&](const FDamageInfo&) { ++deaths; });
+            health.OnDeath.Add([&](const FDamageInfo&) { ++deaths; });
             health.EndPlay();
             health.ApplyDamage(200.0f);
             CHECK(health.IsDead());

@@ -65,12 +65,12 @@ namespace Leon {
 
             int begins = 0;
             int ends = 0;
-            boxA->OnComponentBeginOverlap.push_back(
+            boxA->OnComponentBeginOverlap.Add(
                 [&](UPrimitiveComponent*, AActor* other, UPrimitiveComponent*, const FHitResult&) {
                     if (other == b)
                         ++begins;
                 });
-            boxA->OnComponentEndOverlap.push_back(
+            boxA->OnComponentEndOverlap.Add(
                 [&](UPrimitiveComponent*, AActor* other, UPrimitiveComponent*, const FHitResult&) {
                     if (other == b)
                         ++ends;

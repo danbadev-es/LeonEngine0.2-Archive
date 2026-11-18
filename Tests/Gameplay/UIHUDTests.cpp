@@ -159,7 +159,7 @@ namespace Leon {
             button->Paint(geom);
 
             bool bClicked = false;
-            button->OnClicked.AddLambda([&]() { bClicked = true; });
+            button->OnClicked.Add([&]() { bClicked = true; });
 
             CHECK(button->OnMouseMove({50, 25}));
             CHECK(button->IsHovered());
@@ -535,7 +535,7 @@ Actors:
             slider->SetValue(0.25f);
             CHECK(slider->GetValue() == doctest::Approx(0.25f));
             float last = -1.0f;
-            slider->OnValueChanged = [&](float InValue) { last = InValue; };
+            slider->OnValueChanged.Add([&](float InValue) { last = InValue; });
             FGeometry geom;
             geom.Size = {100.0f, 20.0f};
             geom.AbsolutePosition = {0.0f, 0.0f};

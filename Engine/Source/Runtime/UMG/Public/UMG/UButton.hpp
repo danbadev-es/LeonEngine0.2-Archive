@@ -1,42 +1,15 @@
 #pragma once
 
 #include "UMG/UPanelWidget.hpp"
+#include "Core/TMulticastDelegate.hpp"
 #include <functional>
 
 namespace Leon {
 
     enum class EButtonState { Normal, Hovered, Pressed, Disabled };
 
-    /**
-     * @brief Simple delegate event for button clicks.
-     */
-    class FOnButtonClickedEvent {
-    public:
-        using FCallback = std::function<void()>;
-
-        void AddLambda(FCallback InCallback) { Callbacks.push_back(InCallback); }
-
-        void AddDynamic(FCallback InCallback) { Callbacks.push_back(InCallback); }
-
-        void Broadcast() {
-            for (auto& cb : Callbacks) {
-                if (cb)
-                    cb();
-            }
-        }
-
-        void Clear() { Callbacks.clear(); }
-
-        FOnButtonClickedEvent& operator=(FCallback InCallback) {
-            Callbacks.clear();
-            if (InCallback)
-                Callbacks.push_back(InCallback);
-            return *this;
-        }
-
-    private:
-        std::vector<FCallback> Callbacks;
-    };
+    /** Fired when the button is clicked. */
+    using FOnButtonClickedEvent = TMulticastDelegate<void()>;
 
     /**
      * @brief Unreal Engine aligned interactive button widget.

@@ -231,12 +231,12 @@ namespace Leon {
 
             int firstCallbackCalls = 0;
             int secondCallbackCalls = 0;
-            pickupBox->OnComponentBeginOverlap.push_back(
+            pickupBox->OnComponentBeginOverlap.Add(
                 [&](UPrimitiveComponent*, AActor*, UPrimitiveComponent*, const FHitResult&) {
                     ++firstCallbackCalls;
                     pickup->Destroy(); // EndPlay clears the live callback vector while we are inside it
                 });
-            pickupBox->OnComponentBeginOverlap.push_back(
+            pickupBox->OnComponentBeginOverlap.Add(
                 [&](UPrimitiveComponent*, AActor*, UPrimitiveComponent*, const FHitResult&) {
                     ++secondCallbackCalls;
                 });
@@ -266,7 +266,7 @@ namespace Leon {
                 health->SetMaxHealth(10.0f);
                 health->SetHealth(10.0f);
                 UWorld* world = f.World.get();
-                health->OnDeath.push_back([&deaths, world, target](const FDamageInfo&) {
+                health->OnDeath.Add([&deaths, world, target](const FDamageInfo&) {
                     ++deaths;
                     world->SpawnActor<AActor>("Debris"); // grows the actor list mid-iteration
                     target->Destroy();                   // immediate erase outside a tick
@@ -374,9 +374,9 @@ namespace Leon {
             int begins = 0;
             int ends = 0;
             AActor* endOther = sensor; // sentinel: must be overwritten with null
-            sensorBox->OnComponentBeginOverlap.push_back(
+            sensorBox->OnComponentBeginOverlap.Add(
                 [&](UPrimitiveComponent*, AActor*, UPrimitiveComponent*, const FHitResult&) { ++begins; });
-            sensorBox->OnComponentEndOverlap.push_back(
+            sensorBox->OnComponentEndOverlap.Add(
                 [&](UPrimitiveComponent*, AActor* InOther, UPrimitiveComponent* InOtherComp, const FHitResult&) {
                     ++ends;
                     endOther = InOther;

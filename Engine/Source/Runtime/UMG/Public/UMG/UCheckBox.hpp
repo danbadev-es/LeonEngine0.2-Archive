@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/TMulticastDelegate.hpp"
 #include "UMG/UWidget.hpp"
 
 #include <functional>
@@ -16,7 +17,7 @@ namespace Leon {
         void SetIsChecked(bool bInChecked);
         bool IsChecked() const { return bIsChecked; }
 
-        using FCheckStateChanged = std::function<void(bool bIsChecked)>;
+        using FCheckStateChanged = TMulticastDelegate<void(bool bIsChecked)>;
         FCheckStateChanged OnCheckStateChanged;
 
         void Paint(const FGeometry& InAllottedGeometry) override;

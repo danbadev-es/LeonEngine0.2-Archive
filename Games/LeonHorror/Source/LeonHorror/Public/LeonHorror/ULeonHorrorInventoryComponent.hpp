@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gameplay/UActorComponent.hpp"
+#include "Core/TMulticastDelegate.hpp"
 
 #include <functional>
 #include <map>
@@ -41,7 +42,7 @@ namespace Leon {
         const std::map<std::string, int32_t>& GetItems() const { return Items; }
 
         /** Fired after any change, with the item id that changed. */
-        std::vector<std::function<void(const std::string&)>> OnChanged;
+        TMulticastDelegate<void(const std::string& InItemId)> OnChanged;
 
     private:
         void Broadcast(const std::string& InItemId);

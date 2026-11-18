@@ -87,7 +87,7 @@ namespace Leon {
         ACharacter::BeginPlay();
 
         if (Health) {
-            Health->OnDeath.push_back([this](const FDamageInfo& InInfo) { HandleDeath(InInfo); });
+            Health->OnDeath.Add([this](const FDamageInfo& InInfo) { HandleDeath(InInfo); });
         }
 
         if (World && !Flashlight.IsValid()) {

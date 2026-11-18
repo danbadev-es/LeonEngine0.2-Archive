@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/TMulticastDelegate.hpp"
 #include "UMG/UWidget.hpp"
 
 #include <cstdint>
@@ -20,7 +21,7 @@ namespace Leon {
         void Paint(const FGeometry& InAllottedGeometry) override;
         bool OnMouseButtonDown(int InButton, const glm::vec2& InMousePos) override;
 
-        std::function<void(const std::string&)> OnTextChanged;
+        TMulticastDelegate<void(const std::string& InText)> OnTextChanged;
 
     private:
         std::string Text;

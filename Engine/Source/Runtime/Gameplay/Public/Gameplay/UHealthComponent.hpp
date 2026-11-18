@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gameplay/UActorComponent.hpp"
+#include "Core/TMulticastDelegate.hpp"
 #include "Gameplay/FDamageInfo.hpp"
 
 #include <functional>
@@ -28,15 +29,10 @@ namespace Leon {
         void Heal(float InAmount);
         bool IsDead() const { return bIsDead; }
 
-        using FHealthChanged = std::function<void(float InOldHealth, float InNewHealth, float InMaxHealth)>;
-        using FDamageEvent = std::function<void(const FDamageInfo& InInfo)>;
-        using FHealEvent = std::function<void(float InAmount, float InNewHealth)>;
-        using FDeathEvent = std::function<void(const FDamageInfo& InInfo)>;
-
-        std::vector<FHealthChanged> OnHealthChanged;
-        std::vector<FDamageEvent> OnDamage;
-        std::vector<FHealEvent> OnHealed;
-        std::vector<FDeathEvent> OnDeath;
+        TMulticastDelegate<void(float InOldHealth, float InNewHealth, float InMaxHealth)> OnHealthChanged;
+        TMulticastDelegate<void(const FDamageInfo& InInfo)> OnDamage;
+        TMulticastDelegate<void(float InAmount, float InNewHealth)> OnHealed;
+        TMulticastDelegate<void(const FDamageInfo& InInfo)> OnDeath;
 
     private:
         void BroadcastHealthChanged(float InOld);

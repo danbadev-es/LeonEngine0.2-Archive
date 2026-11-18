@@ -28,8 +28,7 @@ namespace Leon {
         if (!IsHitTestable() || InButton != 0 || !HitTest(InMousePos))
             return false;
         bIsChecked = !bIsChecked;
-        if (OnCheckStateChanged)
-            OnCheckStateChanged(bIsChecked);
+        OnCheckStateChanged.Broadcast(bIsChecked);
         return true;
     }
 

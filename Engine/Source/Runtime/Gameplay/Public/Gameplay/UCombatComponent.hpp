@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gameplay/UActorComponent.hpp"
+#include "Core/TMulticastDelegate.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -30,8 +31,7 @@ namespace Leon {
         AActor* GetTarget() const { return Target; }
         void SetTarget(AActor* InTarget) { Target = InTarget; }
 
-        using FAttackEvent = std::function<void()>;
-        std::vector<FAttackEvent> OnAttack;
+        TMulticastDelegate<void()> OnAttack;
 
     private:
         float AttackCooldown = 0.1f;

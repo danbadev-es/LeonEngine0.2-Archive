@@ -183,7 +183,7 @@ namespace Leon {
         auto* ch = GetPawn<ALeonTournamentCharacter>();
         if (!ch || !ch->GetHealthComponent() || bDamageBound)
             return;
-        ch->GetHealthComponent()->OnDamage.push_back([this](const FDamageInfo& info) { NotifyDamaged(info); });
+        ch->GetHealthComponent()->OnDamage.Add([this](const FDamageInfo& info) { NotifyDamaged(info); });
         bDamageBound = true;
     }
 

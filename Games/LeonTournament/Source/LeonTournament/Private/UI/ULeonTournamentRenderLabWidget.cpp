@@ -200,7 +200,7 @@ namespace Leon {
         y += MeasurePadded(hint->GetText(), hint->GetFontScale()).y + 6.0f;
 
         CameraBtn = MakeButton("RLCamera", "CAM A", kFsCaption, btnW, btnH);
-        CameraBtn->OnClicked.AddLambda([this]() { OnCycleCamera(); });
+        CameraBtn->OnClicked.Add([this]() { OnCycleCamera(); });
         PlaceButtonTL(*Root, CameraBtn, leftX, y);
         y += CameraBtn->GetSize().y + 8.0f;
 
@@ -215,65 +215,65 @@ namespace Leon {
 
         section("RLPresetHdr", "PRESETS");
         PresetLowBtn = MakeButton("RLLow", "LOW", kFsCaption, btnW, btnH);
-        PresetLowBtn->OnClicked.AddLambda([this]() { ApplyPreset(EGraphicsQuality::Low); });
+        PresetLowBtn->OnClicked.Add([this]() { ApplyPreset(EGraphicsQuality::Low); });
         PlaceButtonTL(*Root, PresetLowBtn, leftX, y);
         y += PresetLowBtn->GetSize().y + gap;
 
         PresetMedBtn = MakeButton("RLMed", "MEDIUM", kFsCaption, btnW, btnH);
-        PresetMedBtn->OnClicked.AddLambda([this]() { ApplyPreset(EGraphicsQuality::Medium); });
+        PresetMedBtn->OnClicked.Add([this]() { ApplyPreset(EGraphicsQuality::Medium); });
         PlaceButtonTL(*Root, PresetMedBtn, leftX, y);
         y += PresetMedBtn->GetSize().y + gap;
 
         PresetHighBtn = MakeButton("RLHigh", "HIGH", kFsCaption, btnW, btnH);
-        PresetHighBtn->OnClicked.AddLambda([this]() { ApplyPreset(EGraphicsQuality::High); });
+        PresetHighBtn->OnClicked.Add([this]() { ApplyPreset(EGraphicsQuality::High); });
         PlaceButtonTL(*Root, PresetHighBtn, leftX, y);
         y += PresetHighBtn->GetSize().y + 10.0f;
 
         section("RLShadowHdr", "SHADOWS (tap to cycle)");
         ShadowResBtn = MakeButton("RLShadowRes", "CSM: 2048", kFsCaption, btnW, btnH);
-        ShadowResBtn->OnClicked.AddLambda([this]() { CycleShadowResolution(); });
+        ShadowResBtn->OnClicked.Add([this]() { CycleShadowResolution(); });
         PlaceButtonTL(*Root, ShadowResBtn, leftX, y);
         y += ShadowResBtn->GetSize().y + gap;
 
         CascadeBtn = MakeButton("RLCascades", "Cascades: 4", kFsCaption, btnW, btnH);
-        CascadeBtn->OnClicked.AddLambda([this]() { CycleCascadeCount(); });
+        CascadeBtn->OnClicked.Add([this]() { CycleCascadeCount(); });
         PlaceButtonTL(*Root, CascadeBtn, leftX, y);
         y += CascadeBtn->GetSize().y + gap;
 
         ShadowDistBtn = MakeButton("RLShadowDist", "Distance: 100", kFsCaption, btnW, btnH);
-        ShadowDistBtn->OnClicked.AddLambda([this]() { CycleShadowDistance(); });
+        ShadowDistBtn->OnClicked.Add([this]() { CycleShadowDistance(); });
         PlaceButtonTL(*Root, ShadowDistBtn, leftX, y);
         y += ShadowDistBtn->GetSize().y + gap;
 
         ShadowFilterBtn = MakeButton("RLShadowFilter", "Filter: PCF3x3", kFsCaption, btnW, btnH);
-        ShadowFilterBtn->OnClicked.AddLambda([this]() { CycleShadowFilter(); });
+        ShadowFilterBtn->OnClicked.Add([this]() { CycleShadowFilter(); });
         PlaceButtonTL(*Root, ShadowFilterBtn, leftX, y);
         y += ShadowFilterBtn->GetSize().y + 10.0f;
 
         section("RLPlanarHdr", "PLANAR");
         PlanarToggleBtn = MakeButton("RLPlanarToggle", "Planar: ON", kFsCaption, btnW, btnH);
-        PlanarToggleBtn->OnClicked.AddLambda([this]() { TogglePlanar(); });
+        PlanarToggleBtn->OnClicked.Add([this]() { TogglePlanar(); });
         PlaceButtonTL(*Root, PlanarToggleBtn, leftX, y);
         y += PlanarToggleBtn->GetSize().y + gap;
 
         PlanarQualityBtn = MakeButton("RLPlanarQ", "Quality: Epic", kFsCaption, btnW, btnH);
-        PlanarQualityBtn->OnClicked.AddLambda([this]() { CyclePlanarQuality(); });
+        PlanarQualityBtn->OnClicked.Add([this]() { CyclePlanarQuality(); });
         PlaceButtonTL(*Root, PlanarQualityBtn, leftX, y);
         y += PlanarQualityBtn->GetSize().y + 10.0f;
 
         section("RLPostHdr", "POST");
         SsaoBtn = MakeButton("RLSSAO", "SSAO: ON", kFsCaption, btnW, btnH);
-        SsaoBtn->OnClicked.AddLambda([this]() { ToggleSSAO(); });
+        SsaoBtn->OnClicked.Add([this]() { ToggleSSAO(); });
         PlaceButtonTL(*Root, SsaoBtn, leftX, y);
         y += SsaoBtn->GetSize().y + gap;
 
         BloomBtn = MakeButton("RLBloom", "Bloom: ON", kFsCaption, btnW, btnH);
-        BloomBtn->OnClicked.AddLambda([this]() { ToggleBloom(); });
+        BloomBtn->OnClicked.Add([this]() { ToggleBloom(); });
         PlaceButtonTL(*Root, BloomBtn, leftX, y);
         y += BloomBtn->GetSize().y + gap;
 
         FxaaBtn = MakeButton("RLFXAA", "FXAA: ON", kFsCaption, btnW, btnH);
-        FxaaBtn->OnClicked.AddLambda([this]() { ToggleFXAA(); });
+        FxaaBtn->OnClicked.Add([this]() { ToggleFXAA(); });
         PlaceButtonTL(*Root, FxaaBtn, leftX, y);
         y += FxaaBtn->GetSize().y + 10.0f;
 
@@ -285,7 +285,7 @@ namespace Leon {
         y += 46.0f;
 
         BackBtn = MakeButton("RLBack", "BACK TO MENU", kFsCaption, btnW, btnH);
-        BackBtn->OnClicked.AddLambda([this]() { OnBack(); });
+        BackBtn->OnClicked.Add([this]() { OnBack(); });
         PlaceButtonTL(*Root, BackBtn, leftX, y);
 
         SetWidgetTree(Root);

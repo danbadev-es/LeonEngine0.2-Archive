@@ -10,8 +10,7 @@ namespace Leon {
 
     void UEditableText::SetText(const std::string& InText) {
         Text = InText;
-        if (OnTextChanged)
-            OnTextChanged(Text);
+        OnTextChanged.Broadcast(Text);
     }
 
     bool UEditableText::OnMouseButtonDown(int, const glm::vec2& InMousePos) {
@@ -26,16 +25,14 @@ namespace Leon {
         const bool bBack = FInput::IsKeyPressed(Key::Backspace);
         if (bBack && !bBackspaceWasDown && !Text.empty()) {
             Text.pop_back();
-            if (OnTextChanged)
-                OnTextChanged(Text);
+            OnTextChanged.Broadcast(Text);
         }
         bBackspaceWasDown = bBack;
 
         const bool bPeriod = FInput::IsKeyPressed(Key::Period);
         if (bPeriod && !bPeriodWasDown && Text.size() < 32) {
             Text.push_back('.');
-            if (OnTextChanged)
-                OnTextChanged(Text);
+            OnTextChanged.Broadcast(Text);
         }
         bPeriodWasDown = bPeriod;
 
@@ -44,8 +41,7 @@ namespace Leon {
             const uint8_t bit = static_cast<uint8_t>(1u << i);
             if (down && (DigitWasDown & bit) == 0 && Text.size() < 32) {
                 Text.push_back(static_cast<char>('0' + i));
-                if (OnTextChanged)
-                    OnTextChanged(Text);
+                OnTextChanged.Broadcast(Text);
             }
             if (down)
                 DigitWasDown |= bit;

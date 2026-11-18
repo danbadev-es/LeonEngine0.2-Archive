@@ -23,7 +23,7 @@ namespace Leon {
         ALeonTournamentCharacter::BeginPlay();
         if (auto combat = GetCombatComponent(); combat && !bCombatBound) {
             combat->SetAttackCooldown(1.25f);
-            combat->OnAttack.push_back([this]() { PunchNearest(); });
+            combat->OnAttack.Add([this]() { PunchNearest(); });
             bCombatBound = true;
         }
     }

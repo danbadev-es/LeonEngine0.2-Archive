@@ -63,11 +63,7 @@ namespace Leon {
     }
 
     void ULeonHorrorInventoryComponent::Broadcast(const std::string& InItemId) {
-        const auto callbacks = OnChanged; // a listener may add or remove listeners
-        for (const auto& callback : callbacks) {
-            if (callback)
-                callback(InItemId);
-        }
+        OnChanged.Broadcast(InItemId);
     }
 
 } // namespace Leon

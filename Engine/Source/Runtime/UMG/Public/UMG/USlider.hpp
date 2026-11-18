@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/TMulticastDelegate.hpp"
 #include "UMG/UWidget.hpp"
 
 #include <functional>
@@ -16,7 +17,7 @@ namespace Leon {
         void SetValue(float InValue);
         float GetValue() const { return Value; }
 
-        using FValueChanged = std::function<void(float InValue)>;
+        using FValueChanged = TMulticastDelegate<void(float InValue)>;
         FValueChanged OnValueChanged;
 
         void Paint(const FGeometry& InAllottedGeometry) override;

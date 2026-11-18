@@ -70,8 +70,8 @@ namespace Leon {
     void ALeonHorrorEnemy::BeginPlay() {
         ACharacter::BeginPlay();
         if (Health) {
-            Health->OnDamage.push_back([this](const FDamageInfo& InInfo) { HandleDamage(InInfo); });
-            Health->OnDeath.push_back([this](const FDamageInfo& InInfo) { HandleDeath(InInfo); });
+            Health->OnDamage.Add([this](const FDamageInfo& InInfo) { HandleDamage(InInfo); });
+            Health->OnDeath.Add([this](const FDamageInfo& InInfo) { HandleDeath(InInfo); });
         }
     }
 

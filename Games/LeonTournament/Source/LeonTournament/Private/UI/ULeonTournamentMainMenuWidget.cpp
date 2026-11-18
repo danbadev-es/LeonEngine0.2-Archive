@@ -152,28 +152,28 @@ namespace Leon {
         constexpr float btnMinH = 44.0f;
 
         auto play = FLeonTournamentUILayout::MakeThemedButton("Play", "PLAY", kFsButton, 300.0f, btnMinH);
-        play->OnClicked.AddLambda([this]() { OnOffline(); });
+        play->OnClicked.Add([this]() { OnOffline(); });
         PlaceButtonTL(*Root, play, leftX, y);
         y += play->GetSize().y + btnGap;
 
         auto training = FLeonTournamentUILayout::MakeThemedButton("Training", "TRAINING", kFsButton, 300.0f, btnMinH);
-        training->OnClicked.AddLambda([this]() { OnAnimLab(); });
+        training->OnClicked.Add([this]() { OnAnimLab(); });
         PlaceButtonTL(*Root, training, leftX, y);
         y += training->GetSize().y + btnGap;
 
         auto renderLab =
             FLeonTournamentUILayout::MakeThemedButton("RenderLab", "RENDER LAB", kFsButton, 300.0f, btnMinH);
-        renderLab->OnClicked.AddLambda([this]() { OnRenderLab(); });
+        renderLab->OnClicked.Add([this]() { OnRenderLab(); });
         PlaceButtonTL(*Root, renderLab, leftX, y);
         y += renderLab->GetSize().y + btnGap;
 
         auto host = FLeonTournamentUILayout::MakeThemedButton("Host", "HOST LAN", kFsButton, 300.0f, btnMinH);
-        host->OnClicked.AddLambda([this]() { OnHostLan(); });
+        host->OnClicked.Add([this]() { OnHostLan(); });
         PlaceButtonTL(*Root, host, leftX, y);
         y += host->GetSize().y + btnGap;
 
         auto join = FLeonTournamentUILayout::MakeThemedButton("Join", "JOIN LAN", kFsButton, 300.0f, btnMinH);
-        join->OnClicked.AddLambda([this]() { OnJoinLan(); });
+        join->OnClicked.Add([this]() { OnJoinLan(); });
         PlaceButtonTL(*Root, join, leftX, y);
         y += join->GetSize().y + 10.0f;
 
@@ -189,10 +189,10 @@ namespace Leon {
         AddressField->SetText(session && !session->GetJoinAddress().empty() ? session->GetJoinAddress()
                                                                             : std::string("127.0.0.1"));
         AddressField->SetHint("127.0.0.1");
-        AddressField->OnTextChanged = [](const std::string& InText) {
+        AddressField->OnTextChanged.Add([](const std::string& InText) {
             if (auto* inst = GI())
                 inst->SetJoinAddress(InText.empty() ? "127.0.0.1" : InText);
-        };
+        });
         const float fieldH = 36.0f;
         const float fieldW = 300.0f;
         AddressField->SetSize({fieldW, fieldH});
@@ -200,12 +200,12 @@ namespace Leon {
         y += fieldH + 12.0f;
 
         auto settings = FLeonTournamentUILayout::MakeThemedButton("Settings", "SETTINGS", kFsButton, 300.0f, btnMinH);
-        settings->OnClicked.AddLambda([this]() { OnOpenSettings(); });
+        settings->OnClicked.Add([this]() { OnOpenSettings(); });
         PlaceButtonTL(*Root, settings, leftX, y);
         y += settings->GetSize().y + btnGap;
 
         auto quit = FLeonTournamentUILayout::MakeThemedButton("Quit", "QUIT", kFsButton, 300.0f, btnMinH);
-        quit->OnClicked.AddLambda([this]() { OnQuit(); });
+        quit->OnClicked.Add([this]() { OnQuit(); });
         PlaceButtonTL(*Root, quit, leftX, y);
         DesignContentHeight = y + quit->GetSize().y + 8.0f;
 
@@ -218,23 +218,23 @@ namespace Leon {
         settingsY += MeasurePadded(SettingsHint->GetText(), SettingsHint->GetFontScale()).y + 10.0f;
 
         SettingsLowBtn = FLeonTournamentUILayout::MakeThemedButton("QualityLow", "LOW", kFsButton, 300.0f, btnMinH);
-        SettingsLowBtn->OnClicked.AddLambda([this]() { OnSelectGraphicsQuality(EGraphicsQuality::Low); });
+        SettingsLowBtn->OnClicked.Add([this]() { OnSelectGraphicsQuality(EGraphicsQuality::Low); });
         PlaceButtonTL(*Root, SettingsLowBtn, leftX, settingsY);
         settingsY += SettingsLowBtn->GetSize().y + btnGap;
 
         SettingsMediumBtn =
             FLeonTournamentUILayout::MakeThemedButton("QualityMedium", "MEDIUM", kFsButton, 300.0f, btnMinH);
-        SettingsMediumBtn->OnClicked.AddLambda([this]() { OnSelectGraphicsQuality(EGraphicsQuality::Medium); });
+        SettingsMediumBtn->OnClicked.Add([this]() { OnSelectGraphicsQuality(EGraphicsQuality::Medium); });
         PlaceButtonTL(*Root, SettingsMediumBtn, leftX, settingsY);
         settingsY += SettingsMediumBtn->GetSize().y + btnGap;
 
         SettingsHighBtn = FLeonTournamentUILayout::MakeThemedButton("QualityHigh", "HIGH", kFsButton, 300.0f, btnMinH);
-        SettingsHighBtn->OnClicked.AddLambda([this]() { OnSelectGraphicsQuality(EGraphicsQuality::High); });
+        SettingsHighBtn->OnClicked.Add([this]() { OnSelectGraphicsQuality(EGraphicsQuality::High); });
         PlaceButtonTL(*Root, SettingsHighBtn, leftX, settingsY);
         settingsY += SettingsHighBtn->GetSize().y + 16.0f;
 
         SettingsBackBtn = FLeonTournamentUILayout::MakeThemedButton("SettingsBack", "BACK", kFsButton, 300.0f, btnMinH);
-        SettingsBackBtn->OnClicked.AddLambda([this]() { OnCloseSettings(); });
+        SettingsBackBtn->OnClicked.Add([this]() { OnCloseSettings(); });
         PlaceButtonTL(*Root, SettingsBackBtn, leftX, settingsY);
         DesignContentHeight = std::max(DesignContentHeight, settingsY + SettingsBackBtn->GetSize().y + 8.0f);
 
@@ -243,7 +243,7 @@ namespace Leon {
         SetSettingsPageVisible(false);
 
         PrevCharBtn = FLeonTournamentUILayout::MakeThemedButton("PrevChar", "<", kFsSub, 56.0f, 52.0f);
-        PrevCharBtn->OnClicked.AddLambda([this]() { OnPrevCharacter(); });
+        PrevCharBtn->OnClicked.Add([this]() { OnPrevCharacter(); });
 
         CharacterLabel = std::make_shared<UTextBlock>("CharName");
         CharacterLabel->SetFontScale(kFsSub);
@@ -253,7 +253,7 @@ namespace Leon {
         RefreshCharacterLabel();
 
         NextCharBtn = FLeonTournamentUILayout::MakeThemedButton("NextChar", ">", kFsSub, 56.0f, 52.0f);
-        NextCharBtn->OnClicked.AddLambda([this]() { OnNextCharacter(); });
+        NextCharBtn->OnClicked.Add([this]() { OnNextCharacter(); });
 
         SetWidgetTree(Root);
         ApplyViewportLayout();

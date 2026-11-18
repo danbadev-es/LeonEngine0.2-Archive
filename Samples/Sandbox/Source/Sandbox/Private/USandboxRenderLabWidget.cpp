@@ -188,65 +188,65 @@ namespace Leon {
 
         section("SBRLPresetHdr", "PRESETS");
         PresetLowBtn = FUILayout::MakeButton("SBRLLow", "LOW", kFsCaption, btnW, btnH);
-        PresetLowBtn->OnClicked.AddLambda([this]() { ApplyPreset(EGraphicsQuality::Low); });
+        PresetLowBtn->OnClicked.Add([this]() { ApplyPreset(EGraphicsQuality::Low); });
         FUILayout::PlaceButtonTL(*Root, PresetLowBtn, leftX, y);
         y += PresetLowBtn->GetSize().y + gap;
 
         PresetMedBtn = FUILayout::MakeButton("SBRLMed", "MEDIUM", kFsCaption, btnW, btnH);
-        PresetMedBtn->OnClicked.AddLambda([this]() { ApplyPreset(EGraphicsQuality::Medium); });
+        PresetMedBtn->OnClicked.Add([this]() { ApplyPreset(EGraphicsQuality::Medium); });
         FUILayout::PlaceButtonTL(*Root, PresetMedBtn, leftX, y);
         y += PresetMedBtn->GetSize().y + gap;
 
         PresetHighBtn = FUILayout::MakeButton("SBRLHigh", "HIGH", kFsCaption, btnW, btnH);
-        PresetHighBtn->OnClicked.AddLambda([this]() { ApplyPreset(EGraphicsQuality::High); });
+        PresetHighBtn->OnClicked.Add([this]() { ApplyPreset(EGraphicsQuality::High); });
         FUILayout::PlaceButtonTL(*Root, PresetHighBtn, leftX, y);
         y += PresetHighBtn->GetSize().y + 10.0f;
 
         section("SBRLShadowHdr", "SHADOWS (tap to cycle)");
         ShadowResBtn = FUILayout::MakeButton("SBRLShadowRes", "CSM: 2048", kFsCaption, btnW, btnH);
-        ShadowResBtn->OnClicked.AddLambda([this]() { CycleShadowResolution(); });
+        ShadowResBtn->OnClicked.Add([this]() { CycleShadowResolution(); });
         FUILayout::PlaceButtonTL(*Root, ShadowResBtn, leftX, y);
         y += ShadowResBtn->GetSize().y + gap;
 
         CascadeBtn = FUILayout::MakeButton("SBRLCascades", "Cascades: 4", kFsCaption, btnW, btnH);
-        CascadeBtn->OnClicked.AddLambda([this]() { CycleCascadeCount(); });
+        CascadeBtn->OnClicked.Add([this]() { CycleCascadeCount(); });
         FUILayout::PlaceButtonTL(*Root, CascadeBtn, leftX, y);
         y += CascadeBtn->GetSize().y + gap;
 
         ShadowDistBtn = FUILayout::MakeButton("SBRLShadowDist", "Distance: 100", kFsCaption, btnW, btnH);
-        ShadowDistBtn->OnClicked.AddLambda([this]() { CycleShadowDistance(); });
+        ShadowDistBtn->OnClicked.Add([this]() { CycleShadowDistance(); });
         FUILayout::PlaceButtonTL(*Root, ShadowDistBtn, leftX, y);
         y += ShadowDistBtn->GetSize().y + gap;
 
         ShadowFilterBtn = FUILayout::MakeButton("SBRLShadowFilter", "Filter: PCF3x3", kFsCaption, btnW, btnH);
-        ShadowFilterBtn->OnClicked.AddLambda([this]() { CycleShadowFilter(); });
+        ShadowFilterBtn->OnClicked.Add([this]() { CycleShadowFilter(); });
         FUILayout::PlaceButtonTL(*Root, ShadowFilterBtn, leftX, y);
         y += ShadowFilterBtn->GetSize().y + 10.0f;
 
         section("SBRLPlanarHdr", "PLANAR");
         PlanarToggleBtn = FUILayout::MakeButton("SBRLPlanarToggle", "Planar: ON", kFsCaption, btnW, btnH);
-        PlanarToggleBtn->OnClicked.AddLambda([this]() { TogglePlanar(); });
+        PlanarToggleBtn->OnClicked.Add([this]() { TogglePlanar(); });
         FUILayout::PlaceButtonTL(*Root, PlanarToggleBtn, leftX, y);
         y += PlanarToggleBtn->GetSize().y + gap;
 
         PlanarQualityBtn = FUILayout::MakeButton("SBRLPlanarQ", "Quality: Epic", kFsCaption, btnW, btnH);
-        PlanarQualityBtn->OnClicked.AddLambda([this]() { CyclePlanarQuality(); });
+        PlanarQualityBtn->OnClicked.Add([this]() { CyclePlanarQuality(); });
         FUILayout::PlaceButtonTL(*Root, PlanarQualityBtn, leftX, y);
         y += PlanarQualityBtn->GetSize().y + 10.0f;
 
         section("SBRLPostHdr", "POST");
         SsaoBtn = FUILayout::MakeButton("SBRLSSAO", "SSAO: ON", kFsCaption, btnW, btnH);
-        SsaoBtn->OnClicked.AddLambda([this]() { ToggleSSAO(); });
+        SsaoBtn->OnClicked.Add([this]() { ToggleSSAO(); });
         FUILayout::PlaceButtonTL(*Root, SsaoBtn, leftX, y);
         y += SsaoBtn->GetSize().y + gap;
 
         BloomBtn = FUILayout::MakeButton("SBRLBloom", "Bloom: ON", kFsCaption, btnW, btnH);
-        BloomBtn->OnClicked.AddLambda([this]() { ToggleBloom(); });
+        BloomBtn->OnClicked.Add([this]() { ToggleBloom(); });
         FUILayout::PlaceButtonTL(*Root, BloomBtn, leftX, y);
         y += BloomBtn->GetSize().y + gap;
 
         FxaaBtn = FUILayout::MakeButton("SBRLFXAA", "FXAA: ON", kFsCaption, btnW, btnH);
-        FxaaBtn->OnClicked.AddLambda([this]() { ToggleFXAA(); });
+        FxaaBtn->OnClicked.Add([this]() { ToggleFXAA(); });
         FUILayout::PlaceButtonTL(*Root, FxaaBtn, leftX, y);
         y += FxaaBtn->GetSize().y + 10.0f;
 
@@ -258,7 +258,7 @@ namespace Leon {
         y += 46.0f;
 
         HideBtn = FUILayout::MakeButton("SBRLHide", "HIDE (H)", kFsCaption, btnW, btnH);
-        HideBtn->OnClicked.AddLambda([this]() { SetLabVisible(false); });
+        HideBtn->OnClicked.Add([this]() { SetLabVisible(false); });
         FUILayout::PlaceButtonTL(*Root, HideBtn, leftX, y);
 
         SetWidgetTree(Root);

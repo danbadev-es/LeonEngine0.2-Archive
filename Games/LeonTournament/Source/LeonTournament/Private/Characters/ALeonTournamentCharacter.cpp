@@ -221,7 +221,7 @@ namespace Leon {
         if (ShouldSpawnWeapon())
             EnsureWeapon();
         if (Health && !bDeathBound) {
-            Health->OnDeath.push_back([this](const FDamageInfo& info) { OnServerDeath(info); });
+            Health->OnDeath.Add([this](const FDamageInfo& info) { OnServerDeath(info); });
             bDeathBound = true;
         }
         UpdatePresentationVisibility();

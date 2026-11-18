@@ -10,10 +10,10 @@ namespace Leon {
     UHealthComponent::UHealthComponent(const std::string& InName) : UActorComponent(InName) {}
 
     void UHealthComponent::EndPlay() {
-        OnHealthChanged.clear();
-        OnDamage.clear();
-        OnHealed.clear();
-        OnDeath.clear();
+        OnHealthChanged.Clear();
+        OnDamage.Clear();
+        OnHealed.Clear();
+        OnDeath.Clear();
     }
 
     void UHealthComponent::SetMaxHealth(float InMax) {
@@ -58,10 +58,7 @@ namespace Leon {
 
         const float old = Health;
         Health = std::max(0.0f, Health - amount);
-        for (auto& cb : OnDamage) {
-            if (cb)
-                cb(info);
-        }
+        OnDamage.Broadcast(info);
         BroadcastHealthChanged(old);
 
         if (Health <= 0.0f)
@@ -78,20 +75,14 @@ namespace Leon {
             return;
         const float old = Health;
         Health = std::min(MaxHealth, Health + amount);
-        for (auto& cb : OnHealed) {
-            if (cb)
-                cb(amount, Health);
-        }
+        OnHealed.Broadcast(amount, Health);
         BroadcastHealthChanged(old);
     }
 
     void UHealthComponent::BroadcastHealthChanged(float InOld) {
         if (InOld == Health)
             return;
-        for (auto& cb : OnHealthChanged) {
-            if (cb)
-                cb(InOld, Health, MaxHealth);
-        }
+        OnHealthChanged.Broadcast(InOld, Health, MaxHealth);
     }
 
     void UHealthComponent::BecomeDead(const FDamageInfo& InInfo) {
@@ -99,10 +90,7 @@ namespace Leon {
             return;
         bIsDead = true;
         Health = 0.0f;
-        for (auto& cb : OnDeath) {
-            if (cb)
-                cb(InInfo);
-        }
+        OnDeath.Broadcast(InInfo);
         if (Owner && Owner->GetWorld() && Owner->GetWorld()->GetGameMode())
             Owner->GetWorld()->GetGameMode()->NotifyActorKilled(Owner, InInfo);
     }

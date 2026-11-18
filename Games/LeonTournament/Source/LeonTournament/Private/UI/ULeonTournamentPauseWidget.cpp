@@ -154,11 +154,11 @@ namespace Leon {
         PlaceTextC(*Root, hint, 0.0f, y + hintH * 0.5f, panelW - panelPad * 2.0f);
         y += hintH + 20.0f;
 
-        resume->OnClicked.AddLambda([this]() { OnResume(); });
+        resume->OnClicked.Add([this]() { OnResume(); });
         PlaceButtonC(*Root, resume, 0.0f, y + resume->GetSize().y * 0.5f);
         y += resume->GetSize().y + gap;
 
-        leave->OnClicked.AddLambda([this]() { OnLeave(); });
+        leave->OnClicked.Add([this]() { OnLeave(); });
         PlaceButtonC(*Root, leave, 0.0f, y + leave->GetSize().y * 0.5f);
 
         SetWidgetTree(Root);

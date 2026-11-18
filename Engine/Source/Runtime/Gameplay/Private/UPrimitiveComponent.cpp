@@ -22,9 +22,9 @@ namespace Leon {
 
     void UPrimitiveComponent::EndPlay() {
         UnregisterPhysics();
-        OnComponentBeginOverlap.clear();
-        OnComponentEndOverlap.clear();
-        OnComponentHit.clear();
+        OnComponentBeginOverlap.Clear();
+        OnComponentEndOverlap.Clear();
+        OnComponentHit.Clear();
         OverlappingComponents.clear();
     }
 
@@ -104,22 +104,14 @@ namespace Leon {
 
         OverlappingComponents = std::move(now);
 
-        // Callbacks may destroy the owner of this component, which runs EndPlay and clears the callback
-        // vectors. Iterate copies and stop as soon as the owner is on its way out.
-        const auto beginCallbacks = OnComponentBeginOverlap;
-        const auto endCallbacks = OnComponentEndOverlap;
-
+        // A listener may destroy the owner of this component, which runs EndPlay and clears the
+        // delegates: the rest of that broadcast is then skipped, and so is the rest of this update.
         for (auto& [other, hit] : beginHits) {
             if (!Owner || Owner->IsPendingKill())
                 return;
             if (!other || !other->GetOwner() || other->GetOwner()->IsPendingKill())
                 continue;
-            for (const auto& cb : beginCallbacks) {
-                if (cb)
-                    cb(this, other->GetOwner(), other, hit);
-                if (!Owner || Owner->IsPendingKill())
-                    return;
-            }
+            OnComponentBeginOverlap.Broadcast(this, other->GetOwner(), other, hit);
         }
         for (auto& [prev, hit] : endHits) {
             if (!Owner || Owner->IsPendingKill())
@@ -127,12 +119,7 @@ namespace Leon {
             AActor* otherOwner = prev ? prev->GetOwner() : nullptr;
             if (otherOwner && otherOwner->IsPendingKill())
                 otherOwner = nullptr;
-            for (const auto& cb : endCallbacks) {
-                if (cb)
-                    cb(this, otherOwner, prev, hit);
-                if (!Owner || Owner->IsPendingKill())
-                    return;
-            }
+            OnComponentEndOverlap.Broadcast(this, otherOwner, prev, hit);
         }
     }
 
