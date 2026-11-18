@@ -5,6 +5,7 @@
 #include "AssetPipeline/FLightmapUV.hpp"
 #include "RenderCore/FVertexLayout.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -157,6 +158,79 @@ TEST_SUITE("StaticMesh & .lmesh Binary Format Tests") {
         REQUIRE(b);
         CHECK(a.get() != b.get());
         CHECK(a->GetParent().get() == b->GetParent().get());
+    }
+
+    TEST_CASE("an FBX with a second UV set keeps it as the lightmap unwrap, and shares vertices") {
+        // Written by Tests/Fixtures/make_fbx_fixtures.py: a 2 m cube with flat faces whose second
+        // UV set puts each face in its own cell of a 3 x 2 grid.
+        const fs::path fbx = fs::path("Tests") / "Fixtures" / "TwoUVCube.fbx";
+        REQUIRE(fs::exists(fbx));
+        FMeshImportSettings settings;
+        FMeshImportResult result;
+        REQUIRE(FMeshImporter::ImportFBX(fbx.string(), settings, result));
+        REQUIRE(result.StaticMesh != nullptr);
+        const UStaticMesh& mesh = *result.StaticMesh;
+
+        // Twelve triangles; each flat face shares its four corners, and no more than that.
+        CHECK(mesh.GetIndices().size() == 36);
+        CHECK(mesh.GetVertices().size() == 24);
+        REQUIRE(mesh.GetSubmeshes().size() == 1);
+        CHECK(mesh.GetSubmeshes()[0].VertexCount == 24);
+        CHECK(mesh.GetBoundsMin().x == doctest::Approx(-1.0f));
+        CHECK(mesh.GetBoundsMax().y == doctest::Approx(1.0f));
+
+        // The lightmap unwrap is the one in the file: the baker must not replace it.
+        CHECK(mesh.HasUniqueLightmapUV());
+        CHECK(FLightmapUV::HasLightmapUV(mesh));
+        const FLightmapUVValidationResult unwrap = FLightmapUV::Validate(mesh);
+        CHECK_MESSAGE(unwrap.bValid, unwrap.Message);
+        for (const FStaticMeshVertex& vertex : mesh.GetVertices()) {
+            // Every vertex sits on a cell corner of the grid, inset by the 5 % margin.
+            const float u = vertex.LightmapUV.x * 3.0f;
+            const float v = vertex.LightmapUV.y * 2.0f;
+            const float fu = u - std::floor(u);
+            const float fv = v - std::floor(v);
+            CHECK((fu == doctest::Approx(0.05f).epsilon(0.02) || fu == doctest::Approx(0.95f).epsilon(0.02)));
+            CHECK((fv == doctest::Approx(0.05f).epsilon(0.02) || fv == doctest::Approx(0.95f).epsilon(0.02)));
+            // And the normal survived the weld: flat faces, axis aligned.
+            const glm::vec3 n = glm::abs(vertex.Normal);
+            CHECK(std::max({n.x, n.y, n.z}) == doctest::Approx(1.0f));
+        }
+    }
+
+    TEST_CASE("lightmap unwrap validation: a shared edge is fine, crossing triangles are not") {
+        auto quad = [](const glm::vec2& InA, const glm::vec2& InB, const glm::vec2& InC, const glm::vec2& InD,
+                       const glm::vec2& InE, const glm::vec2& InF) {
+            auto mesh = UStaticMesh::Create("Unwrap");
+            mesh->GetVertices().resize(6);
+            const glm::vec2 uvs[6] = {InA, InB, InC, InD, InE, InF};
+            for (int i = 0; i < 6; ++i)
+                mesh->GetVertices()[i].LightmapUV = uvs[i];
+            mesh->GetIndices() = {0, 1, 2, 3, 4, 5};
+            mesh->SetHasUniqueLightmapUV(true);
+            return FLightmapUV::Validate(*mesh);
+        };
+        // One square chart cut along its diagonal: what every quad of a real unwrap looks like.
+        CHECK(quad({0.1f, 0.1f}, {0.4f, 0.1f}, {0.4f, 0.4f}, {0.1f, 0.1f}, {0.4f, 0.4f}, {0.1f, 0.4f}).bValid);
+        // Two charts side by side with a gap.
+        CHECK(quad({0.1f, 0.1f}, {0.4f, 0.1f}, {0.1f, 0.4f}, {0.6f, 0.1f}, {0.9f, 0.1f}, {0.6f, 0.4f}).bValid);
+        // The second triangle sits on top of the first.
+        const auto crossing =
+            quad({0.1f, 0.1f}, {0.6f, 0.1f}, {0.1f, 0.6f}, {0.2f, 0.15f}, {0.7f, 0.2f}, {0.25f, 0.7f});
+        CHECK_FALSE(crossing.bValid);
+        CHECK(crossing.bHasOverlaps);
+    }
+
+    TEST_CASE("an FBX without a second UV set leaves the lightmap unwrap to the baker") {
+        const fs::path fbx = fs::path("Engine") / "Content" / "Meshes" / "Cube.fbx";
+        if (!fs::exists(fbx))
+            return;
+        FMeshImportSettings settings;
+        FMeshImportResult result;
+        REQUIRE(FMeshImporter::ImportFBX(fbx.string(), settings, result));
+        REQUIRE(result.StaticMesh != nullptr);
+        CHECK_FALSE(result.StaticMesh->HasUniqueLightmapUV());
+        CHECK(result.StaticMesh->GetVertices().size() < result.StaticMesh->GetIndices().size());
     }
 
     TEST_CASE("OrbitalPrism FBX splits into separate static meshes") {

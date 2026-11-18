@@ -144,31 +144,79 @@ namespace Leon {
             }
         }
 
+        // Two triangles overlap when their interiors intersect; sharing an edge or a corner, as the
+        // triangles of one chart do, is not an overlap. Separating axes, with the padding as slack.
+        struct FTri {
+            glm::vec2 P[3];
+            glm::vec2 Min;
+            glm::vec2 Max;
+        };
+        auto overlaps = [InMinIslandPadding](const FTri& InA, const FTri& InB) {
+            const FTri* pair[2] = {&InA, &InB};
+            for (int which = 0; which < 2; ++which) {
+                const FTri& tri = *pair[which];
+                for (int e = 0; e < 3; ++e) {
+                    const glm::vec2 edge = tri.P[(e + 1) % 3] - tri.P[e];
+                    const float length = glm::length(edge);
+                    if (length < 1.0e-12f)
+                        continue;
+                    const glm::vec2 axis = glm::vec2(-edge.y, edge.x) / length;
+                    float minA = 1.0e9f, maxA = -1.0e9f, minB = 1.0e9f, maxB = -1.0e9f;
+                    for (int k = 0; k < 3; ++k) {
+                        const float da = glm::dot(InA.P[k], axis);
+                        const float db = glm::dot(InB.P[k], axis);
+                        minA = std::min(minA, da);
+                        maxA = std::max(maxA, da);
+                        minB = std::min(minB, db);
+                        maxB = std::max(maxB, db);
+                    }
+                    if (maxA <= minB + InMinIslandPadding || maxB <= minA + InMinIslandPadding)
+                        return false; // separated along this axis
+                }
+            }
+            return true;
+        };
+
+        std::vector<FTri> tris;
+        tris.reserve(triCount);
         for (uint32_t t = 0; t < triCount; ++t) {
-            uint32_t i0 = indices[t * 3 + 0];
-            uint32_t i1 = indices[t * 3 + 1];
-            uint32_t i2 = indices[t * 3 + 2];
+            const uint32_t i0 = indices[t * 3 + 0];
+            const uint32_t i1 = indices[t * 3 + 1];
+            const uint32_t i2 = indices[t * 3 + 2];
             if (i0 >= verts.size() || i1 >= verts.size() || i2 >= verts.size())
                 continue;
-            glm::vec2 a = verts[i0].LightmapUV;
-            glm::vec2 b = verts[i1].LightmapUV;
-            glm::vec2 c = verts[i2].LightmapUV;
+            FTri tri;
+            tri.P[0] = verts[i0].LightmapUV;
+            tri.P[1] = verts[i1].LightmapUV;
+            tri.P[2] = verts[i2].LightmapUV;
+            tri.Min = glm::min(glm::min(tri.P[0], tri.P[1]), tri.P[2]);
+            tri.Max = glm::max(glm::max(tri.P[0], tri.P[1]), tri.P[2]);
+            const glm::vec2 e0 = tri.P[1] - tri.P[0];
+            const glm::vec2 e1 = tri.P[2] - tri.P[0];
+            if (std::abs(e0.x * e1.y - e0.y * e1.x) < 1.0e-12f)
+                continue; // no area in the lightmap: nothing to overlap
+            tris.push_back(tri);
+        }
 
-            for (uint32_t u = t + 1; u < triCount; ++u) {
-                uint32_t j0 = indices[u * 3 + 0];
-                uint32_t j1 = indices[u * 3 + 1];
-                uint32_t j2 = indices[u * 3 + 2];
-                if (j0 >= verts.size() || j1 >= verts.size() || j2 >= verts.size())
-                    continue;
-                glm::vec2 minA = glm::min(glm::min(a, b), c);
-                glm::vec2 maxA = glm::max(glm::max(a, b), c);
-                glm::vec2 minB = glm::min(glm::min(verts[j0].LightmapUV, verts[j1].LightmapUV), verts[j2].LightmapUV);
-                glm::vec2 maxB = glm::max(glm::max(verts[j0].LightmapUV, verts[j1].LightmapUV), verts[j2].LightmapUV);
-                bool overlap = maxA.x > minB.x + InMinIslandPadding && maxB.x > minA.x + InMinIslandPadding &&
-                               maxA.y > minB.y + InMinIslandPadding && maxB.y > minA.y + InMinIslandPadding;
-                if (overlap) {
-                    result.bHasOverlaps = true;
-                    result.bHasEnoughPadding = false;
+        // A grid over the unit square keeps this from comparing every pair of a large mesh.
+        constexpr int kGrid = 64;
+        std::vector<std::vector<uint32_t>> cells(static_cast<size_t>(kGrid) * kGrid);
+        auto cellOf = [](float InValue) {
+            return std::clamp(static_cast<int>(InValue * kGrid), 0, kGrid - 1);
+        };
+        for (uint32_t t = 0; t < tris.size() && !result.bHasOverlaps; ++t) {
+            const FTri& tri = tris[t];
+            for (int y = cellOf(tri.Min.y); y <= cellOf(tri.Max.y) && !result.bHasOverlaps; ++y) {
+                for (int x = cellOf(tri.Min.x); x <= cellOf(tri.Max.x) && !result.bHasOverlaps; ++x) {
+                    std::vector<uint32_t>& cell = cells[static_cast<size_t>(y) * kGrid + x];
+                    for (uint32_t other : cell) {
+                        if (overlaps(tri, tris[other])) {
+                            result.bHasOverlaps = true;
+                            result.bHasEnoughPadding = false;
+                            break;
+                        }
+                    }
+                    cell.push_back(t);
                 }
             }
         }

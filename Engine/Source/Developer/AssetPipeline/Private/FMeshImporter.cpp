@@ -3,6 +3,7 @@
 #include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
 #include "RenderCore/FVertexLayout.hpp"
+#include <cstring>
 #include <ufbx.h>
 
 #include <algorithm>
@@ -79,7 +80,12 @@ namespace Leon {
                 bitangent = glm::normalize(glm::cross(v.Normal, tangent));
             }
             v.Tangent = PackTangent(tangent, v.Normal, bitangent);
+            // The second UV set is the lightmap unwrap: one chart per surface, nothing overlapping.
             v.LightmapUV = glm::vec2(0.0f);
+            if (InMesh->uv_sets.count > 1 && InMesh->uv_sets.data[1].vertex_uv.exists) {
+                ufbx_vec2 uv = ufbx_get_vertex_vec2(&InMesh->uv_sets.data[1].vertex_uv, InIndexInMesh);
+                v.LightmapUV = glm::vec2(static_cast<float>(uv.x), static_cast<float>(uv.y));
+            }
             if (InMesh->vertex_color.exists) {
                 ufbx_vec4 col = ufbx_get_vertex_vec4(&InMesh->vertex_color, InIndexInMesh);
                 v.Color = glm::vec3(static_cast<float>(col.x), static_cast<float>(col.y), static_cast<float>(col.z));
@@ -117,6 +123,89 @@ namespace Leon {
             }
             InOutSubmesh.IndexCount = static_cast<uint32_t>(indices.size() - InOutSubmesh.IndexOffset);
             InOutSubmesh.VertexCount = static_cast<uint32_t>(verts.size() - vertexStart);
+        }
+
+        /**
+         * Shares the vertices that triangles have in common. The importer emits three per triangle;
+         * a modelled mesh has between three and six times fewer. Tangents are not compared when they
+         * are about to be regenerated, so a smooth surface ends up with smooth tangents.
+         */
+        void WeldVertices(UStaticMesh& InMesh, bool bCompareTangents) {
+            struct FKey {
+                float Values[13];
+                uint32_t Submesh;
+                bool operator==(const FKey& InOther) const {
+                    return Submesh == InOther.Submesh && std::memcmp(Values, InOther.Values, sizeof(Values)) == 0;
+                }
+            };
+            struct FKeyHash {
+                size_t operator()(const FKey& InKey) const {
+                    uint64_t hash = 1469598103934665603ull ^ InKey.Submesh;
+                    const auto* bytes = reinterpret_cast<const uint8_t*>(InKey.Values);
+                    for (size_t i = 0; i < sizeof(InKey.Values); ++i) {
+                        hash ^= bytes[i];
+                        hash *= 1099511628211ull;
+                    }
+                    return static_cast<size_t>(hash);
+                }
+            };
+            auto makeKey = [](const FStaticMeshVertex& InV, uint32_t InSubmesh) {
+                FKey key{};
+                // +0.0f turns -0.0f into 0.0f so equal values hash alike.
+                const float values[13] = {InV.Position.x,   InV.Position.y,   InV.Position.z, InV.Normal.x,
+                                          InV.Normal.y,     InV.Normal.z,     InV.TexCoord.x, InV.TexCoord.y,
+                                          InV.LightmapUV.x, InV.LightmapUV.y, InV.Color.x,    InV.Color.y,
+                                          InV.Color.z};
+                for (int i = 0; i < 13; ++i)
+                    key.Values[i] = values[i] + 0.0f;
+                key.Submesh = InSubmesh;
+                return key;
+            };
+
+            std::vector<FStaticMeshVertex>& verts = InMesh.GetVertices();
+            std::vector<uint32_t>& indices = InMesh.GetIndices();
+            std::vector<FStaticMeshVertex> welded;
+            welded.reserve(verts.size() / 3);
+            for (uint32_t si = 0; si < InMesh.GetSubmeshes().size(); ++si) {
+                FStaticSubmesh& submesh = InMesh.GetSubmeshes()[si];
+                std::unordered_map<FKey, uint32_t, FKeyHash> seen;
+                const uint32_t firstVertex = static_cast<uint32_t>(welded.size());
+                for (uint32_t i = 0; i < submesh.IndexCount; ++i) {
+                    uint32_t& index = indices[submesh.IndexOffset + i];
+                    const FStaticMeshVertex& vertex = verts[index];
+                    const FKey key = makeKey(vertex, si);
+                    auto found = seen.find(key);
+                    bool bSame = found != seen.end();
+                    if (bSame && bCompareTangents)
+                        bSame = std::memcmp(&welded[found->second].Tangent, &vertex.Tangent, sizeof(vertex.Tangent)) == 0;
+                    if (bSame) {
+                        index = found->second;
+                    } else {
+                        const uint32_t added = static_cast<uint32_t>(welded.size());
+                        welded.push_back(vertex);
+                        seen[key] = added;
+                        index = added;
+                    }
+                }
+                submesh.VertexOffset = firstVertex;
+                submesh.VertexCount = static_cast<uint32_t>(welded.size()) - firstVertex;
+            }
+            verts = std::move(welded);
+        }
+
+        /** Whether the lightmap UVs came from the file: some area, inside the unit square. */
+        bool HasAuthoredLightmapUVs(const UStaticMesh& InMesh) {
+            const auto& verts = InMesh.GetVertices();
+            if (verts.empty())
+                return false;
+            glm::vec2 low(1.0e9f);
+            glm::vec2 high(-1.0e9f);
+            for (const FStaticMeshVertex& vertex : verts) {
+                low = glm::min(low, vertex.LightmapUV);
+                high = glm::max(high, vertex.LightmapUV);
+            }
+            return low.x >= -1.0e-4f && low.y >= -1.0e-4f && high.x <= 1.0001f && high.y <= 1.0001f &&
+                   (high.x - low.x) > 1.0e-3f && (high.y - low.y) > 1.0e-3f;
         }
 
         bool FillStaticMeshFromFbxNode(UStaticMesh& InMesh, const ufbx_node* InNode,
@@ -372,6 +461,9 @@ namespace Leon {
 
         const bool bSplit = InSettings.bSplitStaticMeshes && meshNodes.size() > 1;
         auto finishMesh = [&](UStaticMesh& mesh) {
+            WeldVertices(mesh, !InSettings.bGenerateTangents);
+            // A second UV set in the file is the lightmap unwrap; without one the baker generates it.
+            mesh.SetHasUniqueLightmapUV(HasAuthoredLightmapUVs(mesh));
             // Lengyel from UV0 when requested — FBX tangent quality varies; authored normals stay intact.
             if (InSettings.bGenerateTangents)
                 GenerateLengyelTangents(mesh.GetVertices(), mesh.GetIndices());
