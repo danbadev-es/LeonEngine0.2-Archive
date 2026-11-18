@@ -10,7 +10,7 @@
 #include <vector>
 
 #define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
+#include <miniaudio.h>
 
 namespace Leon {
     namespace {
