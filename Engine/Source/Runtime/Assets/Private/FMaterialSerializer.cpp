@@ -120,17 +120,20 @@ namespace Leon {
 
         std::string metallicPath =
             InMaterial.GetMetallicMap() ? InMaterial.GetMetallicMap()->GetPath() : InMaterial.GetTexturePath(2);
-        if (!metallicPath.empty())
-            ss << "  MetallicMap: \"" << metallicPath << "\"\n";
-
         std::string roughnessPath =
             InMaterial.GetRoughnessMap() ? InMaterial.GetRoughnessMap()->GetPath() : InMaterial.GetTexturePath(4);
-        if (!roughnessPath.empty())
-            ss << "  RoughnessMap: \"" << roughnessPath << "\"\n";
-
         std::string aoPath = InMaterial.GetAOMap() ? InMaterial.GetAOMap()->GetPath() : InMaterial.GetTexturePath(3);
-        if (!aoPath.empty())
-            ss << "  AOMap: \"" << aoPath << "\"\n";
+        if (InMaterial.IsPackedORM()) {
+            // One texture holds the three masks.
+            ss << "  ORMMap: \"" << aoPath << "\"\n";
+        } else {
+            if (!metallicPath.empty())
+                ss << "  MetallicMap: \"" << metallicPath << "\"\n";
+            if (!roughnessPath.empty())
+                ss << "  RoughnessMap: \"" << roughnessPath << "\"\n";
+            if (!aoPath.empty())
+                ss << "  AOMap: \"" << aoPath << "\"\n";
+        }
 
         std::string emissivePath =
             InMaterial.GetEmissiveMap() ? InMaterial.GetEmissiveMap()->GetPath() : InMaterial.GetTexturePath(5);
@@ -229,6 +232,9 @@ namespace Leon {
             } else if (key == "AOMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetAOMap(UAssetManager::GetTexture2D(path));
+            } else if (key == "ORMMap") {
+                std::string path = MaterialUtils::CleanValue(value);
+                OutMaterial.SetORMMap(UAssetManager::GetTexture2D(path));
             } else if (key == "EmissiveMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetEmissiveMap(UAssetManager::GetTexture2D(path));

@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 #include "Assets/UStaticMesh.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialSerializer.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "AssetPipeline/FMeshImporter.hpp"
 #include "AssetPipeline/FLightmapUV.hpp"
@@ -231,6 +233,26 @@ TEST_SUITE("StaticMesh & .lmesh Binary Format Tests") {
         REQUIRE(result.StaticMesh != nullptr);
         CHECK_FALSE(result.StaticMesh->HasUniqueLightmapUV());
         CHECK(result.StaticMesh->GetVertices().size() < result.StaticMesh->GetIndices().size());
+    }
+
+    TEST_CASE("a material names one packed texture for occlusion, roughness and metalness") {
+        // No texture file is needed to check the key itself: without a renderer the texture is null,
+        // and the material then has no masks at all rather than three half-set ones.
+        FMaterial material("Packed");
+        const std::string source = std::string("Material:") + '\n' + "  Roughness: 0.8" + '\n' +
+                                   "  ORMMap: \"/Game/Textures/T_None_ORM.ltex\"" + '\n';
+        REQUIRE(FMaterialSerializer::DeserializeText(source, material));
+        CHECK(material.GetRoughness() == doctest::Approx(0.8f));
+        CHECK(material.GetAOMap() == material.GetRoughnessMap());
+        CHECK(material.GetAOMap() == material.GetMetallicMap());
+        CHECK(material.IsPackedORM() == (material.GetAOMap() != nullptr));
+
+        // Three separate maps are not a packed one.
+        FMaterial separate("Separate");
+        CHECK_FALSE(separate.IsPackedORM());
+        std::string text;
+        REQUIRE(FMaterialSerializer::SerializeText(text, separate));
+        CHECK(text.find("ORMMap") == std::string::npos);
     }
 
     TEST_CASE("OrbitalPrism FBX splits into separate static meshes") {

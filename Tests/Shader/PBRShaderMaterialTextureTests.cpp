@@ -160,4 +160,66 @@ TEST_SUITE("Shader GPU - PBR_Lit.hlsl Material Textures & Fallbacks") {
         gl.DestroyTexture(roughTex);
         gl.DestroyTexture(aoTex);
     }
+
+    TEST_CASE("PBR_Lit.hlsl reads one packed texture as occlusion, roughness and metalness") {
+        Leon::TestGPU::FHeadlessDevice gl;
+        REQUIRE(gl.IsValid());
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
+        shader->Bind();
+        gl.BindDefaultTextures();
+        gl.BindFramebuffer(1, 1);
+
+        Leon::TestGPU::FCameraBufferData camData;
+        camData.ViewProjection = glm::mat4(1.0f);
+        camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+        camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+        gl.UpdateCameraUBO(camData);
+        Leon::TestGPU::FLightingBufferData lightData;
+        lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+        lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        lightData.LightCounts = glm::ivec4(0);
+        gl.UpdateLightingUBO(lightData);
+
+        Leon::TestGPU::SetMat4(shader, "u_Model", glm::mat4(1.0f));
+        Leon::TestGPU::SetMat3(shader, "u_NormalMatrix", glm::mat3(1.0f));
+        for (const char* off : {"u_UseIBL", "u_UseShadows", "u_UseNormalMap", "u_UseAlbedoMap", "u_UseEmissiveMap",
+                                "u_UsePlanarReflection", "u_AlphaMode"})
+            shader->SetInt(off, 0);
+        shader->SetFloat("u_AlphaCutoff", 0.5f);
+        Leon::TestGPU::SetFloat2(shader, "u_UVTiling", glm::vec2(1.0f));
+        Leon::TestGPU::SetFloat2(shader, "u_UVOffset", glm::vec2(0.0f));
+        shader->SetFloat("u_Metallic", 1.0f);
+        shader->SetFloat("u_Roughness", 1.0f);
+        shader->SetFloat("u_AO", 1.0f);
+        shader->SetFloat("u_OcclusionStrength", 1.0f);
+
+        // Occlusion 0.20 in red, roughness 0.35 in green, metalness 0.70 in blue: three values that
+        // cannot be mistaken for one another. The one texture sits in the three mask slots.
+        auto orm = gl.Create1x1Texture(51, 89, 178, 255);
+        gl.BindTexture(2, orm);
+        gl.BindTexture(3, orm);
+        gl.BindTexture(4, orm);
+        shader->SetInt("u_UseMetallicMap", 1);
+        shader->SetInt("u_UseRoughnessMap", 1);
+        shader->SetInt("u_UseAOMap", 1);
+        shader->SetInt("u_PackedORM", 1);
+
+        shader->SetInt("u_DebugMode", 15);
+        gl.DrawQuad();
+        CHECK(gl.ReadPixel().r == doctest::Approx(178.0f / 255.0f).epsilon(0.02f));
+        shader->SetInt("u_DebugMode", 16);
+        gl.DrawQuad();
+        CHECK(gl.ReadPixel().r == doctest::Approx(89.0f / 255.0f).epsilon(0.02f));
+        shader->SetInt("u_DebugMode", 18);
+        gl.DrawQuad();
+        CHECK(gl.ReadPixel().r == doctest::Approx(51.0f / 255.0f).epsilon(0.02f));
+
+        // Without the flag every mask is the red channel, as with three separate textures.
+        shader->SetInt("u_PackedORM", 0);
+        shader->SetInt("u_DebugMode", 15);
+        gl.DrawQuad();
+        CHECK(gl.ReadPixel().r == doctest::Approx(51.0f / 255.0f).epsilon(0.02f));
+
+        gl.DestroyTexture(orm);
+    }
 }

@@ -18,7 +18,8 @@ cbuffer MaterialConstants : register(b2) {
     float4 u_SurfaceParams;  // x = metallic, y = roughness, z = ambient occlusion, w = normal scale
     float4 u_SurfaceParams2; // x = occlusion strength, y = alpha cutoff
     float4 u_UVTransform;    // xy = tiling, zw = offset
-    int4 u_MaterialFlags;    // x = texture bits (below), y = alpha mode (0 opaque, 1 mask, 2 blend), z = double sided
+    int4 u_MaterialFlags;    // x = texture bits (below), y = alpha mode (0 opaque, 1 mask, 2 blend), z = double sided,
+                             // w = the three masks are one texture: occlusion red, roughness green, metalness blue
 };
 
 #define MATERIAL_HAS_ALBEDO 1
@@ -188,14 +189,15 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
         N = normalize(T * tangentNormal.x + B * tangentNormal.y + geometricNormal * tangentNormal.z);
     }
 
+    const bool bPackedORM = u_MaterialFlags.w != 0;
     float metallic = u_SurfaceParams.x;
     if (textureBits & MATERIAL_HAS_METALLIC)
-        metallic *= t_Metallic.Sample(s_LinearWrap, uv).r;
+        metallic *= bPackedORM ? t_Metallic.Sample(s_LinearWrap, uv).b : t_Metallic.Sample(s_LinearWrap, uv).r;
     metallic = saturate(metallic);
 
     float roughness = u_SurfaceParams.y;
     if (textureBits & MATERIAL_HAS_ROUGHNESS)
-        roughness *= t_Roughness.Sample(s_LinearWrap, uv).r;
+        roughness *= bPackedORM ? t_Roughness.Sample(s_LinearWrap, uv).g : t_Roughness.Sample(s_LinearWrap, uv).r;
     roughness = clamp(roughness, 0.04, 1.0);
 
     float ao = u_SurfaceParams.z;

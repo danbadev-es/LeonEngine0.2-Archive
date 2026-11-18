@@ -169,6 +169,18 @@ namespace Leon {
             bUseAOMap = (InTex != nullptr);
         }
 
+        /**
+         * One texture for the three surface masks: occlusion in red, roughness in green, metalness
+         * in blue. It takes the place of the three separate maps.
+         */
+        void SetORMMap(const TRef<FTexture2D>& InTex) {
+            SetAOMap(InTex);
+            SetRoughnessMap(InTex);
+            SetMetallicMap(InTex);
+            bPackedORM = (InTex != nullptr);
+        }
+        bool IsPackedORM() const { return bPackedORM && AOMap != nullptr; }
+
         TRef<FTexture2D> GetEmissiveMap() const { return EmissiveMap; }
         void SetEmissiveMap(const TRef<FTexture2D>& InTex) {
             EmissiveMap = InTex;
@@ -230,6 +242,7 @@ namespace Leon {
         bool bUseMetallicMap{false};
         bool bUseRoughnessMap{false};
         bool bUseAOMap{false};
+        bool bPackedORM{false};
         bool bUseEmissiveMap{false};
         bool bUsePlanarReflection{false};
     };

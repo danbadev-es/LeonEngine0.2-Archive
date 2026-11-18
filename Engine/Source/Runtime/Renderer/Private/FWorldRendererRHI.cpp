@@ -748,7 +748,8 @@ namespace Leon {
                 glm::vec4(InMaterial.GetOcclusionStrength(), InMaterial.GetAlphaCutoff(), 0.0f, 0.0f);
             binding.Constants.UVTransform = glm::vec4(InMaterial.GetUVTiling(), InMaterial.GetUVOffset());
             binding.Constants.MaterialFlags = glm::ivec4(textureBits, static_cast<int>(InMaterial.GetAlphaMode()),
-                                                         InMaterial.GetDoubleSided() ? 1 : 0, 0);
+                                                         InMaterial.GetDoubleSided() ? 1 : 0,
+                                                         InMaterial.IsPackedORM() ? 1 : 0);
             materialBindings.emplace(&InMaterial, binding);
         };
         for (const FSceneDraw& draw : opaque)

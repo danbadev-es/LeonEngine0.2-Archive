@@ -51,6 +51,7 @@ namespace Leon {
         EAlphaMode GetAlphaMode() const;
         float GetAlphaCutoff() const;
         bool GetDoubleSided() const;
+        bool IsPackedORM() const { return ParentMaterial && ParentMaterial->IsPackedORM(); }
         glm::vec2 GetUVTiling() const;
         glm::vec2 GetUVOffset() const;
         bool GetUsePlanarReflection() const;

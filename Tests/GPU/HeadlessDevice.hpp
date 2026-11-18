@@ -845,7 +845,8 @@ namespace Leon::TestGPU {
             material.UVTransform = glm::vec4(InShader.Vec2("u_UVTiling", glm::vec2(1.0f)),
                                              InShader.Vec2("u_UVOffset", glm::vec2(0.0f)));
             material.MaterialFlags =
-                glm::ivec4(textureBits, InShader.Int("u_AlphaMode", 0), InShader.Int("u_DoubleSided", 0), 0);
+                glm::ivec4(textureBits, InShader.Int("u_AlphaMode", 0), InShader.Int("u_DoubleSided", 0),
+                           InShader.Int("u_PackedORM", 0));
 
             FDrawConstants draw;
             draw.Model = InShader.Mat4("u_Model", glm::mat4(1.0f));
