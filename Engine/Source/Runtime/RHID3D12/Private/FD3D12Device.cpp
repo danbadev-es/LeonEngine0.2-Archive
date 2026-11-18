@@ -384,6 +384,24 @@ namespace Leon {
         if (!FenceEvent)
             return false;
 
+        // GPU timers are a diagnostic: without them the device still works and reports zeros.
+        GpuOpenInterval.fill(-1);
+        const UINT timestampCount = kD3D12FrameCount * kD3D12MaxGpuIntervals * 2;
+        D3D12_QUERY_HEAP_DESC timerHeapDesc{};
+        timerHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+        timerHeapDesc.Count = timestampCount;
+        const D3D12_HEAP_PROPERTIES timerReadbackHeap = HeapProperties(D3D12_HEAP_TYPE_READBACK);
+        const D3D12_RESOURCE_DESC timerReadbackDesc = BufferDesc(timestampCount * sizeof(uint64_t));
+        if (FAILED(Queue->GetTimestampFrequency(&GpuTimerFrequency)) || GpuTimerFrequency == 0 ||
+            FAILED(Device->CreateQueryHeap(&timerHeapDesc, IID_PPV_ARGS(&GpuTimerHeap))) ||
+            FAILED(Device->CreateCommittedResource(&timerReadbackHeap, D3D12_HEAP_FLAG_NONE, &timerReadbackDesc,
+                                                   D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                   IID_PPV_ARGS(&GpuTimerReadback)))) {
+            GpuTimerHeap.Reset();
+            GpuTimerReadback.Reset();
+            GpuTimerFrequency = 0;
+        }
+
         if (!RtvPool.Init(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2048) ||
             !DsvPool.Init(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1024) ||
             !SrvPool.Init(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 8192))
@@ -1062,6 +1080,7 @@ namespace Leon {
         FFrameContext& frame = CurrentFrame();
         // This slot's previous use must be finished before its memory is reused.
         WaitForFence(frame.FenceValue);
+        CollectGpuTimes(frame, FrameIndex);
         FlushDeferred(frame);
         frame.Allocator->Reset();
         frame.ConstantPage = 0;
@@ -1081,6 +1100,13 @@ namespace Leon {
         if (!bFrameOpen)
             return;
         CommandList->EndRenderPass(); // tolerate a pass left open
+        if (GpuTimerHeap && CurrentFrame().GpuIntervalCount > 0) {
+            const UINT first = FrameIndex * kD3D12MaxGpuIntervals * 2;
+            FrameList->ResolveQueryData(GpuTimerHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, first,
+                                        CurrentFrame().GpuIntervalCount * 2, GpuTimerReadback.Get(),
+                                        first * sizeof(uint64_t));
+        }
+        GpuOpenInterval.fill(-1);
         FrameList->Close();
         ID3D12CommandList* lists[] = {FrameList.Get()};
         Queue->ExecuteCommandLists(1, lists);
@@ -1091,6 +1117,35 @@ namespace Leon {
         FrameIndex = (FrameIndex + 1) % kD3D12FrameCount;
         bFrameOpen = false;
         DrainMessages();
+    }
+
+    void FD3D12Device::CollectGpuTimes(FFrameContext& InFrame, uint32_t InFrameIndex) {
+        if (!GpuTimerHeap || InFrame.GpuIntervalCount == 0) {
+            InFrame.GpuIntervalCount = 0;
+            return;
+        }
+        const size_t first = static_cast<size_t>(InFrameIndex) * kD3D12MaxGpuIntervals * 2;
+        const D3D12_RANGE readRange{first * sizeof(uint64_t),
+                                    (first + InFrame.GpuIntervalCount * 2) * sizeof(uint64_t)};
+        void* mapped = nullptr;
+        if (SUCCEEDED(GpuTimerReadback->Map(0, &readRange, &mapped)) && mapped) {
+            const auto* ticks = static_cast<const uint64_t*>(mapped) + first;
+            GpuTimesMs.fill(0.0f);
+            for (uint32_t i = 0; i < InFrame.GpuIntervalCount; ++i) {
+                const int32_t slot = InFrame.GpuIntervalSlots[i];
+                const uint64_t begin = ticks[i * 2];
+                const uint64_t end = ticks[i * 2 + 1];
+                // An interval left open keeps slot -1; timestamps can also come back out of order
+                // when the adapter changes its clock, which is not a time to report.
+                if (slot < 0 || end < begin)
+                    continue;
+                GpuTimesMs[static_cast<size_t>(slot)] +=
+                    static_cast<float>(static_cast<double>(end - begin) * 1000.0 / static_cast<double>(GpuTimerFrequency));
+            }
+            const D3D12_RANGE nothingWritten{0, 0};
+            GpuTimerReadback->Unmap(0, &nothingWritten);
+        }
+        InFrame.GpuIntervalCount = 0;
     }
 
     void FD3D12Device::DrainMessages() {

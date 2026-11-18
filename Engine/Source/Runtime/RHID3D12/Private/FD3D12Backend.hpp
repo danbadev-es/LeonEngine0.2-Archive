@@ -28,6 +28,9 @@ namespace Leon {
 
     /** Frames the CPU may record ahead of the GPU. Per-frame memory exists once per slot. */
     inline constexpr uint32_t kD3D12FrameCount = 2;
+    /** Timed intervals a frame may hold (two timestamps each) and timer slots it may use. */
+    inline constexpr uint32_t kD3D12MaxGpuIntervals = 64;
+    inline constexpr uint32_t kD3D12GpuTimerSlots = 16;
     /** Shader-visible descriptors available to one frame (16 are used per texture-table change). */
     inline constexpr uint32_t kD3D12DescriptorsPerFrame = 32768;
     /** Size of one page of per-frame constant memory. More pages are added when a frame needs them. */
@@ -129,6 +132,8 @@ namespace Leon {
         void GenerateMips(IRHITexture& InTexture, IRHIPipeline* InDownsample) override;
         void PushMarker(const char* InName) override;
         void PopMarker() override;
+        void BeginGpuTimer(uint32_t InSlot) override;
+        void EndGpuTimer(uint32_t InSlot) override;
 
     private:
         /** Uploads the texture table if a slot changed since the last draw. */
@@ -182,6 +187,9 @@ namespace Leon {
         TRef<IRHITexture> CreateTexture(const FRHITextureDesc& InDesc) override;
         void UploadTexture(IRHITexture& InTexture, uint32_t InMipLevel, uint32_t InArraySlice, const void* InData,
                            uint32_t InRowPitch) override;
+        float GetGpuTimeMs(uint32_t InSlot) const override {
+            return InSlot < kD3D12GpuTimerSlots ? GpuTimesMs[InSlot] : 0.0f;
+        }
         bool ReadTexture(IRHITexture& InTexture, uint32_t InMipLevel, uint32_t InArraySlice,
                          std::vector<uint8_t>& OutPixels) override;
         TRef<IRHIShader> CreateShader(const FRHIShaderDesc& InDesc) override;
@@ -247,7 +255,13 @@ namespace Leon {
             uint32_t DescriptorCursor = 0;
             std::vector<ComPtr<IUnknown>> Releases;
             std::vector<std::pair<FD3D12DescriptorPool*, uint32_t>> DescriptorFrees;
+            /** Slot of each timed interval recorded in this frame; -1 while it is still open. */
+            std::array<int32_t, kD3D12MaxGpuIntervals> GpuIntervalSlots{};
+            uint32_t GpuIntervalCount = 0;
         };
+
+        /** Reads the timestamps of a frame the GPU has finished into GpuTimesMs. */
+        void CollectGpuTimes(FFrameContext& InFrame, uint32_t InFrameIndex);
 
         bool CreateRootSignature();
         bool AddConstantPage(FFrameContext& InFrame);
@@ -275,6 +289,14 @@ namespace Leon {
 
         std::array<FFrameContext, kD3D12FrameCount> Frames;
         uint32_t FrameIndex = 0;
+
+        /** Two timestamps per interval, one block per frame context; resolved into the readback buffer. */
+        ComPtr<ID3D12QueryHeap> GpuTimerHeap;
+        ComPtr<ID3D12Resource> GpuTimerReadback;
+        uint64_t GpuTimerFrequency = 0;
+        std::array<float, kD3D12GpuTimerSlots> GpuTimesMs{};
+        /** Interval open for each slot in the frame being recorded; -1 = none. */
+        std::array<int32_t, kD3D12GpuTimerSlots> GpuOpenInterval{};
         bool bFrameOpen = false;
 
         ComPtr<ID3D12GraphicsCommandList> FrameList;

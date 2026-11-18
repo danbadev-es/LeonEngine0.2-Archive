@@ -3,6 +3,7 @@
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FRHIFrame.hpp"
 #include "RHI/IRHIDevice.hpp"
@@ -286,6 +287,27 @@ namespace Leon {
             CHECK(corner[2] > 240);
             // Outside the square the frame is untouched by it.
             CHECK(image.Luma(60, 10) < 0.5f);
+            CHECK(NewValidationErrors() == 0);
+        }
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "The GPU time of each stage reaches the frame profiler") {
+            REQUIRE(bReady);
+            // Results lag by the frames the device keeps in flight: draw a few.
+            Render(6);
+            IRHIDevice* device = FRHI::GetDevice();
+            const float shadow = device->GetGpuTimeMs(EGPUTimerSlot::Shadow);
+            const float scene = device->GetGpuTimeMs(EGPUTimerSlot::Opaque);
+            const float post = device->GetGpuTimeMs(EGPUTimerSlot::PostProcess);
+            CHECK(shadow > 0.0f);
+            CHECK(scene > 0.0f);
+            CHECK(post > 0.0f);
+            // A software rasteriser is slow, not that slow: a second per stage is a broken unit.
+            CHECK(shadow + scene + post < 3000.0f);
+            // A slot nothing used in the frame reads zero.
+            CHECK(device->GetGpuTimeMs(EGPUTimerSlot::Particles) == 0.0f);
+
+            const FFrameTiming& working = FFrameProfiler::Working();
+            CHECK(working.GPUOpaqueMs > 0.0f);
+            CHECK(working.GPUMs >= working.GPUOpaqueMs);
             CHECK(NewValidationErrors() == 0);
         }
     }

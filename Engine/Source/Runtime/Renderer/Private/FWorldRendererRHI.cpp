@@ -273,6 +273,18 @@ namespace Leon {
         FWorldRendererRHIState& state = *RHIState;
         // CPU time of each stage, for the on-screen profiler.
         std::optional<FFrameProfiler::FScope> stageTimer;
+        // The same stages, as the GPU spends its time on them (results come back a few frames later).
+        struct FGpuStage {
+            IRHICommandList& Commands;
+            uint32_t Slot;
+            FGpuStage(IRHICommandList& InList, uint32_t InSlot) : Commands(InList), Slot(InSlot) {
+                Commands.BeginGpuTimer(Slot);
+            }
+            ~FGpuStage() { Commands.EndGpuTimer(Slot); }
+            FGpuStage(const FGpuStage&) = delete;
+            FGpuStage& operator=(const FGpuStage&) = delete;
+        };
+        std::optional<FGpuStage> gpuStage;
 
         // World-space text, particles and gameplay debug shapes are queued here and drawn at the end
         // of the scene pass.
@@ -736,6 +748,7 @@ namespace Leon {
 
         // --- Shadow maps ---
         stageTimer.emplace(&FFrameProfiler::Working().ShadowMs);
+        gpuStage.emplace(InCommands, EGPUTimerSlot::Shadow);
         const uint32_t drawsBeforeShadows = FRenderer::GetStats().DrawCalls;
         FLitPassConstants& lit = lighting.Constants;
         lit.ShadowParams = glm::vec4(ShadowSettings.ConstantBias, ShadowSettings.SlopeBias, ShadowSettings.NormalBias,
@@ -884,6 +897,7 @@ namespace Leon {
 
         FFrameProfiler::Working().ShadowDrawCalls = FRenderer::GetStats().DrawCalls - drawsBeforeShadows;
         stageTimer.reset();
+        gpuStage.reset();
 
         // --- Sky ---
         const bool bDrawSky = lighting.bHasSkybox && lighting.Skybox.bEnabled && skyVS && skyPS;
@@ -1014,6 +1028,7 @@ namespace Leon {
         // Only when something on screen shows them. The planes and the mirrored cameras were chosen in
         // UpdateViewState (floor always; a wall mirror when the camera faces one).
         stageTimer.emplace(&FFrameProfiler::Working().PlanarMs);
+        gpuStage.emplace(InCommands, EGPUTimerSlot::Planar);
         const auto wantsPlanar = [](const FSceneDraw& InDraw) { return InDraw.bPlanar; };
         const bool bPlanar = bEnablePlanarReflection && (std::any_of(opaque.begin(), opaque.end(), wantsPlanar) ||
                                                          std::any_of(transparent.begin(), transparent.end(), wantsPlanar));
@@ -1196,9 +1211,11 @@ namespace Leon {
         }
         lit.PlanarFlags = glm::ivec4(bPlanarCaptured[0] ? 1 : 0, bPlanarCaptured[1] ? 1 : 0, 0, 0);
         stageTimer.reset();
+        gpuStage.reset();
 
         // --- Scene pass: linear HDR colour ---
         stageTimer.emplace(&FFrameProfiler::Working().OpaqueMs);
+        gpuStage.emplace(InCommands, EGPUTimerSlot::Opaque);
         FRHIRenderPassDesc scenePass;
         scenePass.NumColorTargets = 1;
         scenePass.Color[0].Texture = state.SceneColor.get();
@@ -1236,6 +1253,7 @@ namespace Leon {
         FSceneBatchesRHI::Flush(InCommands, ERHIFormat::RGBA16_Float, ERHIFormat::D32_Float);
         InCommands.EndRenderPass();
         stageTimer.reset();
+        gpuStage.reset();
 
         // --- HDR scene to the output ---
         FPostProcessInputs post;
@@ -1245,10 +1263,12 @@ namespace Leon {
         post.Projection = ClipDepthZeroToOne() * InCamera.GetProjectionMatrix();
         post.Exposure = lighting.Exposure;
         stageTimer.emplace(&FFrameProfiler::Working().PostProcessMs);
+        gpuStage.emplace(InCommands, EGPUTimerSlot::PostProcess);
         // Exposure is a property of the sky; the stored settings follow it so tools show the value in use.
         PostProcessSettings.Exposure = lighting.Exposure;
         state.PostProcess.Render(InCommands, post, PostProcessSettings);
         stageTimer.reset();
+        gpuStage.reset();
 
         const FRenderStats& stats = FRenderer::GetStats();
         FFrameTiming& profile = FFrameProfiler::Working();
@@ -1256,6 +1276,13 @@ namespace Leon {
         profile.CulledActors = static_cast<int32_t>(stats.MeshesCulled);
         profile.DrawCalls = stats.DrawCalls;
         profile.TriangleCount = stats.TriangleCount;
+        if (const IRHIDevice* device = FRHI::GetDevice()) {
+            profile.GPUShadowMs = device->GetGpuTimeMs(EGPUTimerSlot::Shadow);
+            profile.GPUPlanarMs = device->GetGpuTimeMs(EGPUTimerSlot::Planar);
+            profile.GPUOpaqueMs = device->GetGpuTimeMs(EGPUTimerSlot::Opaque);
+            profile.GPUPostProcessMs = device->GetGpuTimeMs(EGPUTimerSlot::PostProcess);
+            profile.GPUMs = profile.GPUShadowMs + profile.GPUPlanarMs + profile.GPUOpaqueMs + profile.GPUPostProcessMs;
+        }
     }
 
 } // namespace Leon

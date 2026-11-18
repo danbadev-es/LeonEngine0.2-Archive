@@ -38,7 +38,7 @@ namespace Leon {
     };
 
     /**
-     * GPU timer query slots. Passes are sequential — TIME_ELAPSED queries must not nest.
+     * GPU timer slots (IRHICommandList::BeginGpuTimer).
      */
     namespace EGPUTimerSlot {
         constexpr uint32_t Shadow = 0;
@@ -53,7 +53,7 @@ namespace Leon {
 
     /**
      * One-frame CPU timings and counters for the F1 HUD and FFrameStatsCollector.
-     * GPU ms is filled from lagged GL timer queries (typically 2–3 frames late).
+     * GPU ms comes from timestamp queries of a frame the GPU has finished (two or three frames late).
      */
     struct FFrameTiming {
         float FrameMs = 0.0f;

@@ -91,6 +91,14 @@ namespace Leon {
         /** Named regions in GPU captures (PIX, RenderDoc). */
         virtual void PushMarker(const char* InName) = 0;
         virtual void PopMarker() = 0;
+
+        /**
+         * Brackets GPU work to be timed under a slot (EGPUTimerSlot). A slot may be opened several
+         * times in a frame: the times add up. Different slots may nest. The result arrives a few
+         * frames later through IRHIDevice::GetGpuTimeMs. Backends without timers ignore both calls.
+         */
+        virtual void BeginGpuTimer(uint32_t /*InSlot*/) {}
+        virtual void EndGpuTimer(uint32_t /*InSlot*/) {}
     };
 
     /** The images a window shows. */
@@ -137,6 +145,12 @@ namespace Leon {
 
         /** InWindowHandle is the OS window (an HWND on Windows). */
         virtual TScope<IRHISwapchain> CreateSwapchain(void* InWindowHandle, uint32_t InWidth, uint32_t InHeight) = 0;
+
+        /**
+         * Milliseconds the GPU spent in a timer slot, in the most recent frame it has finished
+         * (0 when the slot was not used in that frame, or the backend has no timers).
+         */
+        virtual float GetGpuTimeMs(uint32_t /*InSlot*/) const { return 0.0f; }
 
         /** One frame of GPU work: record on the returned list, then EndFrame submits it. */
         virtual IRHICommandList& BeginFrame() = 0;

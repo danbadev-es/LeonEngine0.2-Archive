@@ -301,6 +301,28 @@ namespace Leon {
             List->EndEvent();
     }
 
+    void FD3D12CommandList::BeginGpuTimer(uint32_t InSlot) {
+        auto& frame = Device.CurrentFrame();
+        if (!List || !Device.GpuTimerHeap || InSlot >= kD3D12GpuTimerSlots ||
+            frame.GpuIntervalCount >= kD3D12MaxGpuIntervals || Device.GpuOpenInterval[InSlot] >= 0)
+            return;
+        const uint32_t interval = frame.GpuIntervalCount++;
+        frame.GpuIntervalSlots[interval] = -1; // until it is closed
+        Device.GpuOpenInterval[InSlot] = static_cast<int32_t>(interval);
+        List->EndQuery(Device.GpuTimerHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP,
+                       (Device.FrameIndex * kD3D12MaxGpuIntervals + interval) * 2);
+    }
+
+    void FD3D12CommandList::EndGpuTimer(uint32_t InSlot) {
+        if (!List || !Device.GpuTimerHeap || InSlot >= kD3D12GpuTimerSlots || Device.GpuOpenInterval[InSlot] < 0)
+            return;
+        const auto interval = static_cast<uint32_t>(Device.GpuOpenInterval[InSlot]);
+        Device.GpuOpenInterval[InSlot] = -1;
+        Device.CurrentFrame().GpuIntervalSlots[interval] = static_cast<int32_t>(InSlot);
+        List->EndQuery(Device.GpuTimerHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP,
+                       (Device.FrameIndex * kD3D12MaxGpuIntervals + interval) * 2 + 1);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Swapchain
     // ---------------------------------------------------------------------------------------------
