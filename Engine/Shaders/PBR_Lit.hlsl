@@ -4,9 +4,10 @@
 // Compiled twice: as is for static geometry, and with SKINNED defined for meshes that follow a
 // skeleton (two more vertex inputs and the bone palette).
 //
-// Not brought over from the OpenGL renderer yet: shadows, planar reflections, instancing.
+// Not brought over from the OpenGL renderer yet: planar reflections, instancing.
 
 #include "PBR_Common.hlsli"
+#include "Shadows.hlsli"
 #ifdef SKINNED
 #include "Skinning.hlsli"
 #endif
@@ -33,7 +34,7 @@ cbuffer DrawConstants : register(b3) {
     float4x4 u_Model;
     float4x4 u_NormalMatrix;    // inverse transpose of u_Model (upper 3x3 used)
     float4 u_LightmapScaleBias; // xy = scale, zw = bias of this object's chart in the atlas
-    int4 u_DrawFlags;           // x = has lightmap, y = lightmap uses the first UV set
+    int4 u_DrawFlags;           // x = has lightmap, y = lightmap uses the first UV set, z = receives shadows
 };
 
 Texture2D<float4> t_Albedo : register(t0);
@@ -162,10 +163,34 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
     // --- Direct lights ---
     float3 directDiffuse = float3(0.0, 0.0, 0.0);
     float3 directSpecular = float3(0.0, 0.0, 0.0);
+    const bool bReceivesShadows = u_DrawFlags.z == 1;
+    // Shadows are tested against the triangle's own plane: an interpolated or normal-mapped normal
+    // would make the bias vary across the surface.
+    const FShadowReceiver receiver = MakeShadowReceiver(InPixel.WorldPosition, geometricNormal, InPixel.Position.xy);
+    int activeCascade = 0;
+    float sunShadow = 0.0;
+    float spotShadowFactor = 1.0;
+    float pointShadowFactor = 1.0;
 
-    if (u_DirLight.Direction.w > 0.5)
-        ShadeLight(surface, normalize(-u_DirLight.Direction.xyz), u_DirLight.Color.rgb * u_DirLight.Color.a,
-                   directDiffuse, directSpecular);
+    if (u_DirLight.Direction.w > 0.5) {
+        const float3 L = normalize(-u_DirLight.Direction.xyz);
+        if (bReceivesShadows) {
+            sunShadow = CalculateCascadedDirectionalShadow(receiver, L, activeCascade);
+            sunShadow *= smoothstep(0.0, 0.22, max(dot(receiver.FaceNormal, L), 0.0));
+        }
+        ShadeLight(surface, L, u_DirLight.Color.rgb * u_DirLight.Color.a * (1.0 - sunShadow), directDiffuse,
+                   directSpecular);
+    }
+
+    // The one spot light that has a shadow map. Looked up here, not in the loop below, because the
+    // lookup uses screen-space derivatives.
+    float spotShadow = 0.0;
+    const int shadowedSpot = u_ShadowSettings.y;
+    if (bReceivesShadows && shadowedSpot >= 0 && shadowedSpot < min(u_LightCounts.y, MAX_SPOT_LIGHTS)) {
+        const float3 L = SafeNormalize(u_SpotLights[shadowedSpot].Position.xyz - InPixel.WorldPosition, float3(0.0, 1.0, 0.0));
+        spotShadow = CalculateSpotShadow(receiver, L) * smoothstep(0.0, 0.22, max(dot(receiver.FaceNormal, L), 0.0));
+        spotShadowFactor = 1.0 - spotShadow;
+    }
 
     const int pointCount = min(u_LightCounts.x, MAX_POINT_LIGHTS);
     for (int pointIndex = 0; pointIndex < pointCount; ++pointIndex) {
@@ -174,7 +199,13 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
             continue;
         const float3 toLight = light.Position.xyz - InPixel.WorldPosition;
         const float distance = length(toLight);
-        const float3 radiance = light.Color.rgb * light.Color.a * LightAttenuation(distance, light.Params.x);
+        float3 radiance = light.Color.rgb * light.Color.a * LightAttenuation(distance, light.Params.x);
+        if (bReceivesShadows) {
+            const float pointShadow = CalculatePointShadow(receiver, light);
+            radiance *= 1.0 - pointShadow;
+            if (light.Params.y >= 0.0)
+                pointShadowFactor = 1.0 - pointShadow;
+        }
         ShadeLight(surface, toLight / max(distance, 1e-5), radiance, directDiffuse, directSpecular);
     }
 
@@ -192,7 +223,9 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
         if (theta <= outerCos)
             continue;
         const float cone = smoothstep(0.0, 1.0, saturate((theta - outerCos) / max(innerCos - outerCos, 0.0001)));
-        const float3 radiance = light.Color.rgb * light.Params.y * LightAttenuation(distance, light.Params.x) * cone;
+        float3 radiance = light.Color.rgb * light.Params.y * LightAttenuation(distance, light.Params.x) * cone;
+        if (spotIndex == shadowedSpot)
+            radiance *= 1.0 - spotShadow;
         ShadeLight(surface, L, radiance, directDiffuse, directSpecular);
     }
     const float3 direct = directDiffuse + directSpecular;
@@ -269,6 +302,26 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
             const float3 sun = u_DirLight.Direction.w > 0.5 ? normalize(-u_DirLight.Direction.xyz) : float3(0.0, 1.0, 0.0);
             const float facing = max(dot(N, sun), 0.0);
             view = float3(facing, facing, facing);
+        } else if (debugView == 24) {
+            view = float3(1.0, 1.0, 1.0) * (1.0 - sunShadow);
+        } else if (debugView == 25) {
+            // Which cascade shades the pixel, blended where two overlap.
+            const float3 cascadeColors[4] = {float3(1.0, 0.15, 0.15), float3(0.15, 0.90, 0.20),
+                                             float3(0.20, 0.40, 1.00), float3(1.00, 0.90, 0.10)};
+            const int cascade = clamp(activeCascade, 0, 3);
+            view = cascadeColors[cascade];
+            const float viewDepth = dot(InPixel.WorldPosition - u_ViewPosition.xyz, u_CameraForward.xyz);
+            const float blend = CascadeBlendAlpha(viewDepth, cascade);
+            if (blend > 0.0 && cascade + 1 < ActiveCascadeCount())
+                view = lerp(view, cascadeColors[cascade + 1], blend);
+        } else if (debugView == 26) {
+            view = float3(1.0, 1.0, 1.0) * spotShadowFactor;
+        } else if (debugView >= 27 && debugView <= 30) {
+            // Depth of the pixel as cascade 0..3 stores it.
+            const float4 projected = mul(u_LightSpaceMatrices[debugView - 27], float4(InPixel.WorldPosition, 1.0));
+            view = float3(1.0, 1.0, 1.0) * (projected.z / projected.w);
+        } else if (debugView == 40) {
+            view = float3(1.0, 1.0, 1.0) * pointShadowFactor;
         } else if (debugView == 31)
             view = baked;
         else if (debugView == 32)

@@ -2,12 +2,13 @@
 // against the old interfaces (FWorldRendererGeometry.cpp, FWorldRendererLighting.cpp, ...).
 //
 // Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
-// lightmaps, image-based lighting and fog, plus skinned outlines and the sky, into an HDR target
-// that is then tone mapped to the output.
-// Still to come: shadows, bloom/SSAO/FXAA, UI and debug drawing, reflections.
+// lightmaps, image-based lighting, fog and shadows (sun cascades, one spot light, point lights), plus
+// skinned outlines and the sky, into an HDR target that is then tone mapped to the output.
+// Still to come: bloom/SSAO/FXAA, UI and debug drawing, reflections.
 //
 // The old Render() still runs first each frame; this code relies on it for work that is not drawing:
-// the image-based lighting environment, level-of-detail selection and light/transform syncing.
+// the image-based lighting environment, level-of-detail selection, light/transform syncing and
+// choosing which skinned meshes cast shadows.
 
 #include "Renderer/FWorldRenderer.hpp"
 
@@ -27,8 +28,10 @@
 #include "Renderer/FLight.hpp"
 #include "Renderer/FMaterialInstance.hpp"
 #include "Renderer/FShaderLibrary.hpp"
+#include "Renderer/FShadowMath.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <string>
 #include <vector>
@@ -50,7 +53,10 @@ namespace Leon {
         constexpr uint32_t kSlotIrradiance = 7;
         constexpr uint32_t kSlotPrefilter = 8;
         constexpr uint32_t kSlotEmissive = 9;
+        constexpr uint32_t kSlotCascadeShadow = 10;
+        constexpr uint32_t kSlotSpotShadow = 11;
         constexpr uint32_t kSlotLightmap = 12;
+        constexpr uint32_t kSlotPointShadow = 14;
 
         // The structures below mirror constant buffers in Engine/Shaders. Keep field order and types
         // identical; every field is a multiple of 16 bytes so C++ and HLSL agree on the layout.
@@ -92,6 +98,22 @@ namespace Leon {
             glm::vec4 FogColorDensity{0.0f};
             glm::vec4 FogParams{0.0f};
             glm::ivec4 PassFlags{0};
+            glm::mat4 LightSpaceMatrices[4]{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f)};
+            glm::mat4 SpotLightSpaceMatrix{1.0f};
+            glm::vec4 CascadeSplits{0.0f};
+            glm::vec4 ShadowParams{0.0f};
+            glm::ivec4 ShadowSettings{0, -1, 0, 0};
+            glm::ivec4 ShadowFlags{0};
+        };
+
+        struct FShadowPassConstants { // ShadowDepth.hlsl
+            glm::mat4 LightViewProjection;
+            glm::vec4 PointLight;
+        };
+
+        struct FShadowMaterialConstants { // ShadowDepth.hlsl
+            glm::vec4 UVTransform;
+            glm::vec4 AlphaTest;
         };
 
         struct FMaterialConstants { // PBR_Lit.hlsl
@@ -138,6 +160,29 @@ namespace Leon {
             fix[2][2] = 0.5f;
             fix[3][2] = 0.5f;
             return fix;
+        }
+
+        /**
+         * Takes a light's clip space (x, y and z in -1..1) to shadow-map space: xy = texture coordinates
+         * with the origin at the top left, z = stored depth in 0..1.
+         */
+        glm::mat4 ClipToShadowMap() {
+            glm::mat4 bias(1.0f);
+            bias[0][0] = 0.5f;
+            bias[1][1] = -0.5f;
+            bias[2][2] = 0.5f;
+            bias[3] = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+            return bias;
+        }
+
+        /**
+         * Mirrors clip space vertically. Cube map faces are drawn with the view matrices the engine
+         * already had, which assume the image origin at the bottom left; Direct3D puts it at the top.
+         */
+        glm::mat4 ClipFlipY() {
+            glm::mat4 flip(1.0f);
+            flip[1][1] = -1.0f;
+            return flip;
         }
 
         ERHIBlend ToRHIBlend(EBlendFactor InFactor) {
@@ -189,6 +234,7 @@ namespace Leon {
             IRHITexture* Lightmap = nullptr;
             /** Bone matrices of a skinned mesh; null for static geometry. */
             const std::vector<glm::mat4>* Bones = nullptr;
+            bool bReceiveShadows = true;
             glm::mat4 Model{1.0f};
             glm::vec2 LightmapScale{1.0f};
             glm::vec2 LightmapBias{0.0f};
@@ -208,6 +254,20 @@ namespace Leon {
             uint32_t FirstIndex = 0;
         };
 
+        /** One mesh section that can block light. */
+        struct FShadowCaster {
+            const FVertexArray* VertexArray = nullptr;
+            IRHIBuffer* Vertices = nullptr;
+            IRHIBuffer* Indices = nullptr;
+            const FMaterialInstance* Material = nullptr;
+            const std::vector<glm::mat4>* Bones = nullptr;
+            glm::mat4 Model{1.0f};
+            glm::vec3 WorldMin{0.0f};
+            glm::vec3 WorldMax{0.0f};
+            uint32_t IndexCount = 0;
+            uint32_t FirstIndex = 0;
+        };
+
         void SetBonePalette(IRHICommandList& InCommands, const std::vector<glm::mat4>& InPalette) {
             static std::vector<glm::mat4> padded(kMaxBones);
             for (uint32_t i = 0; i < kMaxBones; ++i)
@@ -223,6 +283,12 @@ namespace Leon {
             /** Sky settings of the world; defaults when it has none (bHasSkybox false). */
             FSkyboxComponent Skybox;
             bool bHasSkybox = false;
+            /** The sun as its component gives it (not normalised); valid when bHasSun. */
+            glm::vec3 SunDirection{0.0f, -1.0f, 0.0f};
+            bool bHasSun = false;
+            /** The spot lights in the order of Constants.SpotLights, and whether each may cast shadows. */
+            std::vector<FSpotLight> Spots;
+            std::vector<bool> SpotCastsShadows;
         };
 
         FSceneLighting GatherLighting(UWorld& InWorld) {
@@ -241,6 +307,8 @@ namespace Leon {
                     continue;
                 constants.DirLight.Direction = glm::vec4(glm::normalize(component.Light.Direction), 1.0f);
                 constants.DirLight.Color = glm::vec4(component.Light.Color, component.Light.Intensity);
+                lighting.SunDirection = component.Light.Direction;
+                lighting.bHasSun = true;
                 break;
             }
 
@@ -276,6 +344,8 @@ namespace Leon {
                 light.Direction = glm::vec4(glm::normalize(spot.Direction), std::cos(glm::radians(innerDegrees)));
                 light.Color = glm::vec4(spot.Color, std::cos(glm::radians(outerDegrees)));
                 light.Params = glm::vec4(spot.Radius, spot.Intensity, 0.0f, 0.0f);
+                lighting.Spots.push_back(spot);
+                lighting.SpotCastsShadows.push_back(component.bCastShadows);
             }
             constants.LightCounts = glm::ivec4(static_cast<int>(pointCount), static_cast<int>(spotCount), 0, 0);
 
@@ -309,6 +379,11 @@ namespace Leon {
         std::map<std::string, TRef<IRHIPipeline>> SurfacePipelines;
         TRef<IRHIPipeline> OutlinePipeline;
         TRef<IRHIPipeline> SkyPipeline;
+        /** Depth maps seen from the lights: four sun cascades, one spot light, a cube per point light. */
+        TRef<IRHITexture> CascadeShadowMap;
+        TRef<IRHITexture> SpotShadowMap;
+        TRef<IRHITexture> PointShadowMap;
+        std::map<std::string, TRef<IRHIPipeline>> ShadowPipelines;
         TRef<IRHIPipeline> ToneMappingPipeline;
         ERHIFormat ToneMappingTargetFormat = ERHIFormat::Unknown;
     };
@@ -353,7 +428,32 @@ namespace Leon {
             for (uint32_t face = 0; state.BlackCube && face < 6; ++face)
                 device->UploadTexture(*state.BlackCube, 0, face, black, 4);
         }
-        if (!state.SceneColor || !state.SceneDepth || !state.BlackCube)
+        // Shadow maps exist even with shadows off (at 1x1), so the shaders always have something bound.
+        const bool bShadowsOn = ShadowSettings.bEnableShadows;
+        const auto ensureShadowMap = [&](TRef<IRHITexture>& InOutMap, ERHITextureDimension InDimension,
+                                         uint32_t InResolution, uint32_t InArraySize, const char* InName) {
+            const uint32_t resolution = bShadowsOn ? std::max(InResolution, 1u) : 1u;
+            if (InOutMap && InOutMap->GetDesc().Width == resolution)
+                return;
+            FRHITextureDesc desc;
+            desc.Width = resolution;
+            desc.Height = resolution;
+            desc.ArraySize = InArraySize;
+            desc.Format = ERHIFormat::D32_Float;
+            desc.Dimension = InDimension;
+            desc.Usage = RHITextureUsage_DepthStencil | RHITextureUsage_Sampled;
+            desc.DebugName = InName;
+            InOutMap = device->CreateTexture(desc);
+        };
+        ensureShadowMap(state.CascadeShadowMap, ERHITextureDimension::Texture2DArray, ShadowSettings.CascadeResolution, 4,
+                        "CascadeShadowMap");
+        ensureShadowMap(state.SpotShadowMap, ERHITextureDimension::Texture2D, ShadowSettings.SpotResolution, 1,
+                        "SpotShadowMap");
+        ensureShadowMap(state.PointShadowMap, ERHITextureDimension::TextureCubeArray,
+                        ShadowSettings.PointShadowResolution, FShadowSettings::kMaxShadowedPointLights,
+                        "PointShadowMap");
+        if (!state.SceneColor || !state.SceneDepth || !state.BlackCube || !state.CascadeShadowMap ||
+            !state.SpotShadowMap || !state.PointShadowMap)
             return;
 
         // --- Shaders and pipelines ---
@@ -363,6 +463,11 @@ namespace Leon {
             FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex, {{"SKINNED", "1"}});
         TRef<IRHIShader> outlineVS = FShaderLibrary::Get("Outline_Skinned.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> outlinePS = FShaderLibrary::Get("Outline_Skinned.hlsl", "PSMain", ERHIShaderStage::Pixel);
+        TRef<IRHIShader> shadowVS = FShaderLibrary::Get("ShadowDepth.hlsl", "VSMain", ERHIShaderStage::Vertex);
+        TRef<IRHIShader> shadowSkinnedVS =
+            FShaderLibrary::Get("ShadowDepth.hlsl", "VSMain", ERHIShaderStage::Vertex, {{"SKINNED", "1"}});
+        TRef<IRHIShader> shadowPS = FShaderLibrary::Get("ShadowDepth.hlsl", "PSMain", ERHIShaderStage::Pixel);
+        TRef<IRHIShader> shadowLinearPS = FShaderLibrary::Get("ShadowDepth.hlsl", "PSMainLinear", ERHIShaderStage::Pixel);
         TRef<IRHIShader> skyVS = FShaderLibrary::Get("Skybox.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> skyPS = FShaderLibrary::Get("Skybox.hlsl", "PSMain", ERHIShaderStage::Pixel);
         TRef<IRHIShader> toneVS = FShaderLibrary::Get("ToneMapping.hlsl", "VSMain", ERHIShaderStage::Vertex);
@@ -423,12 +528,47 @@ namespace Leon {
             state.ToneMappingTargetFormat = InTarget.GetDesc().Format;
         }
 
+        // bInBias: push depth away from the light to hide self-shadowing. bInLinearDepth: point-light cubes.
+        const auto shadowPipeline = [&](const FVertexArray& InVertexArray, bool bInSkinned, ERHICull InCull, bool bInBias,
+                                        bool bInLinearDepth) -> IRHIPipeline* {
+            IRHIShader* vertexShader = bInSkinned ? shadowSkinnedVS.get() : shadowVS.get();
+            IRHIShader* pixelShader = bInLinearDepth ? shadowLinearPS.get() : shadowPS.get();
+            if (!vertexShader || !pixelShader)
+                return nullptr;
+            FRHIGraphicsPipelineDesc desc;
+            desc.VertexLayout = GetRHIVertexLayout(InVertexArray);
+            std::string key = std::to_string(desc.VertexLayout.Stride);
+            for (const FRHIVertexAttribute& attribute : desc.VertexLayout.Attributes)
+                key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
+            key += std::string(bInSkinned ? "|skinned" : "") + "|c" + std::to_string(static_cast<int>(InCull)) +
+                   (bInBias ? "b" : "") + (bInLinearDepth ? "l" : "");
+            const auto found = state.ShadowPipelines.find(key);
+            if (found != state.ShadowPipelines.end())
+                return found->second.get();
+            desc.VertexShader = vertexShader;
+            desc.PixelShader = pixelShader;
+            desc.Raster.Cull = InCull;
+            if (bInBias) {
+                desc.Raster.DepthBias = 4;
+                desc.Raster.SlopeScaledDepthBias = 2.0f;
+            }
+            desc.NumColorTargets = 0;
+            desc.ColorFormats[0] = ERHIFormat::Unknown;
+            desc.DepthFormat = ERHIFormat::D32_Float;
+            desc.DebugName = "ShadowDepth";
+            TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
+            state.ShadowPipelines[key] = pipeline;
+            return pipeline.get();
+        };
+
         // --- What to draw ---
         // Everything is resolved to device objects here, before the pass starts: creating a buffer or a
         // texture uploads data, which must not happen in the middle of a render pass.
         std::vector<FSceneDraw> opaque;
         std::vector<FSceneDraw> transparent;
         std::vector<FOutlineDraw> outlines;
+        std::vector<FShadowCaster> staticCasters;
+        std::vector<FShadowCaster> skinnedCasters;
         auto& registry = World->GetRegistry();
         const FFrustumPlanes frustum = ExtractFrustumPlanes(InCamera.GetViewProjectionMatrix());
         const glm::vec3 cameraPosition = InCamera.GetPosition();
@@ -448,13 +588,15 @@ namespace Leon {
                                 const glm::mat4& InModel, uint32_t InIndexCount, uint32_t InFirstIndex,
                                 IRHITexture* InLightmap, const glm::vec2& InLightmapScale,
                                 const glm::vec2& InLightmapBias, const glm::vec3& InLocalMin,
-                                const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones) {
+                                const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones,
+                                bool bInReceiveShadows) {
             if (!InMaterial || InIndexCount == 0)
                 return;
             const bool bTransparent = InMaterial->GetAlphaMode() == EAlphaMode::Blend;
             FSceneDraw draw;
             draw.Pipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent, InBones != nullptr);
             draw.Bones = InBones;
+            draw.bReceiveShadows = bInReceiveShadows;
             draw.Vertices = GetRHIVertexBuffer(InVertexArray);
             draw.Indices = GetRHIIndexBuffer(InVertexArray);
             if (!draw.Pipeline || !draw.Vertices || !draw.Indices)
@@ -474,6 +616,37 @@ namespace Leon {
             }
         };
 
+        // A mesh section that blocks light. Lights cull the list themselves: a caster outside the
+        // camera's view can still throw a shadow into it.
+        const auto submitCaster = [&](std::vector<FShadowCaster>& OutCasters, const FVertexArray& InVertexArray,
+                                      const FMaterialInstance* InMaterial, const glm::mat4& InModel,
+                                      uint32_t InIndexCount, uint32_t InFirstIndex, const glm::vec3& InLocalMin,
+                                      const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones) {
+            if (!bShadowsOn || !InMaterial || InIndexCount == 0)
+                return;
+            FShadowCaster caster;
+            caster.VertexArray = &InVertexArray;
+            caster.Vertices = GetRHIVertexBuffer(InVertexArray);
+            caster.Indices = GetRHIIndexBuffer(InVertexArray);
+            if (!caster.Vertices || !caster.Indices)
+                return;
+            caster.Material = InMaterial;
+            caster.Bones = InBones;
+            caster.Model = InModel;
+            caster.IndexCount = InIndexCount;
+            caster.FirstIndex = InFirstIndex;
+            TransformAABB(InLocalMin, InLocalMax, InModel, caster.WorldMin, caster.WorldMax);
+            if (InBones) {
+                // An animated pose can reach outside the bounds of the rest pose.
+                const glm::vec3 center = 0.5f * (caster.WorldMin + caster.WorldMax);
+                const glm::vec3 extent =
+                    0.5f * (caster.WorldMax - caster.WorldMin) * FShadowSettings::kSkinnedShadowBoundsPadding;
+                caster.WorldMin = center - extent;
+                caster.WorldMax = center + extent;
+            }
+            OutCasters.push_back(caster);
+        };
+
         // Procedural primitives (boxes, planes...).
         auto meshView = registry.view<FTransformComponent, FMeshComponent>();
         for (auto entity : meshView) {
@@ -481,17 +654,21 @@ namespace Leon {
             if (!mesh.VertexArray || !mesh.bVisible)
                 continue;
             const glm::mat4 model = ResolveActorWorldMatrix(World, entity, transform);
-            if (IsProceduralMeshOutsideLightFrustum(model, mesh, frustum))
-                continue;
             TRef<FMaterialInstance> material;
             if (const auto* component = registry.try_get<FMaterialComponent>(entity))
                 material = component->MaterialInstance;
             if (!material)
                 material = defaultMaterial;
             const glm::vec3 extent = ProceduralMeshLocalExtent(mesh);
-            submit(*mesh.VertexArray, material.get(), model, GetRHIIndexCount(*mesh.VertexArray), 0,
+            const uint32_t indexCount = GetRHIIndexCount(*mesh.VertexArray);
+            if (mesh.bCastShadows)
+                submitCaster(staticCasters, *mesh.VertexArray, material.get(), model, indexCount, 0, -extent, extent,
+                             nullptr);
+            if (IsProceduralMeshOutsideLightFrustum(model, mesh, frustum))
+                continue;
+            submit(*mesh.VertexArray, material.get(), model, indexCount, 0,
                    lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
-                   mesh.LightmapBias, -extent, extent, nullptr);
+                   mesh.LightmapBias, -extent, extent, nullptr, mesh.bReceiveShadows);
         }
 
         // Imported static meshes.
@@ -501,9 +678,22 @@ namespace Leon {
             if (!component.bVisible || !component.StaticMesh)
                 continue;
             const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+            const uint32_t lodCount = std::max(1u, component.StaticMesh->GetLODCount());
+            if (component.bCastShadows) {
+                const uint32_t shadowLod = ShadowLODIndex(component, std::min(component.CurrentLOD, lodCount - 1));
+                if (const TRef<FVertexArray> shadowVertexArray = component.StaticMesh->GetLODVertexArray(shadowLod)) {
+                    for (const auto& submesh : component.StaticMesh->GetLODSubmeshes(shadowLod)) {
+                        const TRef<FMaterialInstance> material =
+                            ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides);
+                        submitCaster(staticCasters, *shadowVertexArray, material ? material.get() : defaultMaterial.get(),
+                                     world * submesh.LocalTransform, submesh.IndexCount, submesh.IndexOffset,
+                                     component.StaticMesh->GetBoundsMin(), component.StaticMesh->GetBoundsMax(), nullptr);
+                    }
+                }
+            }
             if (IsStaticMeshOutsideLightFrustum(world, component, frustum))
                 continue;
-            const uint32_t lod = std::min(component.CurrentLOD, std::max(1u, component.StaticMesh->GetLODCount()) - 1);
+            const uint32_t lod = std::min(component.CurrentLOD, lodCount - 1);
             const TRef<FVertexArray> vertexArray = component.StaticMesh->GetLODVertexArray(lod);
             if (!vertexArray)
                 continue;
@@ -514,7 +704,7 @@ namespace Leon {
                 submit(*vertexArray, material ? material.get() : defaultMaterial.get(), world * submesh.LocalTransform,
                        submesh.IndexCount, submesh.IndexOffset, lightmap, component.LightmapScale,
                        component.LightmapBias, component.StaticMesh->GetBoundsMin(),
-                       component.StaticMesh->GetBoundsMax(), nullptr);
+                       component.StaticMesh->GetBoundsMax(), nullptr, component.bReceiveShadows);
             }
         }
 
@@ -528,6 +718,16 @@ namespace Leon {
             if (!vertexArray)
                 continue;
             const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+            if (skinned.bCastShadows && IsSkinnedShadowCasterSelected(static_cast<uint32_t>(entity))) {
+                for (const auto& submesh : skinned.SkeletalMesh->GetSubmeshes()) {
+                    const TRef<FMaterialInstance> material =
+                        ResolveSkeletalSubmeshMaterial(*skinned.SkeletalMesh, submesh, skinned.MaterialOverrides);
+                    submitCaster(skinnedCasters, *vertexArray, material ? material.get() : defaultMaterial.get(),
+                                 SkeletalModelMatrix(world, skinned, submesh.LocalTransform), submesh.IndexCount,
+                                 submesh.IndexOffset, skinned.SkeletalMesh->GetBoundsMin(),
+                                 skinned.SkeletalMesh->GetBoundsMax(), &skinned.BonePalette);
+                }
+            }
             if (IsSkeletalMeshOutsideLightFrustum(world, skinned, frustum))
                 continue;
             for (const auto& submesh : skinned.SkeletalMesh->GetSubmeshes()) {
@@ -539,7 +739,7 @@ namespace Leon {
                 submit(*vertexArray, material ? material.get() : defaultMaterial.get(), model, submesh.IndexCount,
                        submesh.IndexOffset, nullptr, glm::vec2(1.0f), glm::vec2(0.0f),
                        skinned.SkeletalMesh->GetBoundsMin(), skinned.SkeletalMesh->GetBoundsMax(),
-                       &skinned.BonePalette);
+                       &skinned.BonePalette, skinned.bReceiveShadows);
                 if (skinned.bDrawOutline) {
                     FOutlineDraw outline;
                     outline.Vertices = GetRHIVertexBuffer(*vertexArray);
@@ -617,6 +817,10 @@ namespace Leon {
             prepareMaterial(*draw.Material);
         for (const FSceneDraw& draw : transparent)
             prepareMaterial(*draw.Material);
+        for (const FShadowCaster& caster : staticCasters)
+            prepareMaterial(*caster.Material);
+        for (const FShadowCaster& caster : skinnedCasters)
+            prepareMaterial(*caster.Material);
 
         // --- Lighting ---
         FSceneLighting lighting = GatherLighting(*World);
@@ -625,6 +829,151 @@ namespace Leon {
         IRHITexture* prefilter = IBLEnvironment.PrefilterMap ? GetRHITexture(*IBLEnvironment.PrefilterMap) : nullptr;
         const bool bIBL = bUseIBL && brdfLut && irradiance && prefilter;
         lighting.Constants.PassFlags = glm::ivec4(bIBL ? 1 : 0, DebugMode, 0, 0);
+
+        // --- Shadow maps ---
+        FLitPassConstants& lit = lighting.Constants;
+        lit.ShadowParams = glm::vec4(ShadowSettings.ConstantBias, ShadowSettings.SlopeBias, ShadowSettings.NormalBias,
+                                     ShadowSettings.CascadeBlendWidth);
+
+        // Draws the casters a light can see into one slice of a shadow map.
+        // InLightViewProjection is in the engine's clip convention (depth -1..1).
+        const auto drawShadowMap = [&](IRHITexture& InMap, uint32_t InSlice, const glm::mat4& InLightViewProjection,
+                                       bool bInCullFrontFaces, bool bInBias, bool bInSkinnedCasters,
+                                       const glm::vec4& InPointLight, const char* InName) {
+            const bool bCubeFace = InPointLight.w > 0.0f;
+            const FFrustumPlanes lightFrustum = ExtractFrustumPlanes(InLightViewProjection);
+            FShadowPassConstants passConstants;
+            passConstants.LightViewProjection =
+                (bCubeFace ? ClipFlipY() : glm::mat4(1.0f)) * ClipDepthZeroToOne() * InLightViewProjection;
+            passConstants.PointLight = InPointLight;
+            // Mirroring the image reverses the winding, so the face to cull swaps with it.
+            const ERHICull cull = (bInCullFrontFaces != bCubeFace) ? ERHICull::Front : ERHICull::Back;
+
+            FRHIRenderPassDesc pass;
+            pass.Depth.Texture = &InMap;
+            pass.Depth.ArraySlice = InSlice;
+            pass.Name = InName;
+            InCommands.BeginRenderPass(pass);
+            InCommands.SetConstants(ERHIConstantSlot::Pass, &passConstants, sizeof(passConstants));
+
+            IRHIPipeline* boundPipeline = nullptr;
+            const FMaterialInstance* boundMaterial = nullptr;
+            const auto drawCasters = [&](const std::vector<FShadowCaster>& InCasters) {
+                for (const FShadowCaster& caster : InCasters) {
+                    if (!AABBIntersectsFrustum(caster.WorldMin, caster.WorldMax, lightFrustum))
+                        continue;
+                    IRHIPipeline* pipeline =
+                        shadowPipeline(*caster.VertexArray, caster.Bones != nullptr,
+                                       caster.Material->GetDoubleSided() ? ERHICull::None : cull, bInBias, bCubeFace);
+                    if (!pipeline)
+                        continue;
+                    if (pipeline != boundPipeline) {
+                        InCommands.SetPipeline(pipeline);
+                        boundPipeline = pipeline;
+                    }
+                    if (caster.Material != boundMaterial) {
+                        // Only masked materials need their texture: the alpha cuts holes in the shadow.
+                        const FMaterialBinding& binding = materialBindings.at(caster.Material);
+                        const bool bAlphaTest =
+                            caster.Material->GetAlphaMode() == EAlphaMode::Mask && binding.Textures[0] != nullptr;
+                        FShadowMaterialConstants material;
+                        material.UVTransform = binding.Constants.UVTransform;
+                        material.AlphaTest = glm::vec4(bAlphaTest ? 1.0f : 0.0f, caster.Material->GetAlphaCutoff(), 0.0f, 0.0f);
+                        InCommands.SetConstants(ERHIConstantSlot::Material, &material, sizeof(material));
+                        InCommands.SetTexture(kSlotAlbedo, bAlphaTest ? binding.Textures[0] : nullptr);
+                        boundMaterial = caster.Material;
+                    }
+                    if (caster.Bones)
+                        SetBonePalette(InCommands, *caster.Bones);
+                    InCommands.SetConstants(ERHIConstantSlot::Draw, &caster.Model, sizeof(caster.Model));
+                    InCommands.SetVertexBuffer(caster.Vertices);
+                    InCommands.SetIndexBuffer(caster.Indices);
+                    InCommands.DrawIndexed(caster.IndexCount, caster.FirstIndex);
+                }
+            };
+            drawCasters(staticCasters);
+            if (bInSkinnedCasters)
+                drawCasters(skinnedCasters);
+            InCommands.EndRenderPass();
+        };
+
+        // Sun: the view frustum is cut into slices by distance, each with its own map.
+        const uint32_t cascadeCount = std::min(ShadowSettings.CascadeCount, 4u);
+        if (bShadowsOn && lighting.bHasSun && cascadeCount > 0) {
+            const float nearClip = InCamera.GetNearClip();
+            const float farClip = ShadowSettings.ShadowDistance;
+            const std::vector<float> splits = ShadowMath::CalculateCascadeSplits(
+                cascadeCount, nearClip, farClip, ShadowSettings.SplitLambda, ShadowSettings.SplitScheme);
+            // Four far distances are always sent; unused cascades repeat the last one.
+            float splitPlane[5] = {nearClip, farClip, farClip, farClip, farClip};
+            for (size_t i = 0; i < splits.size() && i < 5; ++i)
+                splitPlane[i] = splits[i];
+            lit.CascadeSplits = glm::vec4(splitPlane[1], splitPlane[2], splitPlane[3], splitPlane[4]);
+
+            glm::mat4 lastMatrix(1.0f);
+            for (uint32_t cascade = 0; cascade < 4; ++cascade) {
+                if (cascade < cascadeCount) {
+                    float sliceNear = splitPlane[cascade];
+                    float sliceFar = splitPlane[cascade + 1];
+                    ShadowMath::CascadeSliceDepthRange(cascade, splits, ShadowSettings.CascadeBlendWidth,
+                                                       FShadowSettings::kCascadeBlendMinMeters, sliceNear, sliceFar);
+                    const glm::mat4 sliceProjection = glm::perspective(
+                        glm::radians(InCamera.GetFOV()), InCamera.GetAspectRatio(), sliceNear, sliceFar);
+                    const auto corners = ShadowMath::GetFrustumCornersWorldSpace(sliceProjection, InCamera.GetViewMatrix());
+                    float worldUnitsPerTexel = 0.01f;
+                    lastMatrix = ShadowMath::CalculateCascadeMatrix(corners, lighting.SunDirection,
+                                                                    ShadowSettings.CascadeResolution,
+                                                                    ShadowSettings.bStabilizeCascades, worldUnitsPerTexel);
+                    drawShadowMap(*state.CascadeShadowMap, cascade, lastMatrix, true, true,
+                                  cascade < ShadowSettings.MaxSkinnedShadowCascades, glm::vec4(0.0f), "SunShadow");
+                }
+                lit.LightSpaceMatrices[cascade] = ClipToShadowMap() * lastMatrix;
+            }
+            lit.ShadowFlags.x = 1;
+        }
+
+        // Spot: one light gets a map, the one the settings point at.
+        int shadowedSpot = -1;
+        if (bShadowsOn && !lighting.Spots.empty()) {
+            const int candidate = std::clamp(ShadowSettings.ShadowedSpotIndex, 0, static_cast<int>(lighting.Spots.size()) - 1);
+            if (lighting.SpotCastsShadows[static_cast<size_t>(candidate)])
+                shadowedSpot = candidate;
+        }
+        if (shadowedSpot >= 0) {
+            const FSpotLight& spot = lighting.Spots[static_cast<size_t>(shadowedSpot)];
+            const glm::vec3 direction = glm::normalize(spot.Direction);
+            const glm::vec3 up = std::abs(direction.y) < 0.99f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f);
+            const float fieldOfView = glm::clamp(spot.OuterCutOff * 2.0f + 2.0f, 10.0f, 160.0f);
+            const float farPlane = std::max(spot.Radius * 1.05f, 1.0f);
+            const glm::mat4 spotMatrix = glm::perspective(glm::radians(fieldOfView), 1.0f, 0.1f, farPlane) *
+                                         glm::lookAt(spot.Position, spot.Position + direction, up);
+            drawShadowMap(*state.SpotShadowMap, 0, spotMatrix, false, true, true, glm::vec4(0.0f), "SpotShadow");
+            lit.SpotLightSpaceMatrix = ClipToShadowMap() * spotMatrix;
+            lit.ShadowFlags.y = 1;
+        }
+
+        // Point: the first lights each get a cube, six views from the light's position.
+        uint32_t shadowedPointCount = 0;
+        if (bShadowsOn) {
+            const uint32_t maxShadowed =
+                std::min(ShadowSettings.MaxShadowedPointLights, FShadowSettings::kMaxShadowedPointLights);
+            const uint32_t pointCount = static_cast<uint32_t>(lit.LightCounts.x);
+            for (uint32_t i = 0; i < pointCount && shadowedPointCount < maxShadowed; ++i) {
+                FPointLightConstants& light = lit.PointLights[i];
+                const glm::vec3 position(light.Position);
+                const float farPlane = std::max(light.Params.x, 1.0f);
+                const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, farPlane);
+                for (uint32_t face = 0; face < 6; ++face)
+                    drawShadowMap(*state.PointShadowMap, shadowedPointCount * 6 + face,
+                                  faceProjection * ShadowMath::PointCubeFaceView(position, face), false, false, true,
+                                  glm::vec4(position, farPlane), "PointShadow");
+                light.Params.y = static_cast<float>(shadowedPointCount);
+                ++shadowedPointCount;
+            }
+        }
+        lit.ShadowFlags.z = shadowedPointCount > 0 ? 1 : 0;
+        lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), shadowedSpot,
+                                        static_cast<int>(ShadowSettings.CascadeCount), 0);
 
         // --- Sky ---
         const bool bDrawSky = lighting.bHasSkybox && lighting.Skybox.bEnabled && skyVS && skyPS;
@@ -666,6 +1015,9 @@ namespace Leon {
         InCommands.SetTexture(kSlotBRDFLUT, brdfLut);
         InCommands.SetTexture(kSlotIrradiance, bIBL ? irradiance : state.BlackCube.get());
         InCommands.SetTexture(kSlotPrefilter, bIBL ? prefilter : state.BlackCube.get());
+        InCommands.SetTexture(kSlotCascadeShadow, state.CascadeShadowMap.get());
+        InCommands.SetTexture(kSlotSpotShadow, state.SpotShadowMap.get());
+        InCommands.SetTexture(kSlotPointShadow, state.PointShadowMap.get());
 
         const auto drawAll = [&](const std::vector<FSceneDraw>& InDraws, const char* InName) {
             if (InDraws.empty())
@@ -715,7 +1067,7 @@ namespace Leon {
                 constants.Model = draw.Model;
                 constants.NormalMatrix = glm::mat4(SafeNormalMatrix(draw.Model));
                 constants.LightmapScaleBias = glm::vec4(draw.LightmapScale, draw.LightmapBias);
-                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, 0, 0);
+                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, draw.bReceiveShadows ? 1 : 0, 0);
                 InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
                 InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex);
             }

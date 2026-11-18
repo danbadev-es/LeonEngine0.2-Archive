@@ -39,6 +39,13 @@ cbuffer PassConstants : register(b1) {
     float4 u_FogColorDensity; // rgb = fog colour, a = density per metre (0 = off)
     float4 u_FogParams;       // x = start distance, y = height falloff, z = base height, w = max opacity
     int4 u_PassFlags;         // x = image-based lighting available, y = debug view
+    // Shadows (see Shadows.hlsli). The matrices take world positions to shadow-map space.
+    float4x4 u_LightSpaceMatrices[4]; // one per sun cascade
+    float4x4 u_SpotLightSpaceMatrix;
+    float4 u_CascadeSplits;   // far distance of each cascade along the camera's forward axis
+    float4 u_ShadowParams;    // x = constant bias, y = slope bias, z = normal offset, w = cascade blend width
+    int4 u_ShadowSettings;    // x = filter (0 hard, 1 3x3, 2 5x5, 3 Poisson), y = spot light with the shadow map, z = cascades
+    int4 u_ShadowFlags;       // 1 where a map was drawn this frame: x = sun, y = spot, z = point
 };
 
 // --- Cook-Torrance -----------------------------------------------------------------------------

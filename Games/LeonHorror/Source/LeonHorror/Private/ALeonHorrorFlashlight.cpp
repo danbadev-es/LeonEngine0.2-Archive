@@ -17,9 +17,6 @@ namespace Leon {
         auto& spot = AddComponent<FSpotLightComponent>();
         spot.Mobility = ELightMobility::Movable;
         spot.bEnabled = bOn;
-        // Known issue: the spot shadow map comes out empty on Intel UHD (every surface reads as
-        // shadowed, so the beam vanishes). Until that is fixed in the renderer the beam is unshadowed.
-        spot.bCastShadows = false;
         spot.Light.Color = glm::vec3(1.0f, 0.95f, 0.84f);
         spot.Light.Intensity = 40.0f;
         spot.Light.Radius = 26.0f;
