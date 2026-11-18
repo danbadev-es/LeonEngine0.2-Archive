@@ -31,6 +31,7 @@ namespace Leon::Editor {
         void DrawTriggerVolumeProperties(AActor& InActor, const std::string& InFilter);
         void DrawSkyboxComponent(AActor& InActor, const std::string& InFilter);
         void DrawStaticMeshComponent(AActor& InActor, const std::string& InFilter);
+        void DrawCollisionProperties(AActor& InActor, const std::string& InFilter);
         void DrawMaterialComponent(AActor& InActor, const std::string& InFilter);
         void DrawLightComponents(AActor& InActor, const std::string& InFilter);
         void DrawCameraComponent(AActor& InActor, const std::string& InFilter);

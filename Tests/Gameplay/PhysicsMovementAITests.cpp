@@ -1,3 +1,4 @@
+#include "Engine/Components.hpp"
 #include <doctest/doctest.h>
 
 #include "Engine/UWorld.hpp"
@@ -144,6 +145,69 @@ TEST_SUITE("Physics / Collision") {
         BeginActor(vol);
         vol->GravityScale = 0.3f;
         CHECK(vol->GravityScale == doctest::Approx(0.3f));
+    }
+
+    TEST_CASE("ABlockingVolume is as large as its actor's scale, in metres") {
+        auto world = MakePhysWorld("VolumeSize");
+        auto* block = world->SpawnActor<Leon::ABlockingVolume>("Block");
+        block->SetActorLocation({0.0f, 1.0f, 6.0f});
+        block->SetActorScale({4.0f, 2.0f, 2.0f});
+        block->PostInitializeComponents();
+        BeginActor(block);
+
+        // Along Z it is 2 m deep around z = 6: the near face is at z = 5.
+        Leon::FHitResult hit;
+        REQUIRE(world->LineTraceByChannel({0, 1, 0}, {0, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK(hit.Actor == block);
+        CHECK(hit.Location.z == doctest::Approx(5.0f).epsilon(0.01f));
+
+        // Along X it is 4 m wide: a ray 1.9 m to the side still hits, one 2.1 m to the side passes.
+        CHECK(world->LineTraceByChannel({1.9f, 1, 0}, {1.9f, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK_FALSE(
+            world->LineTraceByChannel({2.1f, 1, 0}, {2.1f, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        // And 2 m tall around y = 1: a ray above it passes.
+        CHECK_FALSE(
+            world->LineTraceByChannel({0, 2.1f, 0}, {0, 2.1f, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+
+        // It blocks movement too, not only sight.
+        CHECK(world->SweepSingleByChannel({0, 1, 0}, {0, 1, 12}, 0.2f, Leon::ECollisionChannel::Pawn, nullptr, hit));
+    }
+
+    TEST_CASE("A mesh with collision switched off is only drawn") {
+        const auto spawnWall = [](Leon::UWorld& InWorld, bool bInCollision) {
+            auto* wall = InWorld.SpawnActor<Leon::AActor>("Wall");
+            wall->SetActorLocation({0.0f, 1.0f, 6.0f});
+            auto& mesh = wall->AddComponent<Leon::FMeshComponent>();
+            mesh.MeshType = "Cube";
+            mesh.MeshSize = 2.0f;
+            mesh.Mobility = Leon::EComponentMobility::Static;
+            mesh.bCollision = bInCollision;
+            return wall;
+        };
+        Leon::FHitResult hit;
+
+        auto solid = MakePhysWorld("SolidMesh");
+        Leon::AActor* solidWall = spawnWall(*solid, true);
+        REQUIRE(solid->LineTraceByChannel({0, 1, 0}, {0, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK(hit.Actor == solidWall);
+        CHECK(solid->SweepSingleByChannel({0, 1, 0}, {0, 1, 12}, 0.2f, Leon::ECollisionChannel::Pawn, nullptr, hit));
+
+        auto decoration = MakePhysWorld("DecorationMesh");
+        spawnWall(*decoration, false);
+        CHECK_FALSE(
+            decoration->LineTraceByChannel({0, 1, 0}, {0, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK_FALSE(
+            decoration->SweepSingleByChannel({0, 1, 0}, {0, 1, 12}, 0.2f, Leon::ECollisionChannel::Pawn, nullptr, hit));
+
+        // A blocking volume in the same place is then the wall's collision.
+        auto* block = decoration->SpawnActor<Leon::ABlockingVolume>("WallCollision");
+        block->SetActorLocation({0.0f, 1.0f, 6.0f});
+        block->SetActorScale({2.0f, 2.0f, 2.0f});
+        block->PostInitializeComponents();
+        BeginActor(block);
+        REQUIRE(
+            decoration->LineTraceByChannel({0, 1, 0}, {0, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK(hit.Actor == block);
     }
 
     TEST_CASE("ATriggerVolume does not block traces") {

@@ -89,6 +89,7 @@ namespace Leon {
         bool bCastShadows = true;
         bool bReceiveShadows = true;
         bool bVisibleInReflection = true;
+        bool bCollision = true;
         EComponentMobility Mobility = EComponentMobility::Static;
         uint32_t LightmapResolution = 64;
         int32_t LightmapIndex = -1;
@@ -567,6 +568,8 @@ namespace Leon {
                             currentActor.bReceiveShadows = (val == "true");
                         else if (key == "VisibleInReflection")
                             currentActor.bVisibleInReflection = (val == "true");
+                        else if (key == "Collision")
+                            currentActor.bCollision = (val == "true");
                         else if (key == "Mobility")
                             currentActor.Mobility = StringToComponentMobility(val);
                         else if (key == "LightmapResolution")
@@ -622,6 +625,8 @@ namespace Leon {
                             currentActor.bReceiveShadows = (val == "true");
                         else if (key == "VisibleInReflection")
                             currentActor.bVisibleInReflection = (val == "true");
+                        else if (key == "Collision")
+                            currentActor.bCollision = (val == "true");
                         else if (key == "Mobility")
                             currentActor.Mobility = StringToComponentMobility(val);
                         else if (key == "LightmapResolution")
@@ -854,6 +859,7 @@ namespace Leon {
                     comp.bCastShadows = actorData.bCastShadows;
                     comp.bReceiveShadows = actorData.bReceiveShadows;
                     comp.bVisibleInReflection = actorData.bVisibleInReflection;
+                    comp.bCollision = actorData.bCollision;
                     comp.Mobility = actorData.Mobility;
                     comp.LightmapResolution = actorData.LightmapResolution;
                     comp.LightmapIndex = actorData.LightmapIndex;
@@ -956,6 +962,7 @@ namespace Leon {
                 comp.bCastShadows = actorData.bCastShadows;
                 comp.bReceiveShadows = actorData.bReceiveShadows;
                 comp.bVisibleInReflection = actorData.bVisibleInReflection;
+                comp.bCollision = actorData.bCollision;
                 comp.Mobility = actorData.Mobility;
                 comp.LightmapResolution = actorData.LightmapResolution;
                 comp.LightmapIndex = actorData.LightmapIndex;

@@ -189,6 +189,28 @@ SimulatedProxy
 
 Gameplay pose is owned by CharacterMovement (pawns) and SimplePhysics write-back (simulating bodies) on authority. The Jolt plugin ticks the native world on authority only; it does not currently map Jolt body poses onto actors. `ACharacter::EnableRagdoll` uses `UPhysicsAsset` bodies + distance constraints when assigned, otherwise the capsule. Ragdoll on SimulatedProxy is visual/net pose, not local dynamics.
 
+### Level collision
+
+What a level collides with comes from two places, and a level can use either or both:
+
+| Source | Collides as | Use |
+| :--- | :--- | :--- |
+| A static mesh (`FStaticMeshComponent`, `FMeshComponent`) with `bCollision` on (the default) and `Static` mobility | Its triangles (asset meshes) or its bounding box (primitives) | Quick blocking-out; props whose shape matters |
+| `ABlockingVolume` | A box one metre a side with the actor's transform: the actor's scale is its size in metres | Walls, floors, invisible limits: the collision of the level's structure |
+
+Switching `bCollision` off makes a mesh decoration: it is drawn, and nothing collides with it or
+traces against it. A level built that way has its collision in a handful of boxes that can be read
+and edited on their own, instead of in the triangles of every mesh.
+
+- In the editor: the *Collision* checkbox in a mesh's details; *Blocking Volume* in Place Actors.
+  Volumes are invisible in the game and drawn as pink wire boxes in the editor viewport.
+- In a map file: `Collision: false` under `StaticMesh:` or `Mesh:` (absent means on); a blocking
+  volume is an actor of class `ABlockingVolume` and its transform.
+- Volumes block every channel (`WorldStatic`, block all). `ATriggerVolume` is the overlap-only one.
+- With the Jolt plugin registered (every game does, through `Launch`) a rotated volume collides as
+  it is drawn. The engine's built-in scene, used when no backend is registered (most unit tests),
+  ignores the rotation of boxes: there a volume collides as an unrotated box of its size.
+
 ## Asset flow
 
 ```text

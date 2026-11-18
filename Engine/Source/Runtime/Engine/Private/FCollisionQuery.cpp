@@ -529,7 +529,7 @@ namespace Leon {
 
         if (InActor.HasComponent<FStaticMeshComponent>()) {
             const auto& smc = InActor.GetComponent<FStaticMeshComponent>();
-            if (smc.Mobility != EComponentMobility::Static || !smc.StaticMesh)
+            if (!smc.bCollision || smc.Mobility != EComponentMobility::Static || !smc.StaticMesh)
                 return false;
             OutColliders.push_back(MakeTriangleMeshDesc(&InActor, *smc.StaticMesh, world));
             return true;
@@ -537,7 +537,7 @@ namespace Leon {
 
         if (InActor.HasComponent<FMeshComponent>()) {
             const auto& mesh = InActor.GetComponent<FMeshComponent>();
-            if (mesh.Mobility != EComponentMobility::Static)
+            if (!mesh.bCollision || mesh.Mobility != EComponentMobility::Static)
                 return false;
             glm::vec3 localMin(-0.5f);
             glm::vec3 localMax(0.5f);

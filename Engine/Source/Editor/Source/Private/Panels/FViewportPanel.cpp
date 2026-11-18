@@ -13,6 +13,7 @@
 #include "Editor/UI/FLucideIcons.hpp"
 #include "Engine/Components.hpp"
 #include "Physics/ECollisionChannel.hpp"
+#include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/APlayerCameraManager.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerStart.hpp"
@@ -613,6 +614,28 @@ namespace Leon::Editor {
             spotComp.Light.Position = light.Position;
             spotComp.Light.Direction = light.Direction;
             FDebugRenderer::DrawSpotLightGizmo(light);
+        }
+
+        // Blocking volumes are invisible in the game: here they show as the box they are.
+        for (const auto& actorRef : InWorld.GetAllActors()) {
+            AActor* actor = actorRef.get();
+            if (!actor || actor->IsPendingKill() || !actor->HasComponent<FTransformComponent>() ||
+                !dynamic_cast<ABlockingVolume*>(actor))
+                continue;
+            const glm::mat4 world = actor->GetComponent<FTransformComponent>().GetTransform();
+            glm::vec3 corners[8];
+            for (int i = 0; i < 8; ++i) {
+                const glm::vec3 local((i & 1) ? 0.5f : -0.5f, (i & 2) ? 0.5f : -0.5f, (i & 4) ? 0.5f : -0.5f);
+                corners[i] = glm::vec3(world * glm::vec4(local, 1.0f));
+            }
+            const glm::vec4 color(1.0f, 0.45f, 0.75f, 1.0f);
+            // Corners that differ in exactly one axis share an edge.
+            for (int i = 0; i < 8; ++i) {
+                for (int axis = 1; axis <= 4; axis <<= 1) {
+                    if (!(i & axis))
+                        FDebugRenderer::DrawLine(corners[i], corners[i | axis], color);
+                }
+            }
         }
 
             // PlayerStart: diamond + forward arrow (Unreal-like spawn marker)

@@ -6,6 +6,7 @@
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "FJoltPhysicsDriver.hpp"
+#include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/ACharacter.hpp"
 #include "Gameplay/UCharacterMovementComponent.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"
@@ -148,6 +149,50 @@ TEST_SUITE("Jolt physics scene") {
         CHECK(
             world->LineTraceSingleByChannel({0, 0, 0}, {0, 0, 10}, Leon::ECollisionChannel::Visibility, nullptr, hit));
         CHECK(hit.Actor == floor);
+    }
+
+    TEST_CASE_FIXTURE(FJoltPhysicsFixture, "a mesh with collision off has no body; a blocking volume gives it one") {
+        auto world = Leon::UWorld::Create("JoltDecoration");
+        auto* wall = world->SpawnActor<Leon::AActor>("Wall");
+        wall->SetActorLocation({0.0f, 1.0f, 6.0f});
+        auto& mesh = wall->AddComponent<Leon::FMeshComponent>();
+        mesh.MeshType = "Cube";
+        mesh.MeshSize = 2.0f;
+        mesh.Mobility = Leon::EComponentMobility::Static;
+        mesh.bCollision = false;
+        auto* volume = world->SpawnActor<Leon::ABlockingVolume>("WallCollision");
+        volume->SetActorLocation({10.0f, 1.0f, 6.0f});
+        volume->SetActorScale({2.0f, 2.0f, 2.0f});
+        world->BeginPlay();
+
+        Leon::FHitResult hit;
+        CHECK_FALSE(
+            world->LineTraceSingleByChannel({0, 1, 0}, {0, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        REQUIRE(
+            world->LineTraceSingleByChannel({10, 1, 0}, {10, 1, 12}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK(hit.Actor == volume);
+        CHECK(hit.Location.z == doctest::Approx(5.0f).epsilon(0.01f));
+    }
+
+    TEST_CASE_FIXTURE(FJoltPhysicsFixture, "a rotated blocking volume collides as it is drawn") {
+        auto world = Leon::UWorld::Create("JoltRotatedVolume");
+        // A wall 4 m long, 2 m tall and 0.2 m thick, turned a quarter turn: it now runs along Z.
+        auto* volume = world->SpawnActor<Leon::ABlockingVolume>("Wall");
+        volume->SetActorLocation({0.0f, 1.0f, 0.0f});
+        volume->SetActorScale({4.0f, 2.0f, 0.2f});
+        volume->SetActorRotation({0.0f, 90.0f, 0.0f});
+        world->BeginPlay();
+
+        Leon::FHitResult hit;
+        // Coming along X it is met at its thin side, 0.1 m from the centre (unrotated it would be at 2 m).
+        REQUIRE(
+            world->LineTraceSingleByChannel({-5, 1, 0}, {5, 1, 0}, Leon::ECollisionChannel::Visibility, nullptr, hit));
+        CHECK(hit.Location.x == doctest::Approx(-0.1f).epsilon(0.02f));
+        // And it reaches 2 m along Z: a ray at z = 1.8 hits, one at z = 2.2 passes.
+        CHECK(world->LineTraceSingleByChannel({-5, 1, 1.8f}, {5, 1, 1.8f}, Leon::ECollisionChannel::Visibility, nullptr,
+                                              hit));
+        CHECK_FALSE(world->LineTraceSingleByChannel({-5, 1, 2.2f}, {5, 1, 2.2f}, Leon::ECollisionChannel::Visibility,
+                                                    nullptr, hit));
     }
 
     TEST_CASE_FIXTURE(FJoltPhysicsFixture, "static triangle mesh uses MeshShape queries") {

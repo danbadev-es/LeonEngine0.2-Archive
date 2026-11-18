@@ -8,6 +8,7 @@
 #include "Engine/Components.hpp"
 #include "Engine/EMobility.hpp"
 #include "Gameplay/APlayerStart.hpp"
+#include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
 
 #include <algorithm>
@@ -184,6 +185,7 @@ namespace Leon::Editor {
         DrawTriggerVolumeProperties(InActor, InFilter);
         DrawSkyboxComponent(InActor, InFilter);
         DrawStaticMeshComponent(InActor, InFilter);
+        DrawCollisionProperties(InActor, InFilter);
         DrawMaterialComponent(InActor, InFilter);
         DrawLightComponents(InActor, InFilter);
         DrawCameraComponent(InActor, InFilter);
@@ -459,6 +461,37 @@ namespace Leon::Editor {
             }
 
             FEditorWidgets::EndPropertyGrid();
+        }
+    }
+
+    void FDetailsPanel::DrawCollisionProperties(AActor& InActor, const std::string& InFilter) {
+        if (!MatchesFilter("Collision Blocking Volume", InFilter))
+            return;
+
+        if (dynamic_cast<ABlockingVolume*>(&InActor)) {
+            if (ImGui::CollapsingHeader("Blocking Volume", ImGuiTreeNodeFlags_DefaultOpen))
+                ImGui::TextDisabled("Blocks movement and traces. Its size is the actor's scale, in metres.");
+            return;
+        }
+
+        bool* collision = nullptr;
+        if (InActor.HasComponent<FStaticMeshComponent>())
+            collision = &InActor.GetComponent<FStaticMeshComponent>().bCollision;
+        else if (InActor.HasComponent<FMeshComponent>())
+            collision = &InActor.GetComponent<FMeshComponent>().bCollision;
+        if (!collision)
+            return;
+
+        if (ImGui::CollapsingHeader("Collision", ImGuiTreeNodeFlags_DefaultOpen)) {
+            FEditorWidgets::BeginPropertyGrid();
+            static const bool DefaultCollision = true;
+            if (FEditorWidgets::DrawPropertyCheckbox("Collision", "##MeshCollision", collision, nullptr,
+                                                     &DefaultCollision) &&
+                Context)
+                Context->MarkMapDirty();
+            FEditorWidgets::EndPropertyGrid();
+            if (!*collision)
+                ImGui::TextDisabled("Drawn only. Use Blocking Volumes for its collision.");
         }
     }
 

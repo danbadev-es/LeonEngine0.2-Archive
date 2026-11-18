@@ -313,6 +313,11 @@ namespace Leon {
                 ss << "ReceiveShadows: " << (smc.bReceiveShadows ? "true" : "false") << "\n";
                 Indent(ss, 3);
                 ss << "VisibleInReflection: " << (smc.bVisibleInReflection ? "true" : "false") << "\n";
+                // Written only when off: maps saved before the switch existed read as colliding.
+                if (!smc.bCollision) {
+                    Indent(ss, 3);
+                    ss << "Collision: false\n";
+                }
                 Indent(ss, 3);
                 ss << "Mobility: " << ComponentMobilityToString(smc.Mobility) << "\n";
                 Indent(ss, 3);
@@ -375,6 +380,11 @@ namespace Leon {
                 ss << "ReceiveShadows: " << (mc.bReceiveShadows ? "true" : "false") << "\n";
                 Indent(ss, 3);
                 ss << "VisibleInReflection: " << (mc.bVisibleInReflection ? "true" : "false") << "\n";
+                // Written only when off: maps saved before the switch existed read as colliding.
+                if (!mc.bCollision) {
+                    Indent(ss, 3);
+                    ss << "Collision: false\n";
+                }
                 Indent(ss, 3);
                 ss << "Mobility: " << ComponentMobilityToString(mc.Mobility) << "\n";
                 Indent(ss, 3);

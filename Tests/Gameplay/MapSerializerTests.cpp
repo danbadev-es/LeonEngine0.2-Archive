@@ -2,6 +2,7 @@
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
 #include "Gameplay/UClassRegistry.hpp"
@@ -437,6 +438,42 @@ Actors:
             REQUIRE(restoredStartOn);
             CHECK(restoredStartOn->IsEnabled());
             (void)startOn;
+        }
+
+        TEST_CASE("mesh collision off and blocking volumes are persisted") {
+            auto src = UWorld::Create("Infrastructure");
+            AActor* decoration = src->SpawnActor<AActor>("Decoration");
+            decoration->SetActorLocation({0.0f, 1.0f, 6.0f});
+            decoration->AddComponent<FMeshComponent>().bCollision = false;
+            AActor* solid = src->SpawnActor<AActor>("Solid");
+            solid->SetActorLocation({20.0f, 1.0f, 6.0f});
+            solid->AddComponent<FMeshComponent>();
+            auto* volume = src->SpawnActor<ABlockingVolume>("WallCollision");
+            volume->SetActorLocation({0.0f, 1.0f, 6.0f});
+            volume->SetActorScale({4.0f, 2.0f, 0.5f});
+
+            std::string yaml;
+            REQUIRE(FMapSerializer(src).SerializeText(yaml));
+            // The switch is written only where it is off.
+            CHECK(yaml.find("Collision: false") != std::string::npos);
+            CHECK(yaml.find("Collision: true") == std::string::npos);
+
+            auto dst = UWorld::Create("InfrastructureDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(yaml));
+
+            AActor* restoredDecoration = dst->FindActorByName("Decoration");
+            REQUIRE(restoredDecoration);
+            REQUIRE(restoredDecoration->HasComponent<FMeshComponent>());
+            CHECK_FALSE(restoredDecoration->GetComponent<FMeshComponent>().bCollision);
+            AActor* restoredSolid = dst->FindActorByName("Solid");
+            REQUIRE(restoredSolid);
+            REQUIRE(restoredSolid->HasComponent<FMeshComponent>());
+            CHECK(restoredSolid->GetComponent<FMeshComponent>().bCollision);
+
+            auto* restoredVolume = dynamic_cast<ABlockingVolume*>(dst->FindActorByName("WallCollision"));
+            REQUIRE(restoredVolume);
+            CHECK(restoredVolume->GetActorScale().x == doctest::Approx(4.0f));
+            CHECK(restoredVolume->GetActorScale().z == doctest::Approx(0.5f));
         }
 
         TEST_CASE("fog settings are persisted with the environment only when fog is enabled") {

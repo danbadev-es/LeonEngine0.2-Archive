@@ -13,12 +13,9 @@ namespace Leon {
         Box->SetCollisionObjectType(ECollisionChannel::WorldStatic);
         Box->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
         Box->SetCollisionResponseToAllChannels(ECollisionResponse::Block);
-        Box->SetBoxExtent(GetActorScale() * 0.5f);
+        // Half a metre each way; the box component applies the actor's scale on top.
+        Box->SetBoxExtent(glm::vec3(0.5f));
         SetCanEverTick(false);
-    }
-
-    void ABlockingVolume::Tick(float DeltaSeconds) {
-        (void)DeltaSeconds;
     }
 
 } // namespace Leon

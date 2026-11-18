@@ -102,6 +102,11 @@ namespace Leon {
         bool bReceiveShadows = true;
         bool bVisibleInReflection = true;
         bool bVisible = true;
+        /**
+         * False: the mesh is only drawn. Nothing collides with it and no trace hits it; collision for
+         * that part of the level comes from blocking volumes (ABlockingVolume).
+         */
+        bool bCollision = true;
         EComponentMobility Mobility = EComponentMobility::Static;
         uint32_t LightmapResolution = 64;
         int32_t LightmapIndex = -1;
@@ -142,6 +147,11 @@ namespace Leon {
         bool bReceiveShadows = true;
         bool bVisibleInReflection = true;
         bool bVisible = true;
+        /**
+         * False: the mesh is only drawn. Nothing collides with it and no trace hits it; collision for
+         * that part of the level comes from blocking volumes (ABlockingVolume).
+         */
+        bool bCollision = true;
         EComponentMobility Mobility = EComponentMobility::Static;
         uint32_t LightmapResolution = 64;
         int32_t LightmapIndex = -1; ///< Index into world lightmap atlas entries (-1 = none)
