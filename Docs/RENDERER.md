@@ -113,7 +113,6 @@ shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture 
 
 ## Not done yet
 
-- Instanced drawing of repeated meshes (the OpenGL renderer batched up to 64).
 - GPU timings: the profiler's GPU columns read zero.
 - Shader cache on disk, and a check that each C++ constant structure matches its HLSL block.
 - The sun's shadow bias is a fraction of the cascade's depth range, which is eight times its radius;

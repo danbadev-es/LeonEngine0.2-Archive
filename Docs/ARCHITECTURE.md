@@ -284,7 +284,7 @@ UpdateIBL
 PASS 1: Cascaded Shadow (4-slice D32_Float array)
 PASS 2: Spot shadow (one 2D D32_Float map — `ShadowedSpotIndex` in the runtime spot list)
 PASS 3: Planar reflection (mirrored camera, RGBA16F, shadows disabled, clip plane)
-PASS 4: Opaque HDR geometry RGBA16F — CPU AABB frustum cull, one draw per mesh section
+PASS 4: Opaque HDR geometry RGBA16F — CPU AABB frustum cull, equal draws instanced (up to 64 per call)
          opaque → skinned inverted-hull outline
 PASS 5: Skybox (z = w, depth LessEqual)
 PASS 6: Transparent Blend (back-to-front, depth write off)

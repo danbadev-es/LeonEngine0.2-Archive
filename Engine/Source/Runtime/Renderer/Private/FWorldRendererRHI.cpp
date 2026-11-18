@@ -98,6 +98,8 @@ namespace Leon {
             IRHIPipeline* Pipeline = nullptr;
             IRHIBuffer* Vertices = nullptr;
             IRHIBuffer* Indices = nullptr;
+            /** The same pipeline with the instanced vertex shader; null when the draw cannot be batched. */
+            IRHIPipeline* InstancedPipeline = nullptr;
             const FMaterialInstance* Material = nullptr;
             IRHITexture* Lightmap = nullptr;
             /** Bone matrices of a skinned mesh; null for static geometry. */
@@ -375,6 +377,8 @@ namespace Leon {
         TRef<IRHIShader> surfacePS = FShaderLibrary::Get("PBR_Lit.hlsl", "PSMain", ERHIShaderStage::Pixel);
         TRef<IRHIShader> skinnedVS =
             FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex, {{"SKINNED", "1"}});
+        TRef<IRHIShader> instancedVS =
+            FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex, {{"INSTANCED", "1"}});
         TRef<IRHIShader> outlineVS = FShaderLibrary::Get("Outline_Skinned.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> outlinePS = FShaderLibrary::Get("Outline_Skinned.hlsl", "PSMain", ERHIShaderStage::Pixel);
         TRef<IRHIShader> shadowVS = FShaderLibrary::Get("ShadowDepth.hlsl", "VSMain", ERHIShaderStage::Vertex);
@@ -393,9 +397,10 @@ namespace Leon {
         glm::mat4 collectNormalTransform(1.0f);
 
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
-                                         const glm::mat4& InModel, bool bInTransparent,
-                                         bool bInSkinned) -> IRHIPipeline* {
-            IRHIShader* vertexShader = bInSkinned ? skinnedVS.get() : surfaceVS.get();
+                                         const glm::mat4& InModel, bool bInTransparent, bool bInSkinned,
+                                         bool bInInstanced = false) -> IRHIPipeline* {
+            IRHIShader* vertexShader =
+                bInSkinned ? skinnedVS.get() : (bInInstanced ? instancedVS.get() : surfaceVS.get());
             if (!vertexShader || !surfacePS)
                 return nullptr;
             const FMaterialPipelineState& materialState = InMaterial.GetPipelineState();
@@ -419,7 +424,8 @@ namespace Leon {
             std::string key = std::to_string(desc.VertexLayout.Stride);
             for (const FRHIVertexAttribute& attribute : desc.VertexLayout.Attributes)
                 key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
-            key += std::string(bInSkinned ? "|skinned" : "") + (bWireframeEnabled ? "|wire" : "") + "|c" +
+            key += std::string(bInSkinned ? "|skinned" : "") + (bInInstanced ? "|instanced" : "") +
+                   (bWireframeEnabled ? "|wire" : "") + "|c" +
                    std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
                    std::to_string(static_cast<int>(desc.Depth.Compare)) + (bInTransparent ? "t" : "o") +
                    std::to_string(static_cast<int>(desc.Blend.SrcColor)) + "," +
@@ -432,7 +438,7 @@ namespace Leon {
             desc.PixelShader = surfacePS.get();
             desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
             desc.DepthFormat = ERHIFormat::D32_Float;
-            desc.DebugName = bInSkinned ? "SkinnedSurface" : "Surface";
+            desc.DebugName = bInSkinned ? "SkinnedSurface" : (bInInstanced ? "InstancedSurface" : "Surface");
             TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
             state.SurfacePipelines[key] = pipeline;
             return pipeline.get();
@@ -505,6 +511,9 @@ namespace Leon {
             const bool bTransparent = InMaterial->GetAlphaMode() == EAlphaMode::Blend;
             FSceneDraw draw;
             draw.Pipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent, InBones != nullptr);
+            // Blended surfaces are drawn back to front one by one, and skinned ones have their own palette.
+            if (bInstancingEnabled && !bTransparent && !InBones)
+                draw.InstancedPipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, false, false, true);
             draw.Bones = InBones;
             draw.bReceiveShadows = bInReceiveShadows;
             draw.Vertices = GetRHIVertexBuffer(InVertexArray);
@@ -691,7 +700,12 @@ namespace Leon {
                 return InA.Pipeline < InB.Pipeline;
             if (InA.Material != InB.Material)
                 return InA.Material < InB.Material;
-            return InA.Vertices < InB.Vertices;
+            if (InA.Vertices != InB.Vertices)
+                return InA.Vertices < InB.Vertices;
+            // Sections of one mesh and lightmap charts next to each other, so equal draws form runs.
+            if (InA.FirstIndex != InB.FirstIndex)
+                return InA.FirstIndex < InB.FirstIndex;
+            return InA.Lightmap < InB.Lightmap;
         });
         std::sort(transparent.begin(), transparent.end(),
                   [](const FSceneDraw& InA, const FSceneDraw& InB) { return InA.DistanceSq > InB.DistanceSq; });
@@ -952,10 +966,26 @@ namespace Leon {
             IRHITexture* boundLightmap = nullptr;
             const std::vector<glm::mat4>* boundBones = nullptr;
             bool bLightmapBound = false;
-            for (const FSceneDraw& draw : InDraws) {
-                if (draw.Pipeline != boundPipeline) {
-                    InCommands.SetPipeline(draw.Pipeline);
-                    boundPipeline = draw.Pipeline;
+            // Draws that differ only in their transform: one call for the run, a transform per instance.
+            const auto sameBatch = [](const FSceneDraw& InA, const FSceneDraw& InB) {
+                return InA.InstancedPipeline && InA.InstancedPipeline == InB.InstancedPipeline &&
+                       InA.Pipeline == InB.Pipeline && InA.Material == InB.Material && InA.Vertices == InB.Vertices &&
+                       InA.Indices == InB.Indices && InA.Lightmap == InB.Lightmap && !InA.Bones && !InB.Bones &&
+                       InA.IndexCount == InB.IndexCount && InA.FirstIndex == InB.FirstIndex &&
+                       InA.bReceiveShadows == InB.bReceiveShadows && InA.bPlanar == InB.bPlanar &&
+                       InA.LightmapScale == InB.LightmapScale && InA.LightmapBias == InB.LightmapBias;
+            };
+            static FInstanceConstants instances;
+            for (size_t index = 0; index < InDraws.size();) {
+                const FSceneDraw& draw = InDraws[index];
+                uint32_t instanceCount = 1;
+                while (instanceCount < kMaxInstances && index + instanceCount < InDraws.size() &&
+                       sameBatch(draw, InDraws[index + instanceCount]))
+                    ++instanceCount;
+                IRHIPipeline* pipeline = instanceCount > 1 ? draw.InstancedPipeline : draw.Pipeline;
+                if (pipeline != boundPipeline) {
+                    InCommands.SetPipeline(pipeline);
+                    boundPipeline = pipeline;
                 }
                 if (draw.Material != boundMaterial) {
                     const FMaterialBinding& binding = materialBindings.at(draw.Material);
@@ -985,6 +1015,15 @@ namespace Leon {
                     SetBonePalette(InCommands, *draw.Bones);
                     boundBones = draw.Bones;
                 }
+                if (instanceCount > 1) {
+                    for (uint32_t i = 0; i < instanceCount; ++i) {
+                        instances.Instances[i].Model = InDraws[index + i].Model;
+                        instances.Instances[i].NormalMatrix = InDraws[index + i].NormalMatrix;
+                    }
+                    // The whole block: the shader declares all of it. It takes the palette's register.
+                    InCommands.SetConstants(ERHIConstantSlot::Extra, &instances, sizeof(instances));
+                    boundBones = nullptr;
+                }
                 FDrawConstants constants;
                 constants.Model = draw.Model;
                 constants.NormalMatrix = draw.NormalMatrix;
@@ -992,10 +1031,11 @@ namespace Leon {
                 constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, (draw.bReceiveShadows && !bInCapture) ? 1 : 0,
                                                  (draw.bPlanar && !bInCapture) ? 1 : 0);
                 InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
-                InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex);
+                InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex, 0, instanceCount);
                 FRenderStats& stats = FRenderer::GetStatsMutable();
                 ++stats.DrawCalls;
-                stats.TriangleCount += draw.IndexCount / 3;
+                stats.TriangleCount += (draw.IndexCount / 3) * instanceCount;
+                index += instanceCount;
             }
             InCommands.PopMarker();
         };

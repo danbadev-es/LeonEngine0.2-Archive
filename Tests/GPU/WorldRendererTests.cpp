@@ -6,6 +6,7 @@
 #include "RHI/FFrameProfiler.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FRHIFrame.hpp"
+#include "RHI/FRenderer.hpp"
 #include "RHI/IRHIDevice.hpp"
 #include "RHI/IRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
@@ -19,6 +20,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <vector>
 
@@ -289,6 +291,54 @@ namespace Leon {
             CHECK(image.Luma(60, 10) < 0.5f);
             CHECK(NewValidationErrors() == 0);
         }
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "Copies of one mesh are drawn in one call and look the same") {
+            REQUIRE(bReady);
+            // A row of small boxes sharing one mesh and one material, each turned a little more.
+            const TRef<FVertexArray> cube = FMeshPrimitives::CreateCube(0.35f);
+            const TRef<FMaterialInstance> blue = FloorMaterial->GetParent()->CreateInstance("Copies");
+            blue->SetAlbedoColor({0.1f, 0.2f, 0.9f});
+            const int copies = 12;
+            for (int i = 0; i < copies; ++i) {
+                AActor* copy = World->SpawnActor<AActor>("Copy");
+                copy->SetActorLocation({-2.75f + 0.5f * static_cast<float>(i), 0.25f, 2.0f});
+                copy->SetActorRotation({0.0f, 7.0f * static_cast<float>(i), 0.0f});
+                auto& mesh = copy->AddComponent<FMeshComponent>(cube);
+                mesh.MeshSize = 0.35f;
+                mesh.Mobility = EComponentMobility::Static;
+                copy->AddComponent<FMaterialComponent>(blue);
+            }
+            FWorldRenderer* renderer = World->GetWorldRenderer();
+
+            REQUIRE(renderer->IsInstancingEnabled());
+            const FImage batched = Render();
+            const uint32_t batchedCalls = FRenderer::GetStats().DrawCalls;
+            const uint32_t batchedTriangles = FRenderer::GetStats().TriangleCount;
+
+            renderer->SetInstancingEnabled(false);
+            const FImage separate = Render();
+            const uint32_t separateCalls = FRenderer::GetStats().DrawCalls;
+
+            // The twelve boxes cost one call instead of twelve, and nothing else changed.
+            CHECK(separateCalls - batchedCalls == static_cast<uint32_t>(copies - 1));
+            CHECK(FRenderer::GetStats().TriangleCount == batchedTriangles);
+
+            // The boxes are there (blue, in front of the red one) and the two frames are the same picture.
+            const uint8_t* box = batched.At(kWidth / 2 + 6, kHeight * 3 / 4);
+            CAPTURE(static_cast<int>(box[0]));
+            CAPTURE(static_cast<int>(box[2]));
+            int worst = 0;
+            bool bAnyBlue = false;
+            for (size_t i = 0; i < batched.Pixels.size(); i += 4) {
+                for (int channel = 0; channel < 3; ++channel)
+                    worst = std::max(worst, std::abs(static_cast<int>(batched.Pixels[i + channel]) -
+                                                     static_cast<int>(separate.Pixels[i + channel])));
+                bAnyBlue = bAnyBlue || (batched.Pixels[i + 2] > 90 && batched.Pixels[i + 2] > 2 * batched.Pixels[i]);
+            }
+            CHECK(bAnyBlue);
+            CHECK(worst <= 1);
+            CHECK(NewValidationErrors() == 0);
+        }
+
         TEST_CASE_FIXTURE(FWorldRenderFixture, "The GPU time of each stage reaches the frame profiler") {
             REQUIRE(bReady);
             // Results lag by the frames the device keeps in flight: draw a few.

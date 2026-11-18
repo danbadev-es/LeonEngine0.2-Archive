@@ -1,10 +1,9 @@
 // Physically based surface shading: material textures, direct lights, baked lightmaps,
 // image-based lighting and fog. Writes linear HDR colour; tone mapping happens afterwards.
 //
-// Compiled twice: as is for static geometry, and with SKINNED defined for meshes that follow a
-// skeleton (two more vertex inputs and the bone palette).
-//
-// Not brought over from the OpenGL renderer yet: instancing.
+// Compiled three times: as is for static geometry; with SKINNED defined for meshes that follow a
+// skeleton (two more vertex inputs and the bone palette); and with INSTANCED defined to draw several
+// copies of one mesh in a single call, each with its own transform.
 
 #include "PBR_Common.hlsli"
 #include "Shadows.hlsli"
@@ -37,6 +36,21 @@ cbuffer DrawConstants : register(b3) {
     int4 u_DrawFlags;           // x = has lightmap, y = lightmap uses the first UV set, z = receives shadows, w = shows planar reflections
 };
 
+#ifdef INSTANCED
+#define MAX_INSTANCES 64
+
+struct FInstance {
+    float4x4 Model;
+    float4x4 NormalMatrix;
+};
+
+// Mirrors FInstanceConstants in FShaderConstants.hpp. Takes the register the bone palette uses:
+// a draw is skinned or instanced, never both.
+cbuffer InstanceConstants : register(b4) {
+    FInstance u_Instances[MAX_INSTANCES];
+};
+#endif
+
 Texture2D<float4> t_Albedo : register(t0);
 Texture2D<float4> t_Normal : register(t1);
 Texture2D<float4> t_Metallic : register(t2);
@@ -60,6 +74,9 @@ struct FVertexInput {
 #ifdef SKINNED
     int4 BoneIndices : ATTRIBUTE6;
     float4 BoneWeights : ATTRIBUTE7;
+#endif
+#ifdef INSTANCED
+    uint InstanceId : SV_InstanceID;
 #endif
 };
 
@@ -114,8 +131,14 @@ FVertexOutput VSMain(FVertexInput InVertex) {
     const float3 localNormal = InVertex.Normal;
     const float3 localTangent = InVertex.Tangent.xyz;
 #endif
-    const float4 worldPosition = mul(u_Model, localPosition);
+#ifdef INSTANCED
+    const float4x4 model = u_Instances[InVertex.InstanceId].Model;
+    const float3x3 normalMatrix = (float3x3)u_Instances[InVertex.InstanceId].NormalMatrix;
+#else
+    const float4x4 model = u_Model;
     const float3x3 normalMatrix = (float3x3)u_NormalMatrix;
+#endif
+    const float4 worldPosition = mul(model, localPosition);
 
     const float3 N = SafeNormalize(mul(normalMatrix, localNormal), float3(0.0, 1.0, 0.0));
     float3 T = SafeNormalize(mul(normalMatrix, localTangent), float3(1.0, 0.0, 0.0));

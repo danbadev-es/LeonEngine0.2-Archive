@@ -62,6 +62,13 @@ namespace Leon {
         void SetWireframeEnabled(bool bEnabled) { bWireframeEnabled = bEnabled; }
         bool IsWireframeEnabled() const { return bWireframeEnabled; }
 
+        /**
+         * Opaque static meshes that share geometry, material and lightmap are drawn together, up to 64
+         * per call. On by default; off draws each on its own (to compare, or to rule instancing out).
+         */
+        void SetInstancingEnabled(bool bEnabled) { bInstancingEnabled = bEnabled; }
+        bool IsInstancingEnabled() const { return bInstancingEnabled; }
+
         FPostProcessSettings& GetPostProcessSettings() { return PostProcessSettings; }
         const FPostProcessSettings& GetPostProcessSettings() const { return PostProcessSettings; }
 
@@ -139,6 +146,7 @@ namespace Leon {
         uint32_t ViewportHeight = 720;
         int DebugMode = 0;
         bool bWireframeEnabled = false;
+        bool bInstancingEnabled = true;
 
         // Planar reflections. The mirrored cameras are chosen in UpdateViewState.
         bool bEnablePlanarReflection = true;

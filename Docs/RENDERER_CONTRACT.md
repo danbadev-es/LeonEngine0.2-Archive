@@ -223,7 +223,7 @@ Post-process `FPostProcessSettings::DebugMode` 5 visualizes SSAO (grayscale) bef
 
 ## Limitations
 
-- Forward renderer. One draw per mesh section: instancing of repeated meshes has not been brought over from the OpenGL renderer yet. No clustered lights, VSM, or GPU-driven path.
+- Forward renderer. Opaque static draws that share mesh section, material and lightmap are drawn instanced, up to 64 per call (`FWorldRenderer::SetInstancingEnabled`). No clustered lights, VSM, or GPU-driven path.
 - At most 16 point lights and 8 spot lights in the pass constants; one shadowed spotlight. Excess lights are dropped with a per-frame warning.
 - Opaque: camera frustum AABB cull. Shadow casters: light-space AABB cull per cascade / spot.
 - Alpha-masked shadow casters: `EAlphaMode::Mask` clips in CSM and spot for procedural, static, and skinned meshes.

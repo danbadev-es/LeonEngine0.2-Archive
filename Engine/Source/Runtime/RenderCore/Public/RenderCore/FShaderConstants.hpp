@@ -110,6 +110,17 @@ namespace Leon {
         glm::ivec4 DrawFlags;
     };
 
+    /** Copies of one mesh drawn in a single call (PBR_Lit.hlsl compiled with INSTANCED). */
+    inline constexpr uint32_t kMaxInstances = 64;
+
+    struct FInstanceConstants { // PBR_Lit.hlsl: InstanceConstants (b4)
+        struct FInstance {
+            glm::mat4 Model{1.0f};
+            glm::mat4 NormalMatrix{1.0f};
+        };
+        FInstance Instances[kMaxInstances];
+    };
+
     struct FOutlineConstants { // Outline_Skinned.hlsl
         glm::vec4 ColorWidth;
     };
