@@ -115,7 +115,7 @@ namespace Leon {
         return {{EShaderDataType::Float3, "aPos"},       {EShaderDataType::Float3, "aNormal"},
                 {EShaderDataType::Float2, "aTexCoord"},  {EShaderDataType::Float4, "aTangent"},
                 {EShaderDataType::Float3, "aColor"},     {EShaderDataType::Float2, "aLightmapUV"},
-                {EShaderDataType::Int4, "aBoneIndices"}, {EShaderDataType::Float4, "aBoneWeights"}};
+                {EShaderDataType::Int4AsFloat, "aBoneIndices"}, {EShaderDataType::Float4, "aBoneWeights"}};
     }
 
     /**

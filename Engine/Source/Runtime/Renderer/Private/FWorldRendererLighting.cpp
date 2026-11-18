@@ -254,8 +254,11 @@ namespace Leon {
 
         SpotShadowFramebuffer->Bind();
         FRenderCommand::SetViewport(0, 0, ShadowSettings.SpotResolution, ShadowSettings.SpotResolution);
-        FRenderCommand::Clear();
+        // Depth writes must be on before clearing: a clear with the depth mask off (left that way by
+        // the previous frame's transparent or UI pass) leaves the map untouched, and with no sun
+        // pass running first to restore the state every surface then reads as shadowed.
         ResetDefaultMeshRasterState();
+        FRenderCommand::Clear();
         FRenderCommand::SetPolygonOffset(true, 2.0f, 4.0f);
         DrawShadowCasters(spotLightSpace, false, 0.0f, glm::vec3(0.0f), true);
         FRenderCommand::SetPolygonOffset(false);

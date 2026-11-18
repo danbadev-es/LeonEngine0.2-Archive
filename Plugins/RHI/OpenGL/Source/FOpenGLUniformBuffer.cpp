@@ -21,6 +21,10 @@ namespace Leon {
 
     void FOpenGLUniformBuffer::SetData(const void* InData, uint32_t InSize, uint32_t InOffset) {
         glNamedBufferSubData(RendererID, InOffset, InSize, InData);
+        // Re-attach the buffer to its binding point after every write. A buffer rewritten several
+        // times per frame (one bone palette per skinned mesh) was otherwise read one update late by
+        // the Intel UHD driver: each mesh was drawn with the palette of the mesh before it.
+        glBindBufferBase(GL_UNIFORM_BUFFER, Binding, RendererID);
     }
 
 } // namespace Leon

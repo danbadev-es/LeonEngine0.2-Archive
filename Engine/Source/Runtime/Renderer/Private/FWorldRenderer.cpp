@@ -353,6 +353,11 @@ namespace Leon {
             shadowedSpotComp = spotComps[static_cast<size_t>(shadowedSpotIndex)];
             shadowedSpotPos = spotLights[static_cast<size_t>(shadowedSpotIndex)].Position;
         }
+        // A spot light that opted out of shadows: no shadow pass, and no light index matches in the
+        // shader, so it shades unshadowed.
+        const bool bSpotCastsShadow = bHasSpotLight && shadowedSpotComp.bCastShadows;
+        if (!bSpotCastsShadow)
+            shadowedSpotIndex = -1;
 
         FSkyboxComponent skybox;
         bool bHasSkybox = false;
@@ -449,7 +454,7 @@ namespace Leon {
         const uint32_t drawsBeforeShadow = FRenderer::GetStats().DrawCalls;
         const bool bShadowsOn = ShadowSettings.bEnableShadows;
         if (bShadowsOn &&
-            ((bHasDirLight && ShadowSettings.CascadeCount > 0) || bHasSpotLight || shadowedPointCount > 0)) {
+            ((bHasDirLight && ShadowSettings.CascadeCount > 0) || bSpotCastsShadow || shadowedPointCount > 0)) {
             FGpuCpuScope shadow(&FFrameProfiler::Working().ShadowMs, EGPUTimerSlot::Shadow);
             // Flow: skinned shadow budget
             // 1. Rank visible skinned casters by camera distance
@@ -458,7 +463,7 @@ namespace Leon {
             RefreshSkinnedShadowCasterSelection(InCamera.GetPosition());
             if (bHasDirLight && ShadowSettings.CascadeCount > 0)
                 RenderCascadedShadowPass(InCamera, &dirLightComp, mainCamData);
-            if (bHasSpotLight)
+            if (bSpotCastsShadow)
                 RenderSpotShadowPass(&shadowedSpotComp, shadowedSpotPos, mainCamData);
             if (shadowedPointCount > 0)
                 RenderPointShadowPass(shadowedPointPos, shadowedPointRadius, shadowedPointCount);

@@ -7,7 +7,7 @@ layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec4 aTangent;
 layout(location = 4) in vec3 aColor;
 layout(location = 5) in vec2 aLightmapUV;
-layout(location = 6) in ivec4 aBoneIndices;
+layout(location = 6) in vec4 aBoneIndices; // integers delivered as floats (Int4AsFloat)
 layout(location = 7) in vec4 aBoneWeights;
 
 out vec2 v_TexCoord;
@@ -23,10 +23,11 @@ uniform vec2 u_UVTiling = vec2(1.0, 1.0);
 uniform vec2 u_UVOffset = vec2(0.0, 0.0);
 
 mat4 SkinMatrix() {
-    return u_Bones[aBoneIndices.x] * aBoneWeights.x
-         + u_Bones[aBoneIndices.y] * aBoneWeights.y
-         + u_Bones[aBoneIndices.z] * aBoneWeights.z
-         + u_Bones[aBoneIndices.w] * aBoneWeights.w;
+    ivec4 bone = clamp(ivec4(aBoneIndices + 0.5), ivec4(0), ivec4(127));
+    return u_Bones[bone.x] * aBoneWeights.x
+         + u_Bones[bone.y] * aBoneWeights.y
+         + u_Bones[bone.z] * aBoneWeights.z
+         + u_Bones[bone.w] * aBoneWeights.w;
 }
 
 void main() {

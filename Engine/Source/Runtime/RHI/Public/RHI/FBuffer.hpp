@@ -8,7 +8,14 @@
 
 namespace Leon {
 
-    enum class EShaderDataType { None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool };
+    /**
+     * Int4AsFloat: four 32-bit integers in the buffer, delivered to the shader as a float vec4
+     * (declare the input as `vec4`). Use it for small integers such as bone indices: true integer
+     * attributes (`ivec4`) are not delivered reliably by every OpenGL driver.
+     */
+    enum class EShaderDataType {
+        None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool, Int4AsFloat
+    };
 
     inline unsigned int ShaderDataTypeSize(EShaderDataType InType) {
         switch (InType) {
@@ -31,6 +38,7 @@ namespace Leon {
         case EShaderDataType::Int3:
             return 4 * 3;
         case EShaderDataType::Int4:
+        case EShaderDataType::Int4AsFloat:
             return 4 * 4;
         case EShaderDataType::Bool:
             return 1;
@@ -73,6 +81,7 @@ namespace Leon {
             case EShaderDataType::Int3:
                 return 3;
             case EShaderDataType::Int4:
+            case EShaderDataType::Int4AsFloat:
                 return 4;
             case EShaderDataType::Bool:
                 return 1;

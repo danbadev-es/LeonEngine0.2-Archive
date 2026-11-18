@@ -44,6 +44,22 @@ namespace Leon {
             TargetLocation = DesiredLocation;
         }
 
+        if (bSmoothRecovery) {
+            const glm::vec3 arm = DesiredLocation - origin;
+            const float fullLength = glm::length(arm);
+            if (fullLength > 1e-4f) {
+                const float allowed = glm::clamp(glm::length(TargetLocation - origin) / fullLength, 0.0f, 1.0f);
+                if (SmoothedFraction < 0.0f || allowed <= SmoothedFraction)
+                    SmoothedFraction = allowed; // blocked (or first use): follow immediately
+                else
+                    SmoothedFraction =
+                        std::min(allowed, SmoothedFraction + RecoverySpeed * PendingRecoverySeconds / fullLength);
+                TargetLocation = origin + arm * SmoothedFraction;
+            }
+            // Several views may be computed in one frame; only the first one spends the time.
+            PendingRecoverySeconds = 0.0f;
+        }
+
         if (FGameplayDebugger::ShowCharacter() && FGameplayDebugger::IsEnabled()) {
             FDebugRenderer::DrawDebugLine(origin, DesiredLocation, glm::vec4(0.2f, 0.8f, 1.0f, 1.0f));
             FDebugRenderer::DrawDebugSphere(DesiredLocation, ProbeSize, glm::vec4(0.2f, 0.8f, 1.0f, 0.5f));

@@ -20,6 +20,7 @@ namespace Leon {
         case EShaderDataType::Int2:
         case EShaderDataType::Int3:
         case EShaderDataType::Int4:
+        case EShaderDataType::Int4AsFloat:
             return GL_INT;
         case EShaderDataType::Bool:
             return GL_BOOL;
@@ -62,7 +63,8 @@ namespace Leon {
             case EShaderDataType::Float:
             case EShaderDataType::Float2:
             case EShaderDataType::Float3:
-            case EShaderDataType::Float4: {
+            case EShaderDataType::Float4:
+            case EShaderDataType::Int4AsFloat: { // GL_INT source, non-normalised: converted to float
                 glEnableVertexArrayAttrib(RendererID, VertexBufferIndex);
                 glVertexArrayAttribFormat(RendererID, VertexBufferIndex, element.GetComponentCount(),
                                           ShaderDataTypeToOpenGLBaseType(element.Type),

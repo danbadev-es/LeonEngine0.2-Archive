@@ -221,6 +221,8 @@ namespace Leon {
         FSpotLight Light;
         bool bEnabled = true;
         ELightMobility Mobility = ELightMobility::Movable;
+        /** When false this light never takes the (single) spot shadow map: it lights without shadows. */
+        bool bCastShadows = true;
 
         FSpotLightComponent() = default;
         FSpotLightComponent(const FSpotLightComponent&) = default;
