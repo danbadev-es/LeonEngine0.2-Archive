@@ -12,7 +12,7 @@
 #include "Editor/UI/FEditorTheme.hpp"
 #include "Editor/UI/FLucideIcons.hpp"
 #include "Engine/Components.hpp"
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 #include "Gameplay/APlayerCameraManager.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerStart.hpp"

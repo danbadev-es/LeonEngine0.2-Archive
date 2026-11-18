@@ -1,5 +1,4 @@
 #include "Physics/IPhysicsScene.hpp"
-#include "Physics/FSimplePhysicsScene.hpp"
 
 namespace Leon {
 
@@ -23,9 +22,7 @@ namespace Leon {
     }
 
     TRef<IPhysicsScene> FPhysicsModule::CreateScene() {
-        if (FactorySlot())
-            return FactorySlot()();
-        return CreateRef<FSimplePhysicsScene>();
+        return FactorySlot() ? FactorySlot()() : nullptr;
     }
 
 } // namespace Leon

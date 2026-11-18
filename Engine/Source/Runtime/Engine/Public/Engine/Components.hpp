@@ -15,7 +15,7 @@
 #include "Assets/FLODSettings.hpp"
 #include "Assets/USkeletalMesh.hpp"
 #include "Engine/EMobility.hpp"
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FVertexArray.hpp"
 

@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "Assets/UStaticMesh.hpp"
-#include "Physics/FCollisionQuery.hpp"
+#include "Engine/FCollisionQuery.hpp"
 
 #include <glm/glm.hpp>
 

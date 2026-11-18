@@ -131,6 +131,25 @@ leon_add_module(Assets
 )
 target_include_directories(LeonModule_Assets PRIVATE "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb")
 
+# The audio device and sound data. The component that plays sounds on an actor is in Gameplay.
+leon_add_module(Audio
+    SOURCES
+    Source/Runtime/Audio/Private/FAudioDevice.cpp
+    Source/Runtime/Audio/Private/USoundWave.cpp
+    DEPENDS Core
+    PRIVATE_LIBRARIES miniaudio
+)
+
+# The physics interface a backend implements (Jolt is a plugin), collision vocabulary and physics
+# assets. The engine's own simple scene and the world queries live with the world.
+leon_add_module(Physics
+    SOURCES
+    Source/Runtime/Physics/Private/FPhysicsModule.cpp
+    Source/Runtime/Physics/Private/UPhysicalMaterial.cpp
+    Source/Runtime/Physics/Private/UPhysicsAsset.cpp
+    DEPENDS Core Assets
+)
+
 # --- Everything above them still builds as one library. These modules include each other in
 # --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
 set(LEON_ENGINE_SOURCES
@@ -165,9 +184,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/UMG/Private/UScrollBox.cpp
     Source/Runtime/UMG/Private/UTableView.cpp
     Source/Runtime/UMG/Private/ULoadingSpinner.cpp
-    Source/Runtime/Audio/Private/FAudioDevice.cpp
-    Source/Runtime/Audio/Private/USoundWave.cpp
-    Source/Runtime/Audio/Private/UAudioComponent.cpp
+    Source/Runtime/Gameplay/Private/UAudioComponent.cpp
     Source/Runtime/Engine/Private/UEngine.cpp
     Source/Runtime/Engine/Private/UEngineTravel.cpp
     Source/Runtime/Engine/Private/FGameplaySession.cpp
@@ -211,10 +228,8 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Gameplay/Private/UAnimInstance.cpp
     Source/Runtime/Gameplay/Private/USkeletalMeshComponent.cpp
     Source/Runtime/Gameplay/Private/FAnimStateMachine.cpp
-    Source/Runtime/Physics/Private/FPhysicsModule.cpp
-    Source/Runtime/Physics/Private/FSimplePhysicsScene.cpp
-    Source/Runtime/Physics/Private/FCollisionQuery.cpp
-    Source/Runtime/Physics/Private/UPhysicalMaterial.cpp
+    Source/Runtime/Engine/Private/FSimplePhysicsScene.cpp
+    Source/Runtime/Engine/Private/FCollisionQuery.cpp
     Source/Runtime/Gameplay/Private/UPrimitiveComponent.cpp
     Source/Runtime/Gameplay/Private/UNavMovementComponent.cpp
     Source/Runtime/Gameplay/Private/UCharacterMovementComponent.cpp
@@ -240,7 +255,6 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/AI/Private/UNavigationSystem.cpp
     Source/Runtime/AI/Private/UPathFollowingComponent.cpp
     Source/Runtime/AI/Private/UAIPerceptionComponent.cpp
-    Source/Runtime/Physics/Private/UPhysicsAsset.cpp
 )
 
 add_library(LeonEngineCore STATIC ${LEON_ENGINE_SOURCES})
@@ -259,9 +273,7 @@ target_include_directories(LeonEngineCore
         "${LEON_RUNTIME_ROOT}/UMG/Public"
         "${LEON_RUNTIME_ROOT}/Engine/Public"
         "${LEON_RUNTIME_ROOT}/Gameplay/Public"
-        "${LEON_RUNTIME_ROOT}/Physics/Public"
         "${LEON_RUNTIME_ROOT}/AI/Public"
-        "${LEON_RUNTIME_ROOT}/Audio/Public"
         "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb"
     PRIVATE
         "${LEON_RUNTIME_ROOT}/Lightmass/Public"
@@ -277,6 +289,8 @@ target_link_libraries(LeonEngineCore
         LeonModule_ShaderCompiler
         LeonModule_RenderCore
         LeonModule_Assets
+        LeonModule_Audio
+        LeonModule_Physics
         glfw
         glm::glm
         EnTT::EnTT

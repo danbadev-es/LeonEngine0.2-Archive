@@ -2,7 +2,7 @@
 #include "Engine/UWorld.hpp"
 #include "Gameplay/ANavMeshBoundsVolume.hpp"
 #include "Physics/FHitResult.hpp"
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FFrameProfiler.hpp"

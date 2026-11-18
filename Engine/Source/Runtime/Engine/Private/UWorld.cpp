@@ -21,6 +21,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Gameplay/USkeletalMeshComponent.hpp"
+#include "Engine/FSimplePhysicsScene.hpp"
 #include "Physics/IPhysicsScene.hpp"
 #include "AI/UNavigationSystem.hpp"
 #include <algorithm>
@@ -29,12 +30,23 @@
 
 namespace Leon {
 
+    namespace {
+
+        /** The registered physics backend, or the engine's own simple scene when there is none. */
+        TRef<IPhysicsScene> CreatePhysicsScene() {
+            if (TRef<IPhysicsScene> scene = FPhysicsModule::CreateScene())
+                return scene;
+            return CreateRef<FSimplePhysicsScene>();
+        }
+
+    } // namespace
+
     TRef<UWorld> UWorld::Create(const std::string& InName) {
         return CreateRef<UWorld>(InName);
     }
 
     UWorld::UWorld(const std::string& InName) : UObject(InName) {
-        PhysicsScene = FPhysicsModule::CreateScene();
+        PhysicsScene = CreatePhysicsScene();
         if (PhysicsScene)
             PhysicsScene->SetWorld(this);
     }
@@ -163,7 +175,7 @@ namespace Leon {
 
     void UWorld::InitWorld() {
         if (!PhysicsScene) {
-            PhysicsScene = FPhysicsModule::CreateScene();
+            PhysicsScene = CreatePhysicsScene();
             if (PhysicsScene)
                 PhysicsScene->SetWorld(this);
         }

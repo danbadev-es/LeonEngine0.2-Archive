@@ -1,4 +1,4 @@
-#include "Audio/UAudioComponent.hpp"
+#include "Gameplay/UAudioComponent.hpp"
 #include "Audio/FAudioDevice.hpp"
 #include "Audio/USoundWave.hpp"
 #include "Gameplay/AActor.hpp"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 
 #include <array>
 #include <cstdint>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Gameplay/UActorComponent.hpp"
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 
 #include <glm/glm.hpp>
 

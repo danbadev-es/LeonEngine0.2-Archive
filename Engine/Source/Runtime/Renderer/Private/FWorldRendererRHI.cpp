@@ -24,7 +24,7 @@
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/FGameplayDebugger.hpp"
-#include "Physics/FCollisionQuery.hpp"
+#include "Engine/FCollisionQuery.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FRenderer.hpp"

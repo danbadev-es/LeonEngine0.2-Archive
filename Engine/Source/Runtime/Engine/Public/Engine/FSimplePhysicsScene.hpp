@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Physics/FCollisionQuery.hpp"
+#include "Engine/FCollisionQuery.hpp"
 #include "Physics/IPhysicsScene.hpp"
 
 #include <memory>

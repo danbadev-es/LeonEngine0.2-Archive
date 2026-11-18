@@ -2,7 +2,7 @@
 
 #include "Audio/FAudioDevice.hpp"
 #include "Audio/USoundWave.hpp"
-#include "Audio/UAudioComponent.hpp"
+#include "Gameplay/UAudioComponent.hpp"
 #include "Core/FProjectPaths.hpp"
 
 #include <cstdlib>

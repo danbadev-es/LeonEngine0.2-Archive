@@ -29,7 +29,7 @@
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Core/FWorldUnits.hpp"
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UEngine.hpp"
 #include "LeonTournamentTestSetup.hpp"

@@ -206,6 +206,7 @@ namespace Leon {
         using FCreateScene = std::function<TRef<IPhysicsScene>()>;
         static void Register(FCreateScene InFactory);
         static void Unregister();
+        /** A scene of the registered backend; null when there is none (worlds then use their built-in scene). */
         static TRef<IPhysicsScene> CreateScene();
         static bool IsRegistered();
     };

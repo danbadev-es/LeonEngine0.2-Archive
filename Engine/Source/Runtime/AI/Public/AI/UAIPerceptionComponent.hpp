@@ -2,7 +2,7 @@
 
 #include "Gameplay/UActorComponent.hpp"
 #include "Gameplay/TWeakObjectPtr.hpp"
-#include "Engine/ECollisionChannel.hpp"
+#include "Physics/ECollisionChannel.hpp"
 
 #include <functional>
 #include <glm/glm.hpp>
