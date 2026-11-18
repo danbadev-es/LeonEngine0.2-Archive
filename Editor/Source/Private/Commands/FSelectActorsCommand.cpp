@@ -5,23 +5,24 @@ namespace Leon::Editor {
 
     FSelectActorsCommand::FSelectActorsCommand(FEditorSelection* InSelection, std::vector<AActor*> InBefore,
                                                std::vector<AActor*> InAfter)
-        : Selection(InSelection), Before(std::move(InBefore)), After(std::move(InAfter)) {
-        if (After.empty())
+        : Selection(InSelection), Before(MakeActorRefs(InBefore)), After(MakeActorRefs(InAfter)) {
+        if (InAfter.empty())
             Description = "Select None";
-        else if (After.size() == 1 && After[0])
-            Description = "Select " + After[0]->GetName();
+        else if (InAfter.size() == 1 && InAfter[0])
+            Description = "Select " + InAfter[0]->GetName();
         else
-            Description = "Select " + std::to_string(After.size()) + " Actors";
+            Description = "Select " + std::to_string(InAfter.size()) + " Actors";
     }
 
+    // Actors deleted since the command was recorded are simply left out of the restored selection.
     void FSelectActorsCommand::Execute() {
         if (Selection)
-            Selection->SetSelectedActors(After);
+            Selection->SetSelectedActors(ResolveActorRefs(After));
     }
 
     void FSelectActorsCommand::Undo() {
         if (Selection)
-            Selection->SetSelectedActors(Before);
+            Selection->SetSelectedActors(ResolveActorRefs(Before));
     }
 
 } // namespace Leon::Editor

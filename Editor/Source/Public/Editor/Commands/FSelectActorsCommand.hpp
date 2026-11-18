@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Editor/Commands/FActorRef.hpp"
 #include "Editor/Commands/IEditorCommand.hpp"
 #include "Gameplay/AActor.hpp"
 
@@ -23,8 +24,8 @@ namespace Leon::Editor {
 
     private:
         FEditorSelection* Selection = nullptr;
-        std::vector<AActor*> Before;
-        std::vector<AActor*> After;
+        std::vector<FActorRef> Before;
+        std::vector<FActorRef> After;
         std::string Description;
     };
 

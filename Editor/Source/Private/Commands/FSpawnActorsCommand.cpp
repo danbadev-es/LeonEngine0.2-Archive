@@ -7,13 +7,13 @@ namespace Leon::Editor {
                                              std::vector<AActor*> InActors)
         : World(InWorld), Selection(InSelection) {
         if (Selection)
-            PreviousSelection = Selection->GetSelectedActors();
+            PreviousSelection = MakeActorRefs(Selection->GetSelectedActors());
 
         for (AActor* actor : InActors) {
             if (!actor || actor->IsPendingKill())
                 continue;
             Snapshots.push_back(CaptureActorSnapshot(*actor));
-            LiveActors.push_back(actor);
+            LiveActors.emplace_back(actor);
         }
 
         if (Snapshots.size() == 1)
@@ -26,28 +26,29 @@ namespace Leon::Editor {
         if (!World || Snapshots.empty())
             return;
 
+        // The snapshot carries the GUID, so the restored actor keeps the identity older commands refer to.
         LiveActors.clear();
         for (const FActorEditorSnapshot& snap : Snapshots) {
             if (AActor* restored = RestoreActorSnapshot(*World, snap))
-                LiveActors.push_back(restored);
+                LiveActors.emplace_back(restored);
         }
 
         if (Selection && !LiveActors.empty())
-            Selection->SetSelectedActors(LiveActors);
+            Selection->SetSelectedActors(ResolveActorRefs(LiveActors));
     }
 
     void FSpawnActorsCommand::Undo() {
         if (!World)
             return;
 
-        for (AActor* actor : LiveActors) {
-            if (actor && !actor->IsPendingKill())
-                World->DestroyActor(actor);
-        }
-        LiveActors.clear();
+        // Clear the selection first: it holds pointers to the actors about to be freed.
+        if (Selection)
+            Selection->ClearActorSelection();
+        for (AActor* actor : ResolveActorRefs(LiveActors))
+            World->DestroyActor(actor);
 
         if (Selection)
-            Selection->SetSelectedActors(PreviousSelection);
+            Selection->SetSelectedActors(ResolveActorRefs(PreviousSelection));
     }
 
     std::string FSpawnActorsCommand::GetDescription() const {

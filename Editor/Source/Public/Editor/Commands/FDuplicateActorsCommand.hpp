@@ -28,11 +28,12 @@ namespace Leon::Editor {
         UWorld* World = nullptr;
         FEditorSelection* Selection = nullptr;
         std::vector<FActorEditorSnapshot> SourceSnapshots;
-        std::vector<AActor*> Duplicates;
-        std::vector<AActor*> PreviousSelection;
+        std::vector<FActorRef> Duplicates;
+        std::vector<FActorRef> PreviousSelection;
+        /** One GUID per source, generated on the first Execute and reused on every redo. */
+        std::vector<FUUID> DuplicateGuids;
         float OffsetX = 1.0f;
         std::string Description;
-        bool bHasExecuted = false;
     };
 
 } // namespace Leon::Editor

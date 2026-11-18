@@ -192,7 +192,7 @@ namespace Leon::Editor {
             if (!actor || actor->IsPendingKill())
                 continue;
             Snapshots.push_back(CaptureActorSnapshot(*actor));
-            LiveActors.push_back(actor);
+            LiveActors.emplace_back(actor);
         }
 
         if (Snapshots.size() == 1) {
@@ -209,25 +209,23 @@ namespace Leon::Editor {
         if (Selection)
             Selection->ClearActorSelection();
 
-        for (AActor* actor : LiveActors) {
-            if (actor && !actor->IsPendingKill())
-                World->DestroyActor(actor);
-        }
-        LiveActors.clear();
+        for (AActor* actor : ResolveActorRefs(LiveActors))
+            World->DestroyActor(actor);
     }
 
     void FDeleteActorsCommand::Undo() {
         if (!World || Snapshots.empty())
             return;
 
+        // Restored actors are new objects with the original GUIDs, so every older command still finds them.
         LiveActors.clear();
         for (const FActorEditorSnapshot& snap : Snapshots) {
             if (AActor* restored = RestoreActorSnapshot(*World, snap))
-                LiveActors.push_back(restored);
+                LiveActors.emplace_back(restored);
         }
 
         if (Selection && !LiveActors.empty())
-            Selection->SetSelectedActors(LiveActors);
+            Selection->SetSelectedActors(ResolveActorRefs(LiveActors));
 
         LE_CORE_INFO("Undo: restored {} actor(s)", LiveActors.size());
     }

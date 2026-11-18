@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Editor/Commands/FActorRef.hpp"
 #include "Editor/Commands/IEditorCommand.hpp"
 #include "Gameplay/AActor.hpp"
 
@@ -10,7 +11,10 @@
 namespace Leon::Editor {
 
     struct FActorTransformState {
+        /** Valid only while the edit that captured it is in progress (gizmo drag, Details edit). */
         AActor* Actor = nullptr;
+        /** Identity used by the undo history; the pointer above may be freed by then. */
+        FActorRef Ref;
         glm::vec3 Location{0.0f};
         glm::vec3 Rotation{0.0f};
         glm::vec3 Scale{1.0f};

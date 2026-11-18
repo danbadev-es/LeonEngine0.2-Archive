@@ -23,8 +23,8 @@ namespace Leon::Editor {
         UWorld* World = nullptr;
         FEditorSelection* Selection = nullptr;
         std::vector<FActorEditorSnapshot> Snapshots;
-        std::vector<AActor*> LiveActors;
-        std::vector<AActor*> PreviousSelection;
+        std::vector<FActorRef> LiveActors;
+        std::vector<FActorRef> PreviousSelection;
         std::string Description;
     };
 

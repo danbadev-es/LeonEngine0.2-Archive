@@ -66,6 +66,47 @@ namespace Leon::Editor {
             }
             return {};
         }
+
+        /**
+         * Hash of the world state the Outliner can change and the map stores: actor names, folders,
+         * attachment and transforms, plus the folder list. Used to detect Outliner edits per frame.
+         */
+        uint64_t ComputeOutlinerStateSignature(const UWorld* InWorld) {
+            uint64_t hash = 14695981039346656037ull;
+            const auto mixBytes = [&hash](const void* InData, size_t InSize) {
+                const auto* bytes = static_cast<const unsigned char*>(InData);
+                for (size_t i = 0; i < InSize; ++i) {
+                    hash ^= bytes[i];
+                    hash *= 1099511628211ull;
+                }
+            };
+            const auto mixString = [&](const std::string& InText) {
+                mixBytes(InText.data(), InText.size());
+                const unsigned char separator = 0xFF;
+                mixBytes(&separator, 1);
+            };
+            if (!InWorld)
+                return hash;
+
+            for (const auto& actorRef : InWorld->GetAllActors()) {
+                const AActor* actor = actorRef.get();
+                if (!actor || actor->IsPendingKill())
+                    continue;
+                mixString(actor->GetName());
+                mixString(actor->GetFolderPath());
+                const AActor* parent = actor->GetAttachParentActor();
+                mixBytes(&parent, sizeof(parent));
+                if (actor->HasComponent<FTransformComponent>()) {
+                    const auto& transform = actor->GetComponent<FTransformComponent>();
+                    mixBytes(&transform.Translation, sizeof(transform.Translation));
+                    mixBytes(&transform.Rotation, sizeof(transform.Rotation));
+                    mixBytes(&transform.Scale, sizeof(transform.Scale));
+                }
+            }
+            for (const std::string& folder : InWorld->GetEditorFolders())
+                mixString(folder);
+            return hash;
+        }
     } // namespace
 
     FEditorApp::FEditorApp(FApplicationCommandLineArgs InArgs)
@@ -1131,7 +1172,12 @@ namespace Leon::Editor {
                 SafeDrawPanel("Outliner", [&]() {
                     if (bEditLocked)
                         ImGui::BeginDisabled();
+                    // Outliner edits (rename, folders, attach, reset transform) write to the world directly
+                    // and are all saved in the map: compare a signature of that state around the draw.
+                    const uint64_t signatureBefore = ComputeOutlinerStateSignature(EditorWorld.get());
                     Outliner.Draw(EditorWorld.get(), &bShowOutliner);
+                    if (!bEditLocked && ComputeOutlinerStateSignature(EditorWorld.get()) != signatureBefore)
+                        Context.MarkMapDirty();
                     if (bEditLocked)
                         ImGui::EndDisabled();
                 });

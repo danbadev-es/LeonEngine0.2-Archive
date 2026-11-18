@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Editor/Commands/FActorRef.hpp"
 #include "Editor/Commands/IEditorCommand.hpp"
 #include "Assets/FAssetTypes.hpp"
 #include "Engine/Components.hpp"
@@ -74,7 +75,7 @@ namespace Leon::Editor {
         UWorld* World = nullptr;
         FEditorSelection* Selection = nullptr;
         std::vector<FActorEditorSnapshot> Snapshots;
-        std::vector<AActor*> LiveActors;
+        std::vector<FActorRef> LiveActors;
         std::string Description;
     };
 

@@ -7,7 +7,7 @@ namespace Leon::Editor {
                                                      std::vector<AActor*> InSources, float InOffsetX)
         : World(InWorld), Selection(InSelection), OffsetX(InOffsetX) {
         if (Selection)
-            PreviousSelection = Selection->GetSelectedActors();
+            PreviousSelection = MakeActorRefs(Selection->GetSelectedActors());
 
         for (AActor* src : InSources) {
             if (src && !src->IsPendingKill())
@@ -24,42 +24,42 @@ namespace Leon::Editor {
         if (!World || SourceSnapshots.empty())
             return;
 
-        if (bHasExecuted) {
-            // Redo: restore from snapshots again (previous duplicates were destroyed on Undo).
-            Duplicates.clear();
+        // The duplicates get their identity once. A redo recreates them with the same GUIDs, so commands
+        // recorded after the first duplicate (move, delete) keep referring to the right actors.
+        if (DuplicateGuids.size() != SourceSnapshots.size()) {
+            DuplicateGuids.clear();
+            for (size_t i = 0; i < SourceSnapshots.size(); ++i)
+                DuplicateGuids.push_back(FUUID::Generate());
         }
 
         Duplicates.clear();
-        for (const auto& snap : SourceSnapshots) {
-            FActorEditorSnapshot copy = snap;
-            copy.Name = snap.Name + "_Copy";
-            copy.Guid = FUUID{}; // new identity
+        for (size_t i = 0; i < SourceSnapshots.size(); ++i) {
+            FActorEditorSnapshot copy = SourceSnapshots[i];
+            copy.Name = SourceSnapshots[i].Name + "_Copy";
+            copy.Guid = DuplicateGuids[i];
             if (copy.bHasTransform)
                 copy.Transform.Translation.x += OffsetX;
 
-            AActor* dup = RestoreActorSnapshot(*World, copy);
-            if (dup)
-                Duplicates.push_back(dup);
+            if (AActor* dup = RestoreActorSnapshot(*World, copy))
+                Duplicates.emplace_back(dup);
         }
 
         if (Selection && !Duplicates.empty())
-            Selection->SetSelectedActors(Duplicates);
-
-        bHasExecuted = true;
+            Selection->SetSelectedActors(ResolveActorRefs(Duplicates));
     }
 
     void FDuplicateActorsCommand::Undo() {
         if (!World)
             return;
 
-        for (AActor* dup : Duplicates) {
-            if (dup && !dup->IsPendingKill())
-                World->DestroyActor(dup);
-        }
-        Duplicates.clear();
+        // Clear the selection first: it holds pointers to the actors about to be freed.
+        if (Selection)
+            Selection->ClearActorSelection();
+        for (AActor* dup : ResolveActorRefs(Duplicates))
+            World->DestroyActor(dup);
 
         if (Selection)
-            Selection->SetSelectedActors(PreviousSelection);
+            Selection->SetSelectedActors(ResolveActorRefs(PreviousSelection));
     }
 
 } // namespace Leon::Editor

@@ -174,6 +174,11 @@ namespace Leon::Editor {
         ImGui::Spacing();
 
         // Components & Properties
+        // Every widget drawn below writes straight into the actor. Rather than relying on each one to
+        // remember to flag the map (lights, camera and collision never did), detect any edit made between
+        // these two points: ImGui raises this flag when a widget changes its value during the frame.
+        const bool bEditedBeforeProperties = GImGui->ActiveIdHasBeenEditedThisFrame;
+
         DrawTransformComponent(InActor, InFilter);
         DrawPlayerStartProperties(InActor, InFilter);
         DrawTriggerVolumeProperties(InActor, InFilter);
@@ -183,6 +188,9 @@ namespace Leon::Editor {
         DrawLightComponents(InActor, InFilter);
         DrawCameraComponent(InActor, InFilter);
         DrawBoxCollisionComponent(InActor, InFilter);
+
+        if (Context && !bEditedBeforeProperties && GImGui->ActiveIdHasBeenEditedThisFrame)
+            Context->MarkMapDirty();
 
         ImGui::Separator();
         ImGui::Spacing();
