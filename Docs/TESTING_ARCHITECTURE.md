@@ -27,22 +27,41 @@ Engine tests must not include project headers (`Projects/...`) or compile game `
 
 ## Skip policy
 
-- **Zero skipped tests** in the default suite on a machine with OpenGL 4.5.
-- This vendored doctest has no runtime `SKIP()` macro. GPU tests call `REQUIRE(gl.IsValid())`.
-- If a headless OpenGL 4.5 context cannot be created, those tests **fail** instead of silently returning (which previously counted as PASS).
-- That failure is the only honest result without a skip API. Do not reintroduce `MESSAGE` + `return`.
+- **Zero skipped tests** in the default suite.
+- This vendored doctest has no runtime `SKIP()` macro. A test that needs a device `REQUIRE`s it and fails
+  when there is none; that is the only honest result without a skip API. Do not reintroduce `MESSAGE` + `return`.
 - Missing fixtures `REQUIRE` the file. Obsolete fixtures are deleted or retargeted (`DaySky1k.lhdr` replaced the missing `AutumnField1k.lhdr`).
 
-`Scripts/run_tests.py` treats `skipped > 0` as failure.
+`Tools/run_tests.py` treats `skipped > 0` as failure.
 
 ## GPU / renderer tests
 
-`Tests/GPU/HeadlessGLContext.hpp` creates a hidden GLFW 4.5 core context. Shader suites under `Tests/Shader/` compile production GLSL from `Engine/Resources/Shaders/` (PBR, shadows, post-process). CPU math / IBL / cache suites live under `Tests/Math`, `Tests/IBL`, `Tests/PBR`, `Tests/Cache`, `Tests/HDR`. Mutation scripts still invoke `out/Engine/_leon_tests/RendererTests.exe` (or the path resolved by `Scripts/run_tests.py`).
+GPU tests run on WARP, the software Direct3D 12 adapter, with the debug layer on. They need no graphics
+card, so they run anywhere, including CI. `LEON_TEST_GPU=1` runs them on the machine's adapter instead.
 
-Renderer contracts: [RENDERER.md](RENDERER.md). Known coverage gaps (see [RENDERER_REMEDIATION.md](RENDERER_REMEDIATION.md) P2):
+| Suite | File | What it covers |
+| :--- | :--- | :--- |
+| RHI contract | `Tests/RHI/RHIContractTests.hpp`, `RHINullTests.cpp` | Buffers, textures and swapchain behave the same on every backend |
+| Direct3D 12 backend | `Tests/RHI/RHID3D12Tests.cpp` | Triangles, winding, constants per draw, sampling, depth, pass-to-pass sampling, lifetime, shader errors |
+| World renderer | `Tests/GPU/WorldRendererTests.cpp` | Whole frames of a small scene: lighting, shadows, each post-process effect, planar reflections, 2D and world-space immediate drawing |
 
-- GL state after UI / debug overlays
-- `FStaticMeshComponent.bVisible` (code fixed; add regression test)
+Every GPU test also requires that the debug layer reported nothing. For the world renderer that covers
+each shader, pipeline, render pass and resource state a frame uses.
+
+A test that draws must register `FLegacyRenderDriver` so meshes and textures become device resources,
+and unregister it (`FRenderDriverRegistry::RegisterDriver(nullptr)`) when done: the rest of the suite
+runs without a driver, where those factories return null. See the fixture in `WorldRendererTests.cpp`.
+
+CPU math / IBL / cache suites live under `Tests/Math`, `Tests/IBL`, `Tests/PBR`, `Tests/Cache`, `Tests/HDR`.
+
+Known gaps:
+
+- 34 test files written against the OpenGL renderer (shader-level checks of PBR terms, shadows,
+  post-processing, golden constraints) are listed in `Tests/GPU/PENDING.md` and are not built. Their
+  assertions are still the right ones; their set-up has to be rewritten for the RHI.
+- No test draws a real game level. A golden image of the LeonHorror start room would have caught the
+  bugs that started the Direct3D 12 migration.
+- Headless tests cannot judge whether a frame looks right. See "Checking a change" in [RENDERER.md](RENDERER.md).
 
 ## Behavioral bar
 

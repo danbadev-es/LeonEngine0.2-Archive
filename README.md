@@ -1,6 +1,6 @@
 # LeonEngine2
 
-Unreal Engine–inspired C++20 game engine for solo / small-team development. Forward PBR (OpenGL 4.5), native asset pipeline, and a thin gameplay framework (`UWorld`, GameMode, HUD/UI).
+Unreal Engine–inspired C++20 game engine for solo / small-team development. Forward PBR (Direct3D 12), native asset pipeline, and a thin gameplay framework (`UWorld`, GameMode, HUD/UI).
 
 ## Quick start
 
