@@ -23,7 +23,6 @@ if(LEON_BUILD_TESTS)
     target_link_libraries(LeonHorrorTests PRIVATE
         LeonHorrorGame
         doctest
-        glad
         glfw
         glm
         stb_image

@@ -59,7 +59,6 @@ function(leontournament_add_game_library)
     target_link_libraries(LeonTournamentGame PUBLIC
         LeonEngineCore
         Leon::Pipeline
-        Leon::OpenGL
         Leon::Jolt
         Leon::ENet
     )

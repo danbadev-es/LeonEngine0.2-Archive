@@ -43,7 +43,6 @@ function(leonhorror_add_game_library)
     target_link_libraries(LeonHorrorGame PUBLIC
         LeonEngineCore
         Leon::Pipeline
-        Leon::OpenGL
         Leon::Jolt
     )
     if(COMMAND leon_apply_compile_options)

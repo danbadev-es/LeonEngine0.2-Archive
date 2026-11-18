@@ -5,7 +5,7 @@
 
 // The backends this build of the engine ships with. Games never name them.
 #include "FJoltPhysicsDriver.hpp"
-#include "FOpenGLRenderDriver.hpp"
+#include "RHI/FNullRenderDriver.hpp"
 
 #include <cstdlib>
 #include <filesystem>
@@ -50,7 +50,8 @@ namespace Leon {
     }
 
     int LaunchGame(int InArgc, char** InArgv, const FGameLaunchDesc& InDesc) {
-        FOpenGLRenderDriver::Register();
+        // No GPU backend yet (the Direct3D 12 one is being written): the game runs without an image.
+        FNullRenderDriver::Register();
         FJoltPhysicsDriver::Register();
 
         FGameModuleHooks hooks;

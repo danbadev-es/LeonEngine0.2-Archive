@@ -24,7 +24,6 @@ if(LEON_BUILD_TESTS)
     target_link_libraries(LeonTournamentTests PRIVATE
         LeonTournamentGame
         doctest
-        glad
         glfw
         glm
         stb_image

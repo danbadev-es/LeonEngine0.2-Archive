@@ -3,7 +3,7 @@
 
 namespace Leon {
 
-    ERenderAPI IRenderAPI::CurrentAPI = ERenderAPI::OpenGL;
+    ERenderAPI IRenderAPI::CurrentAPI = ERenderAPI::Null;
 
     TScope<IRenderAPI> IRenderAPI::Create() {
         if (auto driver = FRenderDriverRegistry::GetActiveDriver()) {

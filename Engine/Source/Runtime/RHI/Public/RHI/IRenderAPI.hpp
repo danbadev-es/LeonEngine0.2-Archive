@@ -7,7 +7,8 @@ namespace Leon {
 
     class FVertexArray;
 
-    enum class ERenderAPI { None = 0, OpenGL = 1 };
+    /** Null: creates every resource and draws nothing (no GPU needed). */
+    enum class ERenderAPI { None = 0, Null = 1 };
 
     enum class EDepthFunc { Less = 0, LessEqual = 1, Equal = 2, Always = 3 };
     enum class ECullMode { Back = 0, Front = 1, FrontAndBack = 2, None = 3 };

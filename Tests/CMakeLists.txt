@@ -21,42 +21,10 @@ set(LEON_ENGINE_TEST_SOURCES
     Cache/SerializationTests.cpp
     Cache/CacheInvalidationTests.cpp
     GPU/CubemapSeamTests.cpp
-    Shader/SkyboxEquirectSeamTests.cpp
-    GPU/TextureUploadTests.cpp
     IBL/DeterminismTests.cpp
-    Shader/PBRShaderFresnelTests.cpp
-    Shader/PBRShaderCookTorranceTests.cpp
-    Shader/PBRShaderGGXSmithTests.cpp
-    Shader/PBRShaderDirectLightsTests.cpp
-    Shader/PBRShaderIBLTests.cpp
-    Shader/PBRShaderShadowTests.cpp
-    Shader/PBRShaderPlanarReflectionTests.cpp
-    Shader/PBRShaderPlanarHDRTests.cpp
-    Shader/PBRShaderDeterminismTests.cpp
-    Shader/PostProcessBloomTests.cpp
-    Shader/PostProcessToneMappingTests.cpp
-    Shader/PostProcessFXAATests.cpp
-    Shader/PostProcessPipelineTests.cpp
-    Shader/PostProcessSSAOTests.cpp
-    Shader/PBRShaderNormalMappingTests.cpp
-    Shader/PBRShaderMaterialTextureTests.cpp
-    Shader/PBRShaderEmissiveTests.cpp
-    Shader/PBRShaderFogTests.cpp
-    Shader/PBRShaderAlphaTests.cpp
-    Shader/PBRShaderUVTransformTests.cpp
-    Shader/PBRShaderColorSpaceTests.cpp
-    Shader/PBRShaderTangentSpaceTests.cpp
-    Shader/ShadowCascadeTests.cpp
-    Shader/ShadowPCFTests.cpp
-    Shader/ShadowBiasTests.cpp
-    Shader/ShadowAtlasTests.cpp
-    Shader/ShadowSelectionTests.cpp
-    Shader/ShadowPointTests.cpp
     Asset/AssetIDTests.cpp
     Asset/TextureImportTests.cpp
     Asset/HDRAssetTests.cpp
-    Asset/MeshImportTests.cpp
-    Asset/StaticMeshLODTests.cpp
     Asset/AssetCacheUnloadTests.cpp
     Physics/TriangleMeshCollisionTests.cpp
     Physics/JoltPhysicsSceneTests.cpp
@@ -83,9 +51,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Gameplay/AIPerceptionTests.cpp
     Gameplay/AudioDeviceTests.cpp
     Lightmass/StaticLightingTests.cpp
-    Renderer/ViewportResizeTests.cpp
     Renderer/RenderDebugHotkeysTests.cpp
-    Renderer/GoldenSceneTests.cpp
     Core/FrameProfilerTests.cpp
     Core/WindowDisplayPolicyTests.cpp
     Performance/ScalingBenchmarkTests.cpp
@@ -94,10 +60,8 @@ set(LEON_ENGINE_TEST_SOURCES
 function(leon_configure_test_exe TargetName)
     target_include_directories(${TargetName} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${LEON_ENGINE_ROOT}/Engine/Plugins/RHI/OpenGL/include
         ${LEON_ENGINE_ROOT}/Engine/Plugins/Physics/Jolt/include
         ${LEON_ENGINE_ROOT}/Engine/Plugins/Networking/ENet/include
-        ${LEON_ENGINE_ROOT}/Engine/ThirdParty/glad/include
         ${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb
         ${LEON_ENGINE_ROOT}/Engine/ThirdParty/doctest
         ${LEON_ENGINE_ROOT}/Engine/ThirdParty
@@ -105,11 +69,9 @@ function(leon_configure_test_exe TargetName)
     target_link_libraries(${TargetName} PRIVATE
         LeonEngineCore
         LeonEnginePipeline
-        LeonEngine_OpenGL
         LeonEngine_Jolt
         LeonEngine_ENet
         doctest
-        glad
         glfw
         glm
         stb_image

@@ -165,19 +165,10 @@ namespace Leon {
             glfwSetErrorCallback(GLFWErrorCallback);
         }
 
-        // OpenGL 4.5 Core Profile
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        // The window carries no graphics API of its own: the GPU backend presents onto its handle.
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, InProps.bResizable ? GLFW_TRUE : GLFW_FALSE);
         glfwWindowHint(GLFW_MAXIMIZED, InProps.bMaximized ? GLFW_TRUE : GLFW_FALSE);
-#ifdef __APPLE__
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-#ifndef NDEBUG
-        // Enable OpenGL debug context in Debug builds for glDebugMessageCallback validation
-        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-#endif
 
         NativeWindow = glfwCreateWindow((int)Data.Width, (int)Data.Height, Data.Title.c_str(), nullptr, nullptr);
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
@@ -302,11 +293,7 @@ namespace Leon {
     }
 
     void FWindow::SetVSync(bool bInEnabled) {
-        if (bInEnabled)
-            glfwSwapInterval(1);
-        else
-            glfwSwapInterval(0);
-
+        // Only recorded here; the swapchain reads it when presenting.
         Data.bVSync = bInEnabled;
     }
 

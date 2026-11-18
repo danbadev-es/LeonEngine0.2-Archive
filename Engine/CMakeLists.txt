@@ -26,6 +26,7 @@ leon_add_module(Core
 leon_add_module(RHI
     SOURCES
     Source/Runtime/RHI/Private/FPlatformMemory.cpp
+    Source/Runtime/RHI/Private/FNullRenderDriver.cpp
     Source/Runtime/RHI/Private/FFrameProfiler.cpp
     Source/Runtime/RHI/Private/IGraphicsContext.cpp
     Source/Runtime/RHI/Private/IRenderAPI.cpp
