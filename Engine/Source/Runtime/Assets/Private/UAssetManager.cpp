@@ -1,4 +1,5 @@
 #include "Assets/UAssetManager.hpp"
+#include "Assets/FImageFileLoader.hpp"
 #include "Core/FAssetPath.hpp"
 #include "Assets/FEngineBuiltins.hpp"
 #include "Assets/UBlendSpace.hpp"
@@ -42,6 +43,7 @@ namespace Leon {
     void UAssetManager::Init() {
         LE_CORE_INFO("Initializing UAssetManager Subsystem...");
         Clear();
+        InstallImageFileLoader();
 
         // Initialize 1x1 default fallback textures (null when offline / no RenderDriver)
         DefaultWhiteTexture = FTexture2D::Create(1, 1);

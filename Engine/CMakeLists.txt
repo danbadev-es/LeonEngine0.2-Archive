@@ -114,6 +114,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Assets/Private/FEngineBuiltins.cpp
     Source/Runtime/Assets/Private/FHDRImporter.cpp
     Source/Runtime/Assets/Private/FTextureImporter.cpp
+    Source/Runtime/Assets/Private/FImageFileLoader.cpp
     Source/Runtime/Assets/Private/FAssetExporter.cpp
     Source/Runtime/Assets/Private/FLightmapAsset.cpp
     Source/Runtime/Renderer/Private/FWorldRenderer.cpp

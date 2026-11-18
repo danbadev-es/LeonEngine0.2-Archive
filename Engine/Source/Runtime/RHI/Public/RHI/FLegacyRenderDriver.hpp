@@ -2,22 +2,29 @@
 
 #include "RHI/RHITypes.hpp"
 
+#include <functional>
+#include <string>
+#include <vector>
+
 namespace Leon {
 
     class FVertexArray;
     class FBufferLayout;
+    class FTexture2D;
+    class FTextureCube;
     class IRHIBuffer;
+    class IRHITexture;
 
     /**
      * Serves the engine's original resource interfaces (FVertexBuffer, FVertexArray, FTexture2D,
      * FShader, FRenderCommand...) while the renderer is moved to the RHI.
      *
-     * Vertex and index buffers created through those interfaces are real RHI buffers, so meshes
-     * loaded by the asset code can be drawn by the new renderer without touching the asset code.
-     * Everything else (shaders, framebuffers, draw commands) does nothing: the passes still written
-     * against the old interfaces run but produce no image.
+     * Vertex buffers, index buffers and textures created through those interfaces are real RHI
+     * resources, so meshes and materials loaded by the asset code can be drawn by the new renderer
+     * without touching the asset code. Everything else (shaders, framebuffers, draw commands) does
+     * nothing: the passes still written against the old interfaces run but produce no image.
      *
-     * Without an RHI device (tests, tools) the buffers are plain memory.
+     * Without an RHI device (tests, tools) the resources are plain memory.
      */
     class FLegacyRenderDriver {
     public:
@@ -34,5 +41,29 @@ namespace Leon {
     /** The array's vertex format; empty when it has no vertex buffer. */
     FRHIVertexLayout GetRHIVertexLayout(const FVertexArray& InVertexArray);
     FRHIVertexLayout MakeRHIVertexLayout(const FBufferLayout& InLayout);
+
+    /** The texture on the device, created and filled on first use; null without a device. */
+    IRHITexture* GetRHITexture(const FTexture2D& InTexture);
+    IRHITexture* GetRHITexture(const FTextureCube& InTexture);
+
+    // --- Image files ------------------------------------------------------------------------------
+
+    /** An image file decoded for upload. */
+    struct FLegacyImage {
+        uint32_t Width = 0;
+        uint32_t Height = 0;
+        /** RGBA8_UNorm, RGBA8_UNorm_sRGB or RGBA32_Float. */
+        ERHIFormat Format = ERHIFormat::RGBA8_UNorm;
+        /** Largest first, each half the size of the one before, tightly packed. */
+        std::vector<std::vector<uint8_t>> Mips;
+    };
+
+    /**
+     * How FTexture2D::Create(path) reads files. This module cannot decode images itself (the
+     * decoders live with the assets), so the asset manager installs the function at start-up.
+     * Without one, textures created from a path report IsLoaded() == false.
+     */
+    using FLegacyImageLoader = std::function<bool(const std::string& InPath, FLegacyImage& OutImage)>;
+    void SetLegacyImageLoader(FLegacyImageLoader InLoader);
 
 } // namespace Leon

@@ -1,10 +1,12 @@
 #include "RHI/FLegacyRenderDriver.hpp"
 
+#include "RHI/FTexture.hpp"
 #include "RHI/FTextureCube.hpp"
 #include "RHI/IRHIDevice.hpp"
 #include "RHI/IRenderDriver.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -181,44 +183,228 @@ namespace Leon {
             return next++;
         }
 
-        class FNullTexture2D final : public FTexture2D {
+        FLegacyImageLoader& ImageLoader() {
+            static FLegacyImageLoader loader;
+            return loader;
+        }
+
+        uint32_t MipCountFor(uint32_t InWidth, uint32_t InHeight) {
+            uint32_t levels = 1;
+            for (uint32_t size = std::max(InWidth, InHeight); size > 1; size /= 2)
+                ++levels;
+            return levels;
+        }
+
+        /** Halves an image with a 2x2 box filter. T is uint8_t or float; InChannels values per pixel. */
+        template <typename T>
+        std::vector<uint8_t> HalveImage(const std::vector<uint8_t>& InPixels, uint32_t InWidth, uint32_t InHeight,
+                                        uint32_t InChannels) {
+            const uint32_t outWidth = std::max(1u, InWidth / 2);
+            const uint32_t outHeight = std::max(1u, InHeight / 2);
+            std::vector<uint8_t> out(static_cast<size_t>(outWidth) * outHeight * InChannels * sizeof(T));
+            const T* source = reinterpret_cast<const T*>(InPixels.data());
+            T* target = reinterpret_cast<T*>(out.data());
+            for (uint32_t y = 0; y < outHeight; ++y) {
+                const uint32_t y0 = std::min(y * 2, InHeight - 1);
+                const uint32_t y1 = std::min(y * 2 + 1, InHeight - 1);
+                for (uint32_t x = 0; x < outWidth; ++x) {
+                    const uint32_t x0 = std::min(x * 2, InWidth - 1);
+                    const uint32_t x1 = std::min(x * 2 + 1, InWidth - 1);
+                    for (uint32_t c = 0; c < InChannels; ++c) {
+                        const double sum = static_cast<double>(source[(static_cast<size_t>(y0) * InWidth + x0) * InChannels + c]) +
+                                           static_cast<double>(source[(static_cast<size_t>(y0) * InWidth + x1) * InChannels + c]) +
+                                           static_cast<double>(source[(static_cast<size_t>(y1) * InWidth + x0) * InChannels + c]) +
+                                           static_cast<double>(source[(static_cast<size_t>(y1) * InWidth + x1) * InChannels + c]);
+                        target[(static_cast<size_t>(y) * outWidth + x) * InChannels + c] = static_cast<T>(sum * 0.25);
+                    }
+                }
+            }
+            return out;
+        }
+
+        /**
+         * A 2D texture that keeps its pixels in memory until the device first needs them.
+         * Formats: 8-bit RGBA (linear or sRGB) and float RGBA; the narrower float formats the old
+         * interface offered (RG16F, RGBA16F) are stored as float RGBA.
+         */
+        class FLegacyTexture2D final : public FTexture2D {
         public:
-            FNullTexture2D(uint32_t InWidth, uint32_t InHeight, std::string InPath = {})
-                : Width(std::max(InWidth, 1u)), Height(std::max(InHeight, 1u)), Path(std::move(InPath)),
-                  Id(NextNullId()) {}
+            FLegacyTexture2D(uint32_t InWidth, uint32_t InHeight, ETextureFormat InFormat)
+                : Width(std::max(InWidth, 1u)), Height(std::max(InHeight, 1u)), Id(NextNullId()) {
+                Format = InFormat == ETextureFormat::RGBA8 ? ERHIFormat::RGBA8_UNorm : ERHIFormat::RGBA32_Float;
+                bLoaded = true;
+            }
+
+            explicit FLegacyTexture2D(std::string InPath) : Path(std::move(InPath)), Id(NextNullId()) {
+                FLegacyImage image;
+                if (!ImageLoader() || !ImageLoader()(Path, image) || image.Mips.empty() || image.Width == 0 ||
+                    image.Height == 0)
+                    return;
+                Width = image.Width;
+                Height = image.Height;
+                Format = image.Format;
+                Mips = std::move(image.Mips);
+                bLoaded = true;
+            }
+
             uint32_t GetWidth() const override { return Width; }
             uint32_t GetHeight() const override { return Height; }
             uint32_t GetRendererID() const override { return Id; }
             const std::string& GetPath() const override { return Path; }
-            void SetData(void*, uint32_t) override {}
+            bool IsLoaded() const override { return bLoaded; }
             void Bind(uint32_t) const override {}
-            bool IsLoaded() const override { return true; }
             bool operator==(const FTexture& InOther) const override { return Id == InOther.GetRendererID(); }
 
+            void SetData(void* InData, uint32_t InSize) override {
+                const size_t expected = static_cast<size_t>(Width) * Height * 4;
+                if (!InData || Format == ERHIFormat::RGBA32_Float || InSize < expected)
+                    return;
+                const auto* bytes = static_cast<const uint8_t*>(InData);
+                SetMipZero(std::vector<uint8_t>(bytes, bytes + expected));
+            }
+
+            void SetDataFloat(const void* InData, uint32_t InSize) override {
+                const size_t pixels = static_cast<size_t>(Width) * Height;
+                const size_t channels = pixels ? InSize / (pixels * sizeof(float)) : 0;
+                if (!InData || Format != ERHIFormat::RGBA32_Float || channels == 0 || channels > 4)
+                    return;
+                const auto* source = static_cast<const float*>(InData);
+                std::vector<uint8_t> packed(pixels * 4 * sizeof(float));
+                auto* target = reinterpret_cast<float*>(packed.data());
+                for (size_t i = 0; i < pixels; ++i) {
+                    for (size_t c = 0; c < 4; ++c)
+                        target[i * 4 + c] = c < channels ? source[i * channels + c] : (c == 3 ? 1.0f : 0.0f);
+                }
+                SetMipZero(std::move(packed));
+            }
+
+            IRHITexture* GetOrCreate() const {
+                IRHIDevice* device = FRHI::GetDevice();
+                if (!device || !bLoaded)
+                    return Texture.get();
+                if (!Texture) {
+                    FRHITextureDesc desc;
+                    desc.Width = Width;
+                    desc.Height = Height;
+                    desc.MipLevels = static_cast<uint32_t>(std::max<size_t>(Mips.size(), 1));
+                    desc.Format = Format;
+                    desc.DebugName = Path.empty() ? std::string("Texture2D") : Path;
+                    Texture = device->CreateTexture(desc);
+                    if (Mips.empty())
+                        Mips.emplace_back(static_cast<size_t>(Width) * Height * RHIFormatBytesPerPixel(Format), uint8_t{0});
+                }
+                if (Texture && !Mips.empty()) {
+                    const uint32_t levels = std::min(static_cast<uint32_t>(Mips.size()), Texture->GetDesc().MipLevels);
+                    for (uint32_t level = 0; level < levels; ++level) {
+                        const uint32_t mipWidth = std::max(1u, Width >> level);
+                        device->UploadTexture(*Texture, level, 0, Mips[level].data(),
+                                              mipWidth * RHIFormatBytesPerPixel(Format));
+                    }
+                    Mips.clear();
+                    Mips.shrink_to_fit();
+                }
+                return Texture.get();
+            }
+
         private:
-            uint32_t Width;
-            uint32_t Height;
+            void SetMipZero(std::vector<uint8_t> InPixels) {
+                // Written after the device texture exists: it has one level, so only that is replaced.
+                Mips.clear();
+                Mips.push_back(std::move(InPixels));
+            }
+
+            uint32_t Width = 1;
+            uint32_t Height = 1;
             std::string Path;
             uint32_t Id;
+            ERHIFormat Format = ERHIFormat::RGBA8_UNorm;
+            bool bLoaded = false;
+            /** Pixels waiting to be sent to the device; emptied once they are. */
+            mutable std::vector<std::vector<uint8_t>> Mips;
+            mutable TRef<IRHITexture> Texture;
         };
 
-        class FNullTextureCube final : public FTextureCube {
+        /** A cube map: six square faces per level, 8-bit RGBA or float RGBA. */
+        class FLegacyTextureCube final : public FTextureCube {
         public:
-            FNullTextureCube(uint32_t InWidth, uint32_t InHeight)
-                : Width(std::max(InWidth, 1u)), Height(std::max(InHeight, 1u)), Id(NextNullId()) {}
-            uint32_t GetWidth() const override { return Width; }
-            uint32_t GetHeight() const override { return Height; }
+            FLegacyTextureCube(uint32_t InSize, bool bInHDR)
+                : Size(std::max(InSize, 1u)), bHDR(bInHDR), Id(NextNullId()) {
+                Levels.resize(MipCountFor(Size, Size));
+            }
+
+            uint32_t GetWidth() const override { return Size; }
+            uint32_t GetHeight() const override { return Size; }
             uint32_t GetRendererID() const override { return Id; }
             void Bind(uint32_t) const override {}
             void Unbind() const override {}
             bool IsLoaded() const override { return true; }
-            void SetFaceData(uint32_t, const void*, uint32_t, uint32_t, uint32_t, bool) override {}
-            void GenerateMipmaps() override {}
+
+            void SetFaceData(uint32_t InFaceIndex, const void* InData, uint32_t InWidth, uint32_t InHeight,
+                             uint32_t InMipLevel, bool bInHDR) override {
+                if (!InData || InFaceIndex >= 6 || InMipLevel >= Levels.size() || bInHDR != bHDR)
+                    return;
+                const size_t bytes = static_cast<size_t>(InWidth) * InHeight * BytesPerPixel();
+                const auto* source = static_cast<const uint8_t*>(InData);
+                Levels[InMipLevel][InFaceIndex].assign(source, source + bytes);
+                UsedLevels = std::max(UsedLevels, InMipLevel + 1);
+                bDirty = true;
+            }
+
+            void GenerateMipmaps() override {
+                for (uint32_t level = 1; level < Levels.size(); ++level) {
+                    const uint32_t previousSize = std::max(1u, Size >> (level - 1));
+                    for (uint32_t face = 0; face < 6; ++face) {
+                        const std::vector<uint8_t>& previous = Levels[level - 1][face];
+                        if (previous.empty())
+                            return;
+                        Levels[level][face] = bHDR ? HalveImage<float>(previous, previousSize, previousSize, 4)
+                                                   : HalveImage<uint8_t>(previous, previousSize, previousSize, 4);
+                    }
+                    UsedLevels = std::max(UsedLevels, level + 1);
+                }
+                bDirty = true;
+            }
+
+            IRHITexture* GetOrCreate() const {
+                IRHIDevice* device = FRHI::GetDevice();
+                if (!device)
+                    return Texture.get();
+                if (!Texture || Texture->GetDesc().MipLevels != UsedLevels) {
+                    FRHITextureDesc desc;
+                    desc.Width = Size;
+                    desc.Height = Size;
+                    desc.MipLevels = UsedLevels;
+                    desc.Format = bHDR ? ERHIFormat::RGBA32_Float : ERHIFormat::RGBA8_UNorm;
+                    desc.Dimension = ERHITextureDimension::TextureCube;
+                    desc.DebugName = "TextureCube";
+                    Texture = device->CreateTexture(desc);
+                    bDirty = true;
+                }
+                if (Texture && bDirty) {
+                    for (uint32_t level = 0; level < UsedLevels; ++level) {
+                        const uint32_t levelSize = std::max(1u, Size >> level);
+                        for (uint32_t face = 0; face < 6; ++face) {
+                            const std::vector<uint8_t>& pixels = Levels[level][face];
+                            if (pixels.size() == static_cast<size_t>(levelSize) * levelSize * BytesPerPixel())
+                                device->UploadTexture(*Texture, level, face, pixels.data(), levelSize * BytesPerPixel());
+                        }
+                    }
+                    bDirty = false;
+                }
+                return Texture.get();
+            }
 
         private:
-            uint32_t Width;
-            uint32_t Height;
+            uint32_t BytesPerPixel() const { return bHDR ? 16u : 4u; }
+
+            uint32_t Size;
+            bool bHDR;
             uint32_t Id;
+            /** [level][face] pixels. Kept after upload: mip generation and re-creation read them. */
+            std::vector<std::array<std::vector<uint8_t>, 6>> Levels;
+            uint32_t UsedLevels = 1;
+            mutable bool bDirty = false;
+            mutable TRef<IRHITexture> Texture;
         };
 
         class FNullFramebuffer final : public FFramebuffer {
@@ -272,19 +458,21 @@ namespace Leon {
                 return CreateRef<FNullShader>(InName);
             }
             TRef<FTexture2D> CreateTexture2D(uint32_t InWidth, uint32_t InHeight) override {
-                return CreateRef<FNullTexture2D>(InWidth, InHeight);
+                return CreateRef<FLegacyTexture2D>(InWidth, InHeight, ETextureFormat::RGBA8);
             }
             TRef<FTexture2D> CreateTexture2D(const std::string& InPath) override {
-                return CreateRef<FNullTexture2D>(1u, 1u, InPath);
+                return CreateRef<FLegacyTexture2D>(InPath);
             }
-            TRef<FTexture2D> CreateTexture2DWithFormat(uint32_t InWidth, uint32_t InHeight, ETextureFormat) override {
-                return CreateRef<FNullTexture2D>(InWidth, InHeight);
+            TRef<FTexture2D> CreateTexture2DWithFormat(uint32_t InWidth, uint32_t InHeight,
+                                                       ETextureFormat InFormat) override {
+                return CreateRef<FLegacyTexture2D>(InWidth, InHeight, InFormat);
             }
-            TRef<FTextureCube> CreateTextureCube(uint32_t InWidth, uint32_t InHeight, bool) override {
-                return CreateRef<FNullTextureCube>(InWidth, InHeight);
+            TRef<FTextureCube> CreateTextureCube(uint32_t InWidth, uint32_t, bool bInHDR) override {
+                return CreateRef<FLegacyTextureCube>(InWidth, bInHDR);
             }
             TRef<FTextureCube> CreateTextureCube(const std::vector<std::string>&) override {
-                return CreateRef<FNullTextureCube>(1u, 1u);
+                // Cube maps from six image files are not used by the engine or the games.
+                return CreateRef<FLegacyTextureCube>(1u, false);
             }
             TRef<FFramebuffer> CreateFramebuffer(const FFramebufferSpecification& InSpec) override {
                 return CreateRef<FNullFramebuffer>(InSpec);
@@ -312,6 +500,20 @@ namespace Leon {
     uint32_t GetRHIIndexCount(const FVertexArray& InVertexArray) {
         const auto& indices = InVertexArray.GetIndexBuffer();
         return indices ? indices->GetCount() : 0;
+    }
+
+    IRHITexture* GetRHITexture(const FTexture2D& InTexture) {
+        const auto* texture = dynamic_cast<const FLegacyTexture2D*>(&InTexture);
+        return texture ? texture->GetOrCreate() : nullptr;
+    }
+
+    IRHITexture* GetRHITexture(const FTextureCube& InTexture) {
+        const auto* texture = dynamic_cast<const FLegacyTextureCube*>(&InTexture);
+        return texture ? texture->GetOrCreate() : nullptr;
+    }
+
+    void SetLegacyImageLoader(FLegacyImageLoader InLoader) {
+        ImageLoader() = std::move(InLoader);
     }
 
     FRHIVertexLayout MakeRHIVertexLayout(const FBufferLayout& InLayout) {

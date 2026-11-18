@@ -1,44 +1,115 @@
 // The world renderer on the new RHI. Passes are moved here one at a time from the files written
 // against the old interfaces (FWorldRendererGeometry.cpp, FWorldRendererLighting.cpp, ...).
+//
+// Drawn today: static geometry (opaque, masked and blended) with materials, direct lights, lightmaps,
+// image-based lighting and fog, into an HDR target that is then tone mapped to the output.
+// Still to come: skinned meshes, sky, shadows, bloom/SSAO/FXAA, UI and debug drawing, reflections.
+//
+// The old Render() still runs first each frame; this code relies on it for work that is not drawing:
+// the image-based lighting environment, level-of-detail selection and light/transform syncing.
 
 #include "Renderer/FWorldRenderer.hpp"
 
 #include "FWorldRendererInternals.hpp"
 
+#include "Assets/FLightmapAsset.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
+#include "RHI/FTextureCube.hpp"
 #include "RHI/IRHIDevice.hpp"
+#include "Renderer/FLight.hpp"
 #include "Renderer/FMaterialInstance.hpp"
 #include "Renderer/FShaderLibrary.hpp"
 
-#include <glm/gtc/matrix_inverse.hpp>
-
+#include <algorithm>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace Leon {
 
     namespace {
 
-        // Mirrors of the constant buffers in Engine/Shaders. Keep field order and types identical.
-        struct FFrameConstants {
+        constexpr uint32_t kMaxPointLights = 16;
+        constexpr uint32_t kMaxSpotLights = 8;
+
+        // Texture registers of PBR_Lit.hlsl.
+        constexpr uint32_t kSlotAlbedo = 0;
+        constexpr uint32_t kSlotNormal = 1;
+        constexpr uint32_t kSlotMetallic = 2;
+        constexpr uint32_t kSlotAO = 3;
+        constexpr uint32_t kSlotRoughness = 4;
+        constexpr uint32_t kSlotBRDFLUT = 6;
+        constexpr uint32_t kSlotIrradiance = 7;
+        constexpr uint32_t kSlotPrefilter = 8;
+        constexpr uint32_t kSlotEmissive = 9;
+        constexpr uint32_t kSlotLightmap = 12;
+
+        // The structures below mirror constant buffers in Engine/Shaders. Keep field order and types
+        // identical; every field is a multiple of 16 bytes so C++ and HLSL agree on the layout.
+
+        struct FFrameConstants { // Common.hlsli
             glm::mat4 ViewProjection;
             glm::mat4 View;
             glm::vec4 ViewPosition;
+            glm::vec4 CameraForward;
             glm::vec4 ViewportSize;
         };
 
-        struct FMaterialConstants {
-            glm::vec4 BaseColor;
+        struct FDirectionalLightConstants {
+            glm::vec4 Direction{0.0f, -1.0f, 0.0f, 0.0f};
+            glm::vec4 Color{1.0f, 1.0f, 1.0f, 0.0f};
         };
 
-        struct FDrawConstants {
+        struct FPointLightConstants {
+            glm::vec4 Position{0.0f};
+            glm::vec4 Color{0.0f};
+            glm::vec4 Params{0.0f, -1.0f, 0.0f, 0.0f};
+        };
+
+        struct FSpotLightConstants {
+            glm::vec4 Position{0.0f};
+            glm::vec4 Direction{0.0f};
+            glm::vec4 Color{0.0f};
+            glm::vec4 Params{0.0f};
+        };
+
+        struct FLitPassConstants { // PBR_Common.hlsli
+            FDirectionalLightConstants DirLight;
+            FPointLightConstants PointLights[kMaxPointLights];
+            FSpotLightConstants SpotLights[kMaxSpotLights];
+            glm::ivec4 LightCounts{0};
+            glm::vec4 EnvSkyColor{0.0f};
+            glm::vec4 EnvHorizonColor{0.0f};
+            glm::vec4 EnvGroundColor{0.0f};
+            glm::vec4 FogColorDensity{0.0f};
+            glm::vec4 FogParams{0.0f};
+            glm::ivec4 PassFlags{0};
+        };
+
+        struct FMaterialConstants { // PBR_Lit.hlsl
+            glm::vec4 AlbedoColor;
+            glm::vec4 EmissiveColor;
+            glm::vec4 SurfaceParams;
+            glm::vec4 SurfaceParams2;
+            glm::vec4 UVTransform;
+            glm::ivec4 MaterialFlags;
+        };
+
+        struct FDrawConstants { // PBR_Lit.hlsl
             glm::mat4 Model;
             glm::mat4 NormalMatrix;
+            glm::vec4 LightmapScaleBias;
+            glm::ivec4 DrawFlags;
+        };
+
+        struct FToneMappingConstants { // ToneMapping.hlsl
+            glm::vec4 ToneParams;
+            glm::ivec4 ToneFlags;
         };
 
         /**
@@ -52,19 +123,149 @@ namespace Leon {
             return fix;
         }
 
-        std::string LayoutKey(const FRHIVertexLayout& InLayout) {
-            std::string key = std::to_string(InLayout.Stride);
-            for (const FRHIVertexAttribute& attribute : InLayout.Attributes)
-                key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
-            return key;
+        ERHIBlend ToRHIBlend(EBlendFactor InFactor) {
+            switch (InFactor) {
+            case EBlendFactor::Zero:
+                return ERHIBlend::Zero;
+            case EBlendFactor::One:
+                return ERHIBlend::One;
+            case EBlendFactor::SrcColor:
+                return ERHIBlend::SrcColor;
+            case EBlendFactor::OneMinusSrcColor:
+                return ERHIBlend::InvSrcColor;
+            case EBlendFactor::SrcAlpha:
+                return ERHIBlend::SrcAlpha;
+            case EBlendFactor::OneMinusSrcAlpha:
+                return ERHIBlend::InvSrcAlpha;
+            case EBlendFactor::DstAlpha:
+                return ERHIBlend::DstAlpha;
+            case EBlendFactor::OneMinusDstAlpha:
+                return ERHIBlend::InvDstAlpha;
+            case EBlendFactor::DstColor:
+                return ERHIBlend::DstColor;
+            case EBlendFactor::OneMinusDstColor:
+                return ERHIBlend::InvDstColor;
+            }
+            return ERHIBlend::One;
+        }
+
+        ERHICompare ToRHICompare(EDepthFunc InFunc) {
+            switch (InFunc) {
+            case EDepthFunc::Less:
+                return ERHICompare::Less;
+            case EDepthFunc::LessEqual:
+                return ERHICompare::LessEqual;
+            case EDepthFunc::Equal:
+                return ERHICompare::Equal;
+            case EDepthFunc::Always:
+                return ERHICompare::Always;
+            }
+            return ERHICompare::Less;
+        }
+
+        /** One mesh section to draw, with everything resolved to RHI objects. */
+        struct FSceneDraw {
+            IRHIPipeline* Pipeline = nullptr;
+            IRHIBuffer* Vertices = nullptr;
+            IRHIBuffer* Indices = nullptr;
+            const FMaterialInstance* Material = nullptr;
+            IRHITexture* Lightmap = nullptr;
+            glm::mat4 Model{1.0f};
+            glm::vec2 LightmapScale{1.0f};
+            glm::vec2 LightmapBias{0.0f};
+            uint32_t IndexCount = 0;
+            uint32_t FirstIndex = 0;
+            float DistanceSq = 0.0f;
+        };
+
+        /** What the lights and the environment of the world add up to this frame. */
+        struct FSceneLighting {
+            FLitPassConstants Constants;
+            float Exposure = 1.0f;
+        };
+
+        FSceneLighting GatherLighting(UWorld& InWorld) {
+            FSceneLighting lighting;
+            FLitPassConstants& constants = lighting.Constants;
+            auto& registry = InWorld.GetRegistry();
+            // Static lights are in the lightmaps; adding them again would light the scene twice.
+            const bool bSkipBakedLights = InWorld.AreLightmapsTrusted();
+            const auto contributes = [bSkipBakedLights](bool bInEnabled, ELightMobility InMobility) {
+                return bInEnabled && !(InMobility == ELightMobility::Static && bSkipBakedLights);
+            };
+
+            for (auto entity : registry.view<FDirectionalLightComponent>()) {
+                const auto& component = registry.get<FDirectionalLightComponent>(entity);
+                if (!contributes(component.bEnabled, component.Mobility))
+                    continue;
+                constants.DirLight.Direction = glm::vec4(glm::normalize(component.Light.Direction), 1.0f);
+                constants.DirLight.Color = glm::vec4(component.Light.Color, component.Light.Intensity);
+                break;
+            }
+
+            uint32_t pointCount = 0;
+            for (auto entity : registry.view<FPointLightComponent>()) {
+                const auto& component = registry.get<FPointLightComponent>(entity);
+                if (!contributes(component.bEnabled, component.Mobility) || pointCount >= kMaxPointLights)
+                    continue;
+                glm::vec3 position = component.Light.Position;
+                if (const auto* transform = registry.try_get<FTransformComponent>(entity))
+                    position = transform->Translation;
+                FPointLightConstants& light = constants.PointLights[pointCount++];
+                light.Position = glm::vec4(position, 1.0f);
+                light.Color = glm::vec4(component.Light.Color, component.Light.Intensity);
+                light.Params = glm::vec4(component.Light.Radius, -1.0f, 0.0f, 0.0f);
+            }
+
+            uint32_t spotCount = 0;
+            for (auto entity : registry.view<FSpotLightComponent>()) {
+                const auto& component = registry.get<FSpotLightComponent>(entity);
+                if (!contributes(component.bEnabled, component.Mobility) || spotCount >= kMaxSpotLights)
+                    continue;
+                FSpotLight spot = component.Light;
+                if (const auto* transform = registry.try_get<FTransformComponent>(entity))
+                    SyncSpotLightFromTransform(spot, transform->Translation, transform->Rotation);
+                float innerDegrees = spot.CutOff;
+                float outerDegrees = spot.OuterCutOff;
+                if (innerDegrees > outerDegrees)
+                    std::swap(innerDegrees, outerDegrees);
+                outerDegrees = std::max(outerDegrees, innerDegrees + 0.25f);
+                FSpotLightConstants& light = constants.SpotLights[spotCount++];
+                light.Position = glm::vec4(spot.Position, 1.0f);
+                light.Direction = glm::vec4(glm::normalize(spot.Direction), std::cos(glm::radians(innerDegrees)));
+                light.Color = glm::vec4(spot.Color, std::cos(glm::radians(outerDegrees)));
+                light.Params = glm::vec4(spot.Radius, spot.Intensity, 0.0f, 0.0f);
+            }
+            constants.LightCounts = glm::ivec4(static_cast<int>(pointCount), static_cast<int>(spotCount), 0, 0);
+
+            FSkyboxComponent skybox;
+            const auto skyboxView = registry.view<FSkyboxComponent>();
+            const bool bHasSkybox = skyboxView.begin() != skyboxView.end();
+            if (bHasSkybox)
+                skybox = registry.get<FSkyboxComponent>(*skyboxView.begin());
+            constants.EnvSkyColor = glm::vec4(skybox.SkyZenithColor, skybox.EnvironmentIntensity);
+            constants.EnvHorizonColor = glm::vec4(skybox.HorizonColor, 0.0f);
+            constants.EnvGroundColor = glm::vec4(skybox.GroundColor, 0.0f);
+            const bool bFog = bHasSkybox && skybox.bFogEnabled && skybox.FogDensity > 0.0f;
+            constants.FogColorDensity = glm::vec4(skybox.FogColor, bFog ? skybox.FogDensity : 0.0f);
+            constants.FogParams =
+                glm::vec4(std::max(skybox.FogStartDistance, 0.0f), std::max(skybox.FogHeightFalloff, 0.0f),
+                          skybox.FogBaseHeight, glm::clamp(skybox.FogMaxOpacity, 0.0f, 1.0f));
+            lighting.Exposure = skybox.Exposure;
+            return lighting;
         }
 
     } // namespace
 
     struct FWorldRendererRHIState {
-        TRef<IRHITexture> Depth;
-        /** One pipeline per vertex format drawn so far. A null entry is a pipeline that failed to build. */
-        std::map<std::string, TRef<IRHIPipeline>> OpaquePipelines;
+        TRef<IRHITexture> SceneColor;
+        TRef<IRHITexture> SceneDepth;
+        /** Bound where a cube map is expected and none is available. */
+        TRef<IRHITexture> BlackCube;
+        /** Surface pipelines by vertex format and render state. Null: the pipeline failed to build. */
+        std::map<std::string, TRef<IRHIPipeline>> SurfacePipelines;
+        TRef<IRHIPipeline> ToneMappingPipeline;
+        ERHIFormat ToneMappingTargetFormat = ERHIFormat::Unknown;
     };
 
     void FWorldRenderer::RenderRHI(const FPerspectiveCamera& InCamera, IRHICommandList& InCommands,
@@ -76,110 +277,341 @@ namespace Leon {
             RHIState = std::make_shared<FWorldRendererRHIState>();
         FWorldRendererRHIState& state = *RHIState;
 
+        // --- Targets ---
         const uint32_t width = InTarget.GetDesc().Width;
         const uint32_t height = InTarget.GetDesc().Height;
-        if (!state.Depth || state.Depth->GetDesc().Width != width || state.Depth->GetDesc().Height != height) {
+        if (!state.SceneColor || state.SceneColor->GetDesc().Width != width ||
+            state.SceneColor->GetDesc().Height != height) {
+            FRHITextureDesc colorDesc;
+            colorDesc.Width = width;
+            colorDesc.Height = height;
+            colorDesc.Format = ERHIFormat::RGBA16_Float;
+            colorDesc.Usage = RHITextureUsage_Sampled | RHITextureUsage_RenderTarget;
+            colorDesc.ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
+            colorDesc.DebugName = "SceneColor";
+            state.SceneColor = device->CreateTexture(colorDesc);
+
             FRHITextureDesc depthDesc;
             depthDesc.Width = width;
             depthDesc.Height = height;
             depthDesc.Format = ERHIFormat::D32_Float;
             depthDesc.Usage = RHITextureUsage_DepthStencil;
             depthDesc.DebugName = "SceneDepth";
-            state.Depth = device->CreateTexture(depthDesc);
+            state.SceneDepth = device->CreateTexture(depthDesc);
+        }
+        if (!state.BlackCube) {
+            FRHITextureDesc cubeDesc;
+            cubeDesc.Dimension = ERHITextureDimension::TextureCube;
+            cubeDesc.DebugName = "BlackCube";
+            state.BlackCube = device->CreateTexture(cubeDesc);
+            const uint8_t black[4] = {0, 0, 0, 255};
+            for (uint32_t face = 0; state.BlackCube && face < 6; ++face)
+                device->UploadTexture(*state.BlackCube, 0, face, black, 4);
+        }
+        if (!state.SceneColor || !state.SceneDepth || !state.BlackCube)
+            return;
+
+        // --- Shaders and pipelines ---
+        TRef<IRHIShader> surfaceVS = FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex);
+        TRef<IRHIShader> surfacePS = FShaderLibrary::Get("PBR_Lit.hlsl", "PSMain", ERHIShaderStage::Pixel);
+        TRef<IRHIShader> toneVS = FShaderLibrary::Get("ToneMapping.hlsl", "VSMain", ERHIShaderStage::Vertex);
+        TRef<IRHIShader> tonePS = FShaderLibrary::Get("ToneMapping.hlsl", "PSMain", ERHIShaderStage::Pixel);
+
+        const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
+                                         const glm::mat4& InModel, bool bInTransparent) -> IRHIPipeline* {
+            if (!surfaceVS || !surfacePS)
+                return nullptr;
+            const FMaterialPipelineState& materialState = InMaterial.GetPipelineState();
+            ECullMode cull = InMaterial.GetDoubleSided() ? ECullMode::None : materialState.CullMode;
+            cull = FlipCullForNegativeScale(cull, InModel);
+
+            FRHIGraphicsPipelineDesc desc;
+            desc.VertexLayout = GetRHIVertexLayout(InVertexArray);
+            desc.Raster.Cull =
+                cull == ECullMode::Back ? ERHICull::Back : (cull == ECullMode::Front ? ERHICull::Front : ERHICull::None);
+            desc.Depth.bWrite = !bInTransparent;
+            desc.Depth.Compare = ToRHICompare(materialState.DepthFunc);
+            desc.Blend.bEnabled = bInTransparent;
+            desc.Blend.SrcColor = ToRHIBlend(materialState.SrcBlend);
+            desc.Blend.DstColor = ToRHIBlend(materialState.DstBlend);
+
+            std::string key = std::to_string(desc.VertexLayout.Stride);
+            for (const FRHIVertexAttribute& attribute : desc.VertexLayout.Attributes)
+                key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
+            key += "|c" + std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
+                   std::to_string(static_cast<int>(desc.Depth.Compare)) + (bInTransparent ? "t" : "o") +
+                   std::to_string(static_cast<int>(desc.Blend.SrcColor)) + "," +
+                   std::to_string(static_cast<int>(desc.Blend.DstColor));
+
+            const auto found = state.SurfacePipelines.find(key);
+            if (found != state.SurfacePipelines.end())
+                return found->second.get();
+            desc.VertexShader = surfaceVS.get();
+            desc.PixelShader = surfacePS.get();
+            desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
+            desc.DepthFormat = ERHIFormat::D32_Float;
+            desc.DebugName = "Surface";
+            TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
+            state.SurfacePipelines[key] = pipeline;
+            return pipeline.get();
+        };
+
+        if (toneVS && tonePS &&
+            (!state.ToneMappingPipeline || state.ToneMappingTargetFormat != InTarget.GetDesc().Format)) {
+            FRHIGraphicsPipelineDesc desc;
+            desc.VertexShader = toneVS.get();
+            desc.PixelShader = tonePS.get();
+            desc.Raster.Cull = ERHICull::None;
+            desc.Depth.bTest = false;
+            desc.Depth.bWrite = false;
+            desc.ColorFormats[0] = InTarget.GetDesc().Format;
+            desc.DebugName = "ToneMapping";
+            state.ToneMappingPipeline = device->CreateGraphicsPipeline(desc);
+            state.ToneMappingTargetFormat = InTarget.GetDesc().Format;
         }
 
-        TRef<IRHIShader> vertexShader = FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex);
-        TRef<IRHIShader> pixelShader = FShaderLibrary::Get("PBR_Lit.hlsl", "PSMain", ERHIShaderStage::Pixel);
+        // --- What to draw ---
+        // Everything is resolved to device objects here, before the pass starts: creating a buffer or a
+        // texture uploads data, which must not happen in the middle of a render pass.
+        std::vector<FSceneDraw> opaque;
+        std::vector<FSceneDraw> transparent;
+        auto& registry = World->GetRegistry();
+        const FFrustumPlanes frustum = ExtractFrustumPlanes(InCamera.GetViewProjectionMatrix());
+        const glm::vec3 cameraPosition = InCamera.GetPosition();
+        const bool bLightmapsTrusted = World->AreLightmapsTrusted();
+        const TRef<FMaterialInstance> defaultMaterial = UAssetManager::GetDefaultMaterialInstance();
 
-        FRHIRenderPassDesc pass;
-        pass.NumColorTargets = 1;
-        pass.Color[0].Texture = &InTarget;
-        pass.Color[0].ClearColor = {0.01f, 0.012f, 0.016f, 1.0f};
-        pass.Depth.Texture = state.Depth.get();
-        pass.Name = "Opaque";
-        InCommands.BeginRenderPass(pass);
+        const auto lightmapFor = [&](EComponentMobility InMobility, int32_t InIndex,
+                                     const std::string& InAssetPath) -> IRHITexture* {
+            if (!bLightmapsTrusted || InMobility != EComponentMobility::Static || InIndex < 0 || InAssetPath.empty())
+                return nullptr;
+            const TRef<FLightmapAsset> lightmap = UAssetManager::GetLightmap(InAssetPath);
+            const TRef<FTexture2D> texture = lightmap ? lightmap->GetOrCreateGPUTexture() : nullptr;
+            return texture ? GetRHITexture(*texture) : nullptr;
+        };
 
-        if (vertexShader && pixelShader && state.Depth) {
-            FFrameConstants frame;
-            frame.ViewProjection = ClipDepthZeroToOne() * InCamera.GetViewProjectionMatrix();
-            frame.View = InCamera.GetViewMatrix();
-            frame.ViewPosition = glm::vec4(InCamera.GetPosition(), 1.0f);
-            frame.ViewportSize = {static_cast<float>(width), static_cast<float>(height), 1.0f / static_cast<float>(width),
-                                  1.0f / static_cast<float>(height)};
-            InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
-
-            const auto pipelineFor = [&](const FVertexArray& InVertexArray) -> IRHIPipeline* {
-                const FRHIVertexLayout layout = GetRHIVertexLayout(InVertexArray);
-                const std::string key = LayoutKey(layout);
-                const auto found = state.OpaquePipelines.find(key);
-                if (found != state.OpaquePipelines.end())
-                    return found->second.get();
-                FRHIGraphicsPipelineDesc desc;
-                desc.VertexShader = vertexShader.get();
-                desc.PixelShader = pixelShader.get();
-                desc.VertexLayout = layout;
-                desc.ColorFormats[0] = InTarget.GetDesc().Format;
-                desc.DepthFormat = ERHIFormat::D32_Float;
-                desc.DebugName = "Opaque";
-                TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
-                state.OpaquePipelines[key] = pipeline;
-                return pipeline.get();
-            };
-
-            const auto draw = [&](const FVertexArray& InVertexArray, const glm::mat4& InModel,
-                                  const FMaterialInstance* InMaterial, uint32_t InIndexCount, uint32_t InFirstIndex) {
-                IRHIBuffer* vertices = GetRHIVertexBuffer(InVertexArray);
-                IRHIBuffer* indices = GetRHIIndexBuffer(InVertexArray);
-                IRHIPipeline* pipeline = pipelineFor(InVertexArray);
-                if (!vertices || !indices || !pipeline || InIndexCount == 0)
-                    return;
-                FMaterialConstants material;
-                material.BaseColor = glm::vec4(InMaterial ? InMaterial->GetAlbedoColor() : glm::vec3(0.5f), 1.0f);
-                FDrawConstants constants;
-                constants.Model = InModel;
-                constants.NormalMatrix = glm::mat4(glm::inverseTranspose(glm::mat3(InModel)));
-                InCommands.SetPipeline(pipeline);
-                InCommands.SetVertexBuffer(vertices);
-                InCommands.SetIndexBuffer(indices);
-                InCommands.SetConstants(ERHIConstantSlot::Material, &material, sizeof(material));
-                InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
-                InCommands.DrawIndexed(InIndexCount, InFirstIndex);
-            };
-
-            auto& registry = World->GetRegistry();
-
-            // Procedural primitives (boxes, planes...).
-            auto meshView = registry.view<FTransformComponent, FMeshComponent>();
-            for (auto entity : meshView) {
-                auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
-                if (!mesh.VertexArray || !mesh.bVisible)
-                    continue;
-                const FMaterialInstance* material = nullptr;
-                if (registry.all_of<FMaterialComponent>(entity))
-                    material = registry.get<FMaterialComponent>(entity).MaterialInstance.get();
-                draw(*mesh.VertexArray, ResolveActorWorldMatrix(World, entity, transform), material,
-                     GetRHIIndexCount(*mesh.VertexArray), 0);
+        const auto submit = [&](const FVertexArray& InVertexArray, const FMaterialInstance* InMaterial,
+                                const glm::mat4& InModel, uint32_t InIndexCount, uint32_t InFirstIndex,
+                                IRHITexture* InLightmap, const glm::vec2& InLightmapScale,
+                                const glm::vec2& InLightmapBias, const glm::vec3& InLocalMin,
+                                const glm::vec3& InLocalMax) {
+            if (!InMaterial || InIndexCount == 0)
+                return;
+            const bool bTransparent = InMaterial->GetAlphaMode() == EAlphaMode::Blend;
+            FSceneDraw draw;
+            draw.Pipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent);
+            draw.Vertices = GetRHIVertexBuffer(InVertexArray);
+            draw.Indices = GetRHIIndexBuffer(InVertexArray);
+            if (!draw.Pipeline || !draw.Vertices || !draw.Indices)
+                return;
+            draw.Material = InMaterial;
+            draw.Lightmap = InLightmap;
+            draw.Model = InModel;
+            draw.LightmapScale = InLightmapScale;
+            draw.LightmapBias = InLightmapBias;
+            draw.IndexCount = InIndexCount;
+            draw.FirstIndex = InFirstIndex;
+            if (bTransparent) {
+                draw.DistanceSq = TransparentSortDistanceSq(InModel, InLocalMin, InLocalMax, cameraPosition);
+                transparent.push_back(draw);
+            } else {
+                opaque.push_back(draw);
             }
+        };
 
-            // Imported static meshes.
-            auto staticView = registry.view<FTransformComponent, FStaticMeshComponent>();
-            for (auto entity : staticView) {
-                auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
-                if (!component.bVisible || !component.StaticMesh)
+        // Procedural primitives (boxes, planes...).
+        auto meshView = registry.view<FTransformComponent, FMeshComponent>();
+        for (auto entity : meshView) {
+            auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
+            if (!mesh.VertexArray || !mesh.bVisible)
+                continue;
+            const glm::mat4 model = ResolveActorWorldMatrix(World, entity, transform);
+            if (IsProceduralMeshOutsideLightFrustum(model, mesh, frustum))
+                continue;
+            TRef<FMaterialInstance> material;
+            if (const auto* component = registry.try_get<FMaterialComponent>(entity))
+                material = component->MaterialInstance;
+            if (!material)
+                material = defaultMaterial;
+            const glm::vec3 extent = ProceduralMeshLocalExtent(mesh);
+            submit(*mesh.VertexArray, material.get(), model, GetRHIIndexCount(*mesh.VertexArray), 0,
+                   lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
+                   mesh.LightmapBias, -extent, extent);
+        }
+
+        // Imported static meshes.
+        auto staticView = registry.view<FTransformComponent, FStaticMeshComponent>();
+        for (auto entity : staticView) {
+            auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
+            if (!component.bVisible || !component.StaticMesh)
+                continue;
+            const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+            if (IsStaticMeshOutsideLightFrustum(world, component, frustum))
+                continue;
+            const uint32_t lod = std::min(component.CurrentLOD, std::max(1u, component.StaticMesh->GetLODCount()) - 1);
+            const TRef<FVertexArray> vertexArray = component.StaticMesh->GetLODVertexArray(lod);
+            if (!vertexArray)
+                continue;
+            IRHITexture* lightmap = lightmapFor(component.Mobility, component.LightmapIndex, component.LightmapAssetPath);
+            for (const auto& submesh : component.StaticMesh->GetLODSubmeshes(lod)) {
+                const TRef<FMaterialInstance> material =
+                    ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides);
+                submit(*vertexArray, material ? material.get() : defaultMaterial.get(), world * submesh.LocalTransform,
+                       submesh.IndexCount, submesh.IndexOffset, lightmap, component.LightmapScale,
+                       component.LightmapBias, component.StaticMesh->GetBoundsMin(),
+                       component.StaticMesh->GetBoundsMax());
+            }
+        }
+
+        // Fewest state changes for opaque surfaces; back to front for blended ones.
+        std::sort(opaque.begin(), opaque.end(), [](const FSceneDraw& InA, const FSceneDraw& InB) {
+            if (InA.Pipeline != InB.Pipeline)
+                return InA.Pipeline < InB.Pipeline;
+            if (InA.Material != InB.Material)
+                return InA.Material < InB.Material;
+            return InA.Vertices < InB.Vertices;
+        });
+        std::sort(transparent.begin(), transparent.end(),
+                  [](const FSceneDraw& InA, const FSceneDraw& InB) { return InA.DistanceSq > InB.DistanceSq; });
+
+        // Material textures, resolved now for the same reason as the buffers.
+        struct FMaterialBinding {
+            FMaterialConstants Constants;
+            IRHITexture* Textures[6] = {};
+        };
+        std::map<const FMaterialInstance*, FMaterialBinding> materialBindings;
+        const auto prepareMaterial = [&](const FMaterialInstance& InMaterial) {
+            if (materialBindings.count(&InMaterial))
+                return;
+            FMaterialBinding binding;
+            int textureBits = 0;
+            // Order: albedo, normal, metallic, ambient occlusion, roughness, emissive.
+            for (uint32_t slot = 0; slot < 6; ++slot) {
+                TRef<FTexture2D> texture = InMaterial.GetTexture(slot);
+                if (!texture && slot == 5)
+                    texture = InMaterial.GetTexture(9); // emissive used to live in slot 9
+                if (!texture || !texture->IsLoaded())
                     continue;
-                const TRef<FVertexArray> vertexArray = component.StaticMesh->GetLODVertexArray(0);
-                if (!vertexArray)
-                    continue;
-                const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
-                for (const FStaticSubmesh& submesh : component.StaticMesh->GetLODSubmeshes(0)) {
-                    const TRef<FMaterialInstance> material =
-                        ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides);
-                    draw(*vertexArray, world * submesh.LocalTransform, material.get(), submesh.IndexCount,
-                         submesh.IndexOffset);
+                binding.Textures[slot] = GetRHITexture(*texture);
+                if (binding.Textures[slot])
+                    textureBits |= 1 << slot;
+            }
+            binding.Constants.AlbedoColor = glm::vec4(InMaterial.GetAlbedoColor(), 1.0f);
+            binding.Constants.EmissiveColor = glm::vec4(InMaterial.GetEmissiveColor(), InMaterial.GetEmissiveIntensity());
+            binding.Constants.SurfaceParams = glm::vec4(InMaterial.GetMetallic(), InMaterial.GetRoughness(),
+                                                        InMaterial.GetAO(), InMaterial.GetNormalScale());
+            binding.Constants.SurfaceParams2 =
+                glm::vec4(InMaterial.GetOcclusionStrength(), InMaterial.GetAlphaCutoff(), 0.0f, 0.0f);
+            binding.Constants.UVTransform = glm::vec4(InMaterial.GetUVTiling(), InMaterial.GetUVOffset());
+            binding.Constants.MaterialFlags = glm::ivec4(textureBits, static_cast<int>(InMaterial.GetAlphaMode()),
+                                                         InMaterial.GetDoubleSided() ? 1 : 0, 0);
+            materialBindings.emplace(&InMaterial, binding);
+        };
+        for (const FSceneDraw& draw : opaque)
+            prepareMaterial(*draw.Material);
+        for (const FSceneDraw& draw : transparent)
+            prepareMaterial(*draw.Material);
+
+        // --- Lighting ---
+        FSceneLighting lighting = GatherLighting(*World);
+        IRHITexture* brdfLut = IBLEnvironment.BRDFLUT ? GetRHITexture(*IBLEnvironment.BRDFLUT) : nullptr;
+        IRHITexture* irradiance = IBLEnvironment.IrradianceMap ? GetRHITexture(*IBLEnvironment.IrradianceMap) : nullptr;
+        IRHITexture* prefilter = IBLEnvironment.PrefilterMap ? GetRHITexture(*IBLEnvironment.PrefilterMap) : nullptr;
+        const bool bIBL = bUseIBL && brdfLut && irradiance && prefilter;
+        lighting.Constants.PassFlags = glm::ivec4(bIBL ? 1 : 0, DebugMode, 0, 0);
+
+        FFrameConstants frame;
+        frame.ViewProjection = ClipDepthZeroToOne() * InCamera.GetViewProjectionMatrix();
+        frame.View = InCamera.GetViewMatrix();
+        frame.ViewPosition = glm::vec4(cameraPosition, 1.0f);
+        frame.CameraForward = glm::vec4(InCamera.GetForwardDirection(), 0.0f);
+        frame.ViewportSize = {static_cast<float>(width), static_cast<float>(height), 1.0f / static_cast<float>(width),
+                              1.0f / static_cast<float>(height)};
+
+        // --- Scene pass: linear HDR colour ---
+        FRHIRenderPassDesc scenePass;
+        scenePass.NumColorTargets = 1;
+        scenePass.Color[0].Texture = state.SceneColor.get();
+        scenePass.Color[0].ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
+        scenePass.Depth.Texture = state.SceneDepth.get();
+        scenePass.Name = "Scene";
+        InCommands.BeginRenderPass(scenePass);
+        InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
+        InCommands.SetConstants(ERHIConstantSlot::Pass, &lighting.Constants, sizeof(lighting.Constants));
+        InCommands.SetTexture(kSlotBRDFLUT, brdfLut);
+        InCommands.SetTexture(kSlotIrradiance, bIBL ? irradiance : state.BlackCube.get());
+        InCommands.SetTexture(kSlotPrefilter, bIBL ? prefilter : state.BlackCube.get());
+
+        const auto drawAll = [&](const std::vector<FSceneDraw>& InDraws, const char* InName) {
+            if (InDraws.empty())
+                return;
+            InCommands.PushMarker(InName);
+            IRHIPipeline* boundPipeline = nullptr;
+            const FMaterialInstance* boundMaterial = nullptr;
+            IRHIBuffer* boundVertices = nullptr;
+            IRHIBuffer* boundIndices = nullptr;
+            IRHITexture* boundLightmap = nullptr;
+            bool bLightmapBound = false;
+            for (const FSceneDraw& draw : InDraws) {
+                if (draw.Pipeline != boundPipeline) {
+                    InCommands.SetPipeline(draw.Pipeline);
+                    boundPipeline = draw.Pipeline;
                 }
+                if (draw.Material != boundMaterial) {
+                    const FMaterialBinding& binding = materialBindings.at(draw.Material);
+                    InCommands.SetConstants(ERHIConstantSlot::Material, &binding.Constants, sizeof(binding.Constants));
+                    InCommands.SetTexture(kSlotAlbedo, binding.Textures[0]);
+                    InCommands.SetTexture(kSlotNormal, binding.Textures[1]);
+                    InCommands.SetTexture(kSlotMetallic, binding.Textures[2]);
+                    InCommands.SetTexture(kSlotAO, binding.Textures[3]);
+                    InCommands.SetTexture(kSlotRoughness, binding.Textures[4]);
+                    InCommands.SetTexture(kSlotEmissive, binding.Textures[5]);
+                    boundMaterial = draw.Material;
+                }
+                if (draw.Vertices != boundVertices) {
+                    InCommands.SetVertexBuffer(draw.Vertices);
+                    boundVertices = draw.Vertices;
+                }
+                if (draw.Indices != boundIndices) {
+                    InCommands.SetIndexBuffer(draw.Indices);
+                    boundIndices = draw.Indices;
+                }
+                if (!bLightmapBound || draw.Lightmap != boundLightmap) {
+                    InCommands.SetTexture(kSlotLightmap, draw.Lightmap);
+                    boundLightmap = draw.Lightmap;
+                    bLightmapBound = true;
+                }
+                FDrawConstants constants;
+                constants.Model = draw.Model;
+                constants.NormalMatrix = glm::mat4(SafeNormalMatrix(draw.Model));
+                constants.LightmapScaleBias = glm::vec4(draw.LightmapScale, draw.LightmapBias);
+                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, 0, 0);
+                InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
+                InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex);
             }
-        }
+            InCommands.PopMarker();
+        };
+        drawAll(opaque, "Opaque");
+        drawAll(transparent, "Transparent");
+        InCommands.EndRenderPass();
 
+        // --- Tone mapping: HDR scene to the output ---
+        FRHIRenderPassDesc outputPass;
+        outputPass.NumColorTargets = 1;
+        outputPass.Color[0].Texture = &InTarget;
+        outputPass.Color[0].LoadOp = ERHILoadOp::Clear;
+        outputPass.Name = "ToneMapping";
+        InCommands.BeginRenderPass(outputPass);
+        if (state.ToneMappingPipeline) {
+            FToneMappingConstants tone;
+            tone.ToneParams = glm::vec4(lighting.Exposure, PostProcessSettings.BloomIntensity, PostProcessSettings.Gamma, 0.0f);
+            tone.ToneFlags = glm::ivec4(PostProcessSettings.ToneMapper, 0, PostProcessSettings.DebugMode == 1 ? 1 : 0, 0);
+            InCommands.SetPipeline(state.ToneMappingPipeline.get());
+            InCommands.SetConstants(ERHIConstantSlot::Pass, &tone, sizeof(tone));
+            InCommands.SetTexture(0, state.SceneColor.get());
+            InCommands.SetTexture(1, nullptr);
+            InCommands.Draw(3);
+        }
         InCommands.EndRenderPass();
     }
 
