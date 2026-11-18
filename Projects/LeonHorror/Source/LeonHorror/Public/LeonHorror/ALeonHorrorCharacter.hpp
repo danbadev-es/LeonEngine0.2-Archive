@@ -67,6 +67,7 @@ namespace Leon {
         bool IsDead() const { return bDead; }
 
         float GetStamina() const { return Stamina; }
+        void SetStamina(float InStamina);
         bool IsSprinting() const { return bSprinting; }
         bool IsAiming() const { return bAiming; }
 

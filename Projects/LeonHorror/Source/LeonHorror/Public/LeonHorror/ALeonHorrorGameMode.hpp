@@ -2,6 +2,8 @@
 
 #include "Gameplay/AGameModeBase.hpp"
 
+#include "LeonHorror/FLeonHorrorSaveGame.hpp"
+
 #include <map>
 #include <set>
 #include <string>
@@ -61,9 +63,29 @@ namespace Leon {
         const std::string& GetNoteTitle() const { return NoteTitle; }
         const std::string& GetNoteText() const { return NoteText; }
 
-        /** Asked by a save point. Returns true when the game was saved. */
+        /** Asked by a save point. Writes the save file; returns true when it was written. */
         bool RequestSave(ALeonHorrorCharacter& InPlayer);
         int32_t GetSaveCount() const { return SaveCount; }
+
+        /** Snapshot of the player and of the world differences recorded so far. */
+        FLeonHorrorSaveGame CaptureSave(const ALeonHorrorCharacter& InPlayer) const;
+        /**
+         * Applies a save to a freshly loaded map: removes collected pickups and dead enemies, sets the
+         * doors, and restores the player. Must run after the world has begun play.
+         */
+        void ApplySave(const FLeonHorrorSaveGame& InSave);
+
+        /** File used by RequestSave and LoadLastSave. Defaults to <Project>/Saved/SaveGames/Slot0.lsav. */
+        void SetSaveFilePath(const std::string& InPath) { SaveFilePath = InPath; }
+        std::string GetSaveFilePath() const;
+        bool HasSaveFile() const;
+        /**
+         * Reloads the map and applies the last save (or restarts the map when there is none).
+         * Needs the running engine; returns false in headless runs.
+         */
+        bool LoadLastSave();
+        /** Reloads the map as authored, discarding progress. Needs the running engine. */
+        bool RestartMap();
 
         void NotifySliceCompleted();
         bool IsSliceCompleted() const { return bSliceCompleted; }
@@ -104,6 +126,10 @@ namespace Leon {
         int32_t EndScreenConfirms = 0;
 
         void RefreshPause();
+        void ApplyPendingSaveFromInstance();
+
+        std::string SaveFilePath;
+        bool bPendingSaveChecked = false;
     };
 
 } // namespace Leon

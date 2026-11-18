@@ -209,6 +209,11 @@ namespace Leon {
             Stamina = std::min(Tuning.StaminaMax, Stamina + Tuning.StaminaRegenPerSecond * DeltaSeconds);
     }
 
+    void ALeonHorrorCharacter::SetStamina(float InStamina) {
+        Stamina = std::clamp(InStamina, 0.0f, Tuning.StaminaMax);
+        bExhausted = Stamina < Tuning.StaminaToSprintAgain && Stamina <= 0.0f;
+    }
+
     void ALeonHorrorCharacter::Tick(float DeltaSeconds) {
         ACharacter::Tick(DeltaSeconds);
         UpdateCameraRig(DeltaSeconds);
