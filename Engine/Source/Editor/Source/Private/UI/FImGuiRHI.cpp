@@ -26,6 +26,11 @@ namespace Leon::Editor {
         /** One pipeline per target format. Null entries are pipelines that failed to build. */
         std::map<ERHIFormat, TRef<IRHIPipeline>>& Pipelines() {
             static std::map<ERHIFormat, TRef<IRHIPipeline>> pipelines;
+            static uint64_t generation = 0;
+            if (generation != FShaderLibrary::GetGeneration()) {
+                pipelines.clear(); // built from shaders that have been reloaded since
+                generation = FShaderLibrary::GetGeneration();
+            }
             return pipelines;
         }
 

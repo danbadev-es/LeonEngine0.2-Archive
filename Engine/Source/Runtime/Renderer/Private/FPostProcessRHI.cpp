@@ -92,6 +92,10 @@ namespace Leon {
         if (!device || !InInputs.SceneColor || !InInputs.Output)
             return;
         IRHITexture& output = *InInputs.Output;
+        if (ShaderGeneration != FShaderLibrary::GetGeneration()) {
+            Pipelines.clear();
+            ShaderGeneration = FShaderLibrary::GetGeneration();
+        }
         EnsureTargets(*device, output.GetDesc().Width, output.GetDesc().Height);
         if (!ToneMapped || !OccludedScene || !Occlusion || !OcclusionBlur || BloomDown.size() != kBloomLevels ||
             BloomUp.size() != kBloomLevels)

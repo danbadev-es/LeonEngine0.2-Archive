@@ -14,6 +14,7 @@
 #include <oleauto.h>
 
 #include <dxcapi.h>
+#include <d3d12shader.h>
 #include <wrl/client.h>
 
 #include <filesystem>
@@ -152,6 +153,33 @@ namespace Leon {
         }
         const auto* bytes = static_cast<const uint8_t*>(object->GetBufferPointer());
         OutResult.Bytecode.assign(bytes, bytes + object->GetBufferSize());
+
+        // What the shader expects in each constant buffer, so tests can hold the C++ side to it.
+        ComPtr<IDxcBlob> reflectionBlob;
+        if (SUCCEEDED(result->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&reflectionBlob), nullptr)) && reflectionBlob) {
+            DxcBuffer reflectionBuffer{};
+            reflectionBuffer.Ptr = reflectionBlob->GetBufferPointer();
+            reflectionBuffer.Size = reflectionBlob->GetBufferSize();
+            reflectionBuffer.Encoding = DXC_CP_ACP;
+            ComPtr<ID3D12ShaderReflection> reflection;
+            D3D12_SHADER_DESC shaderDesc{};
+            if (SUCCEEDED(utils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&reflection))) && reflection &&
+                SUCCEEDED(reflection->GetDesc(&shaderDesc))) {
+                for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i) {
+                    D3D12_SHADER_BUFFER_DESC bufferDesc{};
+                    ID3D12ShaderReflectionConstantBuffer* constantBuffer = reflection->GetConstantBufferByIndex(i);
+                    if (!constantBuffer || FAILED(constantBuffer->GetDesc(&bufferDesc)) || !bufferDesc.Name)
+                        continue;
+                    FShaderConstantBuffer entry;
+                    entry.Name = bufferDesc.Name;
+                    entry.Size = bufferDesc.Size;
+                    D3D12_SHADER_INPUT_BIND_DESC bindDesc{};
+                    if (SUCCEEDED(reflection->GetResourceBindingDescByName(bufferDesc.Name, &bindDesc)))
+                        entry.Register = bindDesc.BindPoint;
+                    OutResult.ConstantBuffers.push_back(std::move(entry));
+                }
+            }
+        }
         return true;
     }
 

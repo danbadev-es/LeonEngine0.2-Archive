@@ -59,6 +59,8 @@ namespace Leon {
         TRef<IRHITexture> ToneMapped;
         /** By shader, entry point, target format and blending. Null: the pipeline failed to build. */
         std::map<std::string, TRef<IRHIPipeline>> Pipelines;
+        /** FShaderLibrary::GetGeneration when Pipelines was filled. */
+        uint64_t ShaderGeneration = 0;
         glm::vec4 OcclusionKernel[16]{};
         bool bKernelBuilt = false;
     };

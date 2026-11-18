@@ -26,9 +26,20 @@ namespace Leon {
         bool bDebug = false;
     };
 
+    /** A constant buffer as the compiled shader sees it. */
+    struct FShaderConstantBuffer {
+        std::string Name;
+        /** The b<n> register it is bound to. */
+        uint32_t Register = 0;
+        /** Bytes the shader expects there, padded to 16. The C++ structure that fills it must match. */
+        uint32_t Size = 0;
+    };
+
     struct FShaderCompileOutput {
         /** DXIL, ready for IRHIDevice::CreateShader. Empty on failure. */
         std::vector<uint8_t> Bytecode;
+        /** The constant buffers the entry point uses (ones it never reads are not listed). */
+        std::vector<FShaderConstantBuffer> ConstantBuffers;
         /** Compiler errors and warnings, with file and line. */
         std::string Messages;
     };

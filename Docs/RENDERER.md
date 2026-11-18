@@ -96,6 +96,19 @@ per-frame memory.
 | `ImGui.hlsl` | The editor's interface |
 
 Shaders are compiled from source when first used (`-HV 2021`, warnings as errors) and kept for the run.
+
+- **Cache on disk.** The compiled code is also written to `Saved/ShaderCache` under the working
+  directory, named by a hash of every file in the shader folder and of what was asked for. A second
+  run compiles nothing; an edited shader never matches an old entry. `LEON_NO_SHADER_CACHE=1` turns it off.
+- **Reload while running.** Builds with assertions look at the shader folder twice a second. Save a
+  shader and the next frame is drawn with it: `FShaderLibrary` drops what it holds and whoever keeps
+  pipelines (the world renderer, post-processing, 2D drawing, the editor UI) rebuilds them on seeing a
+  new `GetGeneration()`. The editor watches the copy staged next to it, not the sources.
+- **C++ and HLSL kept in step.** `Tests/RHI/ShaderConstantLayoutTests.cpp` compiles every shader and
+  compares the size the compiler reports for each constant buffer with the C++ structure in
+  `FShaderConstants.hpp` that fills it. A buffer the test does not know fails it too.
+- **GPU time.** `IRHICommandList::BeginGpuTimer` / `EndGpuTimer` bracket work under a slot; the frame
+  profiler shows shadows, planar captures, the scene pass and post-processing.
 Editing a `.hlsl` file and restarting is enough; nothing is rebuilt.
 
 `u_PassFlags.y` selects a debug view of the surface shader (`FWorldRenderer::SetDebugMode`). The numbers
@@ -113,7 +126,5 @@ shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture 
 
 ## Not done yet
 
-- GPU timings: the profiler's GPU columns read zero.
-- Shader cache on disk, and a check that each C++ constant structure matches its HLSL block.
 - The sun's shadow bias is a fraction of the cascade's depth range, which is eight times its radius;
   with the default settings objects about a metre tall cast no visible sun shadow.

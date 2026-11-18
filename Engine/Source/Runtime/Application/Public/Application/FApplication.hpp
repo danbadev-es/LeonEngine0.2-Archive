@@ -95,6 +95,7 @@ namespace Leon {
         bool bDebugNetwork = false;
         FLayerStack LayerStack;
         float LastFrameTime = 0.0f;
+        float LastShaderPollTime = 0.0f;
 
         static FApplication* Instance;
     };

@@ -184,6 +184,14 @@ namespace Leon {
             LastFrameTime = time;
             FTimestep timestep = std::min(rawDt, kPhysicsMaxFrameDeltaSeconds);
 
+#ifndef NDEBUG
+            // Save a shader and see it: a look at the shader folder twice a second.
+            if (time - LastShaderPollTime > 0.5f) {
+                LastShaderPollTime = time;
+                FShaderLibrary::ReloadIfSourcesChanged();
+            }
+#endif
+
             IRHIDevice* device = FRHI::GetDevice();
             const bool bRenderFrame = device && Swapchain && !bMinimized;
             if (bRenderFrame) {

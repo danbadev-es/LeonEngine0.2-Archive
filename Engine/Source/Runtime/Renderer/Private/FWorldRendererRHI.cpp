@@ -261,6 +261,8 @@ namespace Leon {
         TRef<IRHITexture> SpotShadowMap;
         TRef<IRHITexture> PointShadowMap;
         std::map<std::string, TRef<IRHIPipeline>> ShadowPipelines;
+        /** FShaderLibrary::GetGeneration when the pipelines above were built. */
+        uint64_t ShaderGeneration = 0;
         FPostProcessRHI PostProcess;
     };
 
@@ -273,6 +275,15 @@ namespace Leon {
         if (!RHIState)
             RHIState = std::make_shared<FWorldRendererRHIState>();
         FWorldRendererRHIState& state = *RHIState;
+        if (state.ShaderGeneration != FShaderLibrary::GetGeneration()) {
+            // The shaders were reloaded: pipelines built from the old ones go.
+            state.SurfacePipelines.clear();
+            state.ShadowPipelines.clear();
+            state.OutlinePipeline.reset();
+            state.SkyPipeline.reset();
+            state.DownsamplePipeline.reset();
+            state.ShaderGeneration = FShaderLibrary::GetGeneration();
+        }
         // CPU time of each stage, for the on-screen profiler.
         std::optional<FFrameProfiler::FScope> stageTimer;
         // The same stages, as the GPU spends its time on them (results come back a few frames later).

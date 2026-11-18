@@ -56,6 +56,7 @@ set(LEON_ENGINE_TEST_SOURCES
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
+    RHI/ShaderConstantLayoutTests.cpp
     Shader/PostProcessPipelineTests.cpp
     Asset/MeshImportTests.cpp
     Asset/StaticMeshLODTests.cpp
