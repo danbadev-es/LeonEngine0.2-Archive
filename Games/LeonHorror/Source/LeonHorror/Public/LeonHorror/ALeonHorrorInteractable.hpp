@@ -1,35 +1,30 @@
 #pragma once
 
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/IInteractable.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"
 
 #include <string>
 
 namespace Leon {
 
-    class ALeonHorrorCharacter;
-
     /**
      * Base for things the player uses with the interact key: pickups, doors, notes, save points.
+     * A convenience, not a requirement: the player uses anything that implements IInteractable.
      *
      * The player finds its target geometrically (within reach, closest to where it is looking, with a
      * clear line to it), so an interactable needs no collider of its own. Authored data comes from the
      * actor's map properties; state that must survive a save is reported to the game mode by GUID.
      */
-    class ALeonHorrorInteractable : public AActor {
+    class ALeonHorrorInteractable : public AActor, public IInteractable {
     public:
         ALeonHorrorInteractable() = default;
         ALeonHorrorInteractable(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "Interactable");
 
-        /** Whether it can be targeted at all right now (a collected pickup cannot). */
-        virtual bool CanInteract(const ALeonHorrorCharacter& InPlayer) const;
-        /** Short prompt for the HUD, e.g. "Open door" or "Locked". */
-        virtual std::string GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const = 0;
-        /** Performs the action. Returns false when nothing happened (locked door without the key). */
-        virtual bool Interact(ALeonHorrorCharacter& InPlayer) = 0;
-
+        /** Only the living player, and only while this is in the world (a collected pickup is not). */
+        bool CanInteract(const APawn& InInstigator) const override;
         /** Point the player has to look at; defaults to the actor location. */
-        virtual glm::vec3 GetInteractLocation() const { return GetActorLocation(); }
+        glm::vec3 GetInteractLocation() const override { return GetActorLocation(); }
     };
 
     /** An item lying in the level. Properties: Item (id), Count (default 1). */
@@ -39,8 +34,8 @@ namespace Leon {
         ALeonHorrorPickup(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "Pickup");
 
         void OnPropertiesLoaded() override;
-        std::string GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const override;
-        bool Interact(ALeonHorrorCharacter& InPlayer) override;
+        std::string GetInteractPrompt(const APawn& InInstigator) const override;
+        bool Interact(APawn& InInstigator) override;
 
         void SetItem(const std::string& InItemId, int32_t InCount = 1);
         const std::string& GetItemId() const { return ItemId; }
@@ -66,8 +61,8 @@ namespace Leon {
         void BeginPlay() override;
         void Tick(float DeltaSeconds) override;
 
-        std::string GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const override;
-        bool Interact(ALeonHorrorCharacter& InPlayer) override;
+        std::string GetInteractPrompt(const APawn& InInstigator) const override;
+        bool Interact(APawn& InInstigator) override;
 
         bool IsLocked() const { return bLocked; }
         bool IsOpen() const { return bOpen; }
@@ -107,8 +102,8 @@ namespace Leon {
         ALeonHorrorNote(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "Note");
 
         void OnPropertiesLoaded() override;
-        std::string GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const override;
-        bool Interact(ALeonHorrorCharacter& InPlayer) override;
+        std::string GetInteractPrompt(const APawn& InInstigator) const override;
+        bool Interact(APawn& InInstigator) override;
 
         void SetContent(const std::string& InTitle, const std::string& InText);
         const std::string& GetTitle() const { return Title; }
@@ -128,8 +123,8 @@ namespace Leon {
         ALeonHorrorSavePoint() = default;
         ALeonHorrorSavePoint(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "SavePoint");
 
-        std::string GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const override;
-        bool Interact(ALeonHorrorCharacter& InPlayer) override;
+        std::string GetInteractPrompt(const APawn& InInstigator) const override;
+        bool Interact(APawn& InInstigator) override;
     };
 
     /** The way out. Properties: RequiredKey (item id). Using it with the key ends the slice. */
@@ -139,8 +134,8 @@ namespace Leon {
         ALeonHorrorExit(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "Exit");
 
         void OnPropertiesLoaded() override;
-        std::string GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const override;
-        bool Interact(ALeonHorrorCharacter& InPlayer) override;
+        std::string GetInteractPrompt(const APawn& InInstigator) const override;
+        bool Interact(APawn& InInstigator) override;
 
         void SetRequiredKey(const std::string& InKey) { RequiredKey = InKey; }
         const std::string& GetRequiredKey() const { return RequiredKey; }

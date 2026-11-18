@@ -1,4 +1,6 @@
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
+#include "Core/Cast.hpp"
+#include "Gameplay/IInteractable.hpp"
 
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
@@ -272,18 +274,19 @@ namespace Leon {
         light->UpdateFromView(GetPawnViewLocation(), GetControlLookDirection());
     }
 
-    ALeonHorrorInteractable* ALeonHorrorCharacter::FindInteractable() const {
+    AActor* ALeonHorrorCharacter::FindInteractable() const {
         if (!World || bDead)
             return nullptr;
         const glm::vec3 eye = GetPawnViewLocation();
         const glm::vec3 look = GetControlLookDirection();
         const float minCos = std::cos(glm::radians(Tuning.InteractConeDegrees));
 
-        ALeonHorrorInteractable* best = nullptr;
+        AActor* best = nullptr;
         float bestScore = -1.0e9f;
         for (const auto& actorRef : World->GetAllActors()) {
-            auto* candidate = dynamic_cast<ALeonHorrorInteractable*>(actorRef.get());
-            if (!candidate || !candidate->CanInteract(*this))
+            AActor* actor = actorRef.get();
+            const auto* candidate = Cast<IInteractable>(actor);
+            if (!candidate || actor == this || !candidate->CanInteract(*this))
                 continue;
             const glm::vec3 to = candidate->GetInteractLocation() - eye;
             const float distance = glm::length(to);
@@ -297,25 +300,27 @@ namespace Leon {
             FHitResult hit;
             if (World->LineTraceSingleByChannel(eye, candidate->GetInteractLocation(), ECollisionChannel::WorldStatic,
                                                 const_cast<ALeonHorrorCharacter*>(this), hit) &&
-                hit.Actor && hit.Actor != candidate)
+                hit.Actor && hit.Actor != actor)
                 continue;
             // Prefer what is closest to the centre of the view, then what is nearer.
             const float score = alignment * 10.0f - distance;
             if (score > bestScore) {
                 bestScore = score;
-                best = candidate;
+                best = actor;
             }
         }
         return best;
     }
 
     std::string ALeonHorrorCharacter::GetInteractPrompt() const {
-        const ALeonHorrorInteractable* target = Focused.Get();
+        const auto* target = Cast<IInteractable>(Focused.Get());
         return target ? target->GetInteractPrompt(*this) : std::string();
     }
 
     bool ALeonHorrorCharacter::TryInteract() {
-        ALeonHorrorInteractable* target = Focused.Get();
+        // Held for the call: using a pickup destroys it.
+        const TRef<AActor> focused = Focused.Pin();
+        auto* target = Cast<IInteractable>(focused);
         if (!target || bDead || !target->CanInteract(*this))
             return false;
         const bool bDone = target->Interact(*this);

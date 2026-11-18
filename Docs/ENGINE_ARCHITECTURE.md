@@ -86,6 +86,21 @@ FWorldRenderer reads both (EnTT for map meshes/lights; gameplay for skinned pawn
 
 EnTT render mirrors (`FTransformComponent`, `FStaticMeshComponent`, `FDirectionalLightComponent`, …) live in `Scene/Components.hpp`. They are not `UActorComponent` subclasses.
 
+## Events and interfaces
+
+**Events** are `TMulticastDelegate<void(Args...)>` members (`Core/TMulticastDelegate.hpp`), named `On...`:
+
+```cpp
+FDelegateHandle handle = health->OnDeath.Add([this](const FDamageInfo& InInfo) { HandleDeath(InInfo); });
+handle.Remove();                                    // stop listening
+other->OnOpened.AddWeak(listener, [...] { ... });   // dropped when `listener` is gone
+FScopedDelegateHandle Subscription;                 // as a member: removes itself on destruction
+```
+
+A listener may add or remove listeners, clear the delegate or destroy its owner while it is being called. Capture `this` only for events of objects you own (your own components); for anything that may outlive you use `AddWeak` or keep an `FScopedDelegateHandle`. A single callback (a factory, a timer) stays a `std::function`.
+
+**Interfaces** are plain abstract classes prefixed `I`, implemented next to the base class (`class ADoor : public AActor, public IInteractable`). Ask for one with `Cast<IInteractable>(actor)` (`Core/Cast.hpp`), which is null when the object does not implement it. `Gameplay/IInteractable.hpp` is the one the engine ships: what a pawn can use. How the pawn finds its target (reach, line of sight) is the game's choice.
+
 ## Startup lifecycle
 
 Owned by `UEngine::InternalRun`:

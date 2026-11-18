@@ -11,7 +11,6 @@
 namespace Leon {
 
     class ALeonHorrorFlashlight;
-    class ALeonHorrorInteractable;
     class ULeonHorrorAnimInstance;
     class ULeonHorrorCombatComponent;
     class ULeonHorrorInventoryComponent;
@@ -89,12 +88,15 @@ namespace Leon {
         ULeonHorrorInventoryComponent* GetInventory() const { return Inventory.get(); }
         ULeonHorrorCombatComponent* GetCombat() const { return Combat.get(); }
 
-        /** The thing the interact key would act on right now, or null. Refreshed every tick. */
-        ALeonHorrorInteractable* GetFocusedInteractable() const { return Focused.Get(); }
+        /** The actor the interact key would act on right now, or null. Refreshed every tick. */
+        AActor* GetFocusedInteractable() const { return Focused.Get(); }
         /** Prompt for the HUD; empty when nothing is in focus. */
         std::string GetInteractPrompt() const;
-        /** Picks the best target for the current view. Public so tests can query without ticking. */
-        ALeonHorrorInteractable* FindInteractable() const;
+        /**
+         * Picks the best target for the current view among the actors that implement IInteractable.
+         * Public so tests can query without ticking.
+         */
+        AActor* FindInteractable() const;
         /** Uses the focused interactable. Returns true when something happened. */
         bool TryInteract();
 
@@ -116,7 +118,7 @@ namespace Leon {
         TRef<ULeonHorrorAnimInstance> Anim;
         TRef<ULeonHorrorInventoryComponent> Inventory;
         TRef<ULeonHorrorCombatComponent> Combat;
-        TWeakObjectPtr<ALeonHorrorInteractable> Focused;
+        TWeakObjectPtr<AActor> Focused;
         TWeakObjectPtr<ALeonHorrorFlashlight> Flashlight;
         FLeonHorrorInputSampler Sampler;
         std::optional<FLeonHorrorInputState> InjectedInput;

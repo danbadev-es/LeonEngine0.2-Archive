@@ -6,7 +6,9 @@
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
+#include "Core/Cast.hpp"
 #include "Engine/FMapSerializer.hpp"
+#include "Gameplay/IInteractable.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"
 
 namespace Leon {
@@ -310,6 +312,42 @@ Actors:
             CHECK(f.Player->GetInteractPrompt() == "Leave");
             f.PressInteract();
             CHECK(f.GM->IsSliceCompleted());
+        }
+
+        TEST_CASE("anything that implements IInteractable can be used, whatever its base class") {
+            // Not an ALeonHorrorInteractable: a plain actor that happens to be usable.
+            class ALever : public AActor, public IInteractable {
+            public:
+                using AActor::AActor;
+                bool CanInteract(const APawn&) const override { return !bPulled; }
+                std::string GetInteractPrompt(const APawn&) const override { return "Pull lever"; }
+                bool Interact(APawn& InInstigator) override {
+                    bPulled = true;
+                    PulledBy = &InInstigator;
+                    return true;
+                }
+                glm::vec3 GetInteractLocation() const override { return GetActorLocation(); }
+
+                bool bPulled = false;
+                APawn* PulledBy = nullptr;
+            };
+
+            FInteractFixture f;
+            auto* lever = f.World->SpawnActor<ALever>("Lever");
+            lever->SetActorLocation(f.InFront(1.2f));
+            f.TickSeconds(0.05f);
+            REQUIRE(f.Player->GetFocusedInteractable() == lever);
+            CHECK(f.Player->GetInteractPrompt() == "Pull lever");
+
+            f.PressInteract();
+            CHECK(lever->bPulled);
+            CHECK(lever->PulledBy == f.Player);
+            // It said it cannot be used again, so it is no longer a target.
+            f.TickSeconds(0.05f);
+            CHECK(f.Player->GetFocusedInteractable() == nullptr);
+
+            // And an actor that implements nothing is never one.
+            CHECK(Cast<IInteractable>(static_cast<AActor*>(f.Player)) == nullptr);
         }
 
         TEST_CASE("a dead player cannot interact") {

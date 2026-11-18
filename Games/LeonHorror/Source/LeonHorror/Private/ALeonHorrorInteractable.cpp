@@ -5,6 +5,7 @@
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "AI/UNavigationSystem.hpp"
+#include "Core/Cast.hpp"
 #include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 
@@ -14,6 +15,12 @@
 namespace Leon {
 
     namespace {
+        /** What the pawn carries; null for anything but the player. */
+        ULeonHorrorInventoryComponent* InventoryOf(const APawn& InPawn) {
+            const auto* player = Cast<const ALeonHorrorCharacter>(&InPawn);
+            return player ? player->GetInventory() : nullptr;
+        }
+
         ALeonHorrorGameMode* GameModeOf(const AActor& InActor) {
             UWorld* world = InActor.GetWorld();
             return world ? dynamic_cast<ALeonHorrorGameMode*>(world->GetGameMode()) : nullptr;
@@ -44,8 +51,9 @@ namespace Leon {
         SetCanEverTick(false);
     }
 
-    bool ALeonHorrorInteractable::CanInteract(const ALeonHorrorCharacter& InPlayer) const {
-        return !IsPendingKill() && !InPlayer.IsDead();
+    bool ALeonHorrorInteractable::CanInteract(const APawn& InInstigator) const {
+        const auto* player = Cast<const ALeonHorrorCharacter>(&InInstigator);
+        return !IsPendingKill() && player && !player->IsDead();
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -67,15 +75,15 @@ namespace Leon {
         ItemCount = std::max(1, InCount);
     }
 
-    std::string ALeonHorrorPickup::GetInteractPrompt(const ALeonHorrorCharacter&) const {
+    std::string ALeonHorrorPickup::GetInteractPrompt(const APawn&) const {
         std::string name = LeonHorrorItems::DisplayName(ItemId);
         if (ItemCount > 1)
             name += " x" + std::to_string(ItemCount);
         return "Take " + name;
     }
 
-    bool ALeonHorrorPickup::Interact(ALeonHorrorCharacter& InPlayer) {
-        auto* inventory = InPlayer.GetInventory();
+    bool ALeonHorrorPickup::Interact(APawn& InInstigator) {
+        auto* inventory = InventoryOf(InInstigator);
         if (!inventory || ItemId.empty())
             return false;
         inventory->AddItem(ItemId, ItemCount);
@@ -206,9 +214,9 @@ namespace Leon {
         SetActorLocation(ClosedLocation + SlideOffset * OpenAlpha);
     }
 
-    std::string ALeonHorrorDoor::GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const {
+    std::string ALeonHorrorDoor::GetInteractPrompt(const APawn& InInstigator) const {
         if (bLocked) {
-            const auto* inventory = InPlayer.GetInventory();
+            const auto* inventory = InventoryOf(InInstigator);
             if (inventory && inventory->HasItem(RequiredKey))
                 return "Unlock with " + LeonHorrorItems::DisplayName(RequiredKey);
             return "Locked";
@@ -216,9 +224,9 @@ namespace Leon {
         return bOpen ? "Close door" : "Open door";
     }
 
-    bool ALeonHorrorDoor::Interact(ALeonHorrorCharacter& InPlayer) {
+    bool ALeonHorrorDoor::Interact(APawn& InInstigator) {
         if (bLocked) {
-            const auto* inventory = InPlayer.GetInventory();
+            const auto* inventory = InventoryOf(InInstigator);
             if (!inventory || !inventory->HasItem(RequiredKey))
                 return false;
             bLocked = false;
@@ -251,11 +259,11 @@ namespace Leon {
         Text = InText;
     }
 
-    std::string ALeonHorrorNote::GetInteractPrompt(const ALeonHorrorCharacter&) const {
+    std::string ALeonHorrorNote::GetInteractPrompt(const APawn&) const {
         return "Read " + Title;
     }
 
-    bool ALeonHorrorNote::Interact(ALeonHorrorCharacter&) {
+    bool ALeonHorrorNote::Interact(APawn&) {
         auto* gameMode = GameModeOf(*this);
         if (!gameMode)
             return false;
@@ -305,13 +313,14 @@ namespace Leon {
         SetClass("ALeonHorrorSavePoint");
     }
 
-    std::string ALeonHorrorSavePoint::GetInteractPrompt(const ALeonHorrorCharacter&) const {
+    std::string ALeonHorrorSavePoint::GetInteractPrompt(const APawn&) const {
         return "Save";
     }
 
-    bool ALeonHorrorSavePoint::Interact(ALeonHorrorCharacter& InPlayer) {
+    bool ALeonHorrorSavePoint::Interact(APawn& InInstigator) {
         auto* gameMode = GameModeOf(*this);
-        return gameMode && gameMode->RequestSave(InPlayer);
+        auto* player = Cast<ALeonHorrorCharacter>(&InInstigator);
+        return gameMode && player && gameMode->RequestSave(*player);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -327,15 +336,15 @@ namespace Leon {
         RequiredKey = GetProperty("RequiredKey", RequiredKey);
     }
 
-    std::string ALeonHorrorExit::GetInteractPrompt(const ALeonHorrorCharacter& InPlayer) const {
-        const auto* inventory = InPlayer.GetInventory();
+    std::string ALeonHorrorExit::GetInteractPrompt(const APawn& InInstigator) const {
+        const auto* inventory = InventoryOf(InInstigator);
         if (!RequiredKey.empty() && !(inventory && inventory->HasItem(RequiredKey)))
             return "Locked";
         return "Leave";
     }
 
-    bool ALeonHorrorExit::Interact(ALeonHorrorCharacter& InPlayer) {
-        const auto* inventory = InPlayer.GetInventory();
+    bool ALeonHorrorExit::Interact(APawn& InInstigator) {
+        const auto* inventory = InventoryOf(InInstigator);
         if (!RequiredKey.empty() && !(inventory && inventory->HasItem(RequiredKey)))
             return false;
         if (auto* gameMode = GameModeOf(*this))
