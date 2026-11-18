@@ -66,7 +66,8 @@ _SYSTEM_DLLS = {
     "ntdll.dll",
     "ole32.dll",
     "oleaut32.dll",
-    "opengl32.dll",
+    "d3d12.dll",
+    "dxgi.dll",
     "powrprof.dll",
     "rpcrt4.dll",
     "sechost.dll",
@@ -207,7 +208,7 @@ def _write_readme(stage_dir: str, name: str) -> None:
             f"========================\n\n"
             f"Run {name}.exe from this folder (double-click is fine).\n"
             f"Do not move the exe without Content/, Config/, and Engine/.\n"
-            f"Requires a GPU with OpenGL drivers.\n"
+            f"Requires Windows 10 or 11 and a graphics card with Direct3D 12 drivers.\n"
         )
 
 

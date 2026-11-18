@@ -120,7 +120,7 @@ namespace Leon::Editor {
             glm::vec4 a = InViewProj * glm::vec4(InA, 1.0f);
             glm::vec4 b = InViewProj * glm::vec4(InB, 1.0f);
 
-            // OpenGL near plane: ndc.z >= -1 → z + w >= 0
+            // Near plane of the engine's clip space (depth -1..1): z + w >= 0
             const float d0 = a.z + a.w;
             const float d1 = b.z + b.w;
             const bool in0 = d0 >= 0.0f;

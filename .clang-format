@@ -24,7 +24,7 @@ BreakBeforeBraces: Attach
 PointerAlignment: Left
 ReferenceAlignment: Left
 
-# Includes Sorting - Disabled to preserve critical header order (e.g. glad.h before glfw3.h)
+# Includes Sorting - Disabled to preserve header order where it matters (e.g. windows.h before d3d12.h)
 SortIncludes: false
 
 # Spaces

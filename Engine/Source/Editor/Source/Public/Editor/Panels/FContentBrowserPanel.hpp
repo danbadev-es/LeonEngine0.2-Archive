@@ -125,7 +125,6 @@ namespace Leon::Editor {
         std::filesystem::path DeleteTargetPath;
         std::vector<FAssetReferenceInfo> CachedDeleteReferences;
 
-        // Thumbnail Cache (filepath -> OpenGL Texture ID)
         /** By file path; a null entry is a file that failed to load, so it is not retried every frame. */
         std::unordered_map<std::string, TRef<IRHITexture>> TextureThumbnailCache;
     };

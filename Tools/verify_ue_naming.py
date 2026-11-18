@@ -6,7 +6,6 @@ Enforces Docs/NAMING.md sections 1-2 (type prefixes and ECS vs UObject component
   - Unprefixed using-aliases (using Application = FApplication, etc.)
   - FSceneRenderer / GetSceneRenderer / SceneRenderer.hpp leftovers
   - Member prefixes m_ and s_ on typical C++ identifiers
-  - OpenGL plugin files still named OpenGL*.hpp/.cpp (must be FOpenGL*)
   - Sandbox gameplay files still named SandboxGameMode* (must be A/U prefixed)
   - Engine/ must not hardcode a product project (Samples/Sandbox, Games/LeonTournament, or bare product names)
   - EnTT POD components must not use U*Component (`struct UFooComponent` → F*Component)
@@ -42,10 +41,7 @@ RE_USING_ALIAS = re.compile(
     r"MouseButtonReleasedEvent|ShaderDataType|BufferElement|BufferLayout|"
     r"VertexBuffer|IndexBuffer|UniformBuffer|Framebuffer|FramebufferTextureFormat|"
     r"FramebufferTextureSpecification|FramebufferAttachmentSpecification|"
-    r"FramebufferSpecification|GraphicsContext|RenderAPI|AssetManager|"
-    r"OpenGLContext|OpenGLRenderAPI|OpenGLFramebuffer|OpenGLShader|OpenGLTexture2D|"
-    r"OpenGLTextureCube|OpenGLVertexArray|OpenGLVertexBuffer|OpenGLIndexBuffer|"
-    r"OpenGLUniformBuffer|OpenGLRenderDriver)\s*=",
+    r"FramebufferSpecification|GraphicsContext|RenderAPI|AssetManager)\s*=",
     re.MULTILINE,
 )
 # Docs/NAMING.md §1: using-aliases must be U/A/F/I/E/T prefixed (Ref/Scope are documented exceptions)
@@ -63,26 +59,6 @@ RE_F_INHERITS_U = re.compile(r"class\s+F\w+\s*:\s*public\s+U")
 RE_EXT = {".hpp", ".h", ".cpp", ".c", ".inl"}
 
 FORBIDDEN_FILENAMES = {
-    "OpenGLBuffer.hpp",
-    "OpenGLBuffer.cpp",
-    "OpenGLContext.hpp",
-    "OpenGLContext.cpp",
-    "OpenGLFramebuffer.hpp",
-    "OpenGLFramebuffer.cpp",
-    "OpenGLRenderAPI.hpp",
-    "OpenGLRenderAPI.cpp",
-    "OpenGLRenderDriver.hpp",
-    "OpenGLRenderDriver.cpp",
-    "OpenGLShader.hpp",
-    "OpenGLShader.cpp",
-    "OpenGLTexture2D.hpp",
-    "OpenGLTexture2D.cpp",
-    "OpenGLTextureCube.hpp",
-    "OpenGLTextureCube.cpp",
-    "OpenGLUniformBuffer.hpp",
-    "OpenGLUniformBuffer.cpp",
-    "OpenGLVertexArray.hpp",
-    "OpenGLVertexArray.cpp",
     "SandboxGameMode.hpp",
     "SandboxGameMode.cpp",
     "SandboxHUD.hpp",
