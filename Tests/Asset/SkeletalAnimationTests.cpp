@@ -247,6 +247,84 @@ TEST_SUITE("Skeletal Animation") {
         CHECK(pose.Num() == 2);
     }
 
+    TEST_CASE("State machine transition conditions: one case per condition kind") {
+        auto skel = MakeTwoBoneSkeleton();
+        auto seq = MakeSpinAnim(skel);
+
+        // Builds a two-state machine A -> B guarded by InCondition and returns the anim instance.
+        auto makeInstance = [&](const std::string& InCondition) {
+            auto inst = MakeRef<UAnimInstance>("Inst");
+            inst->Initialize(skel);
+            FAnimState a;
+            a.Name = "A";
+            a.Sequence = seq;
+            FAnimState b;
+            b.Name = "B";
+            b.Sequence = seq;
+            inst->GetStateMachine().AddState(a);
+            inst->GetStateMachine().AddState(b);
+            inst->GetStateMachine().AddTransition({"A", "B", InCondition, 0.0f});
+            inst->GetStateMachine().SetDefaultState("A");
+            inst->GetStateMachine().Reset();
+            return inst;
+        };
+
+        SUBCASE("Bool") {
+            auto inst = makeInstance("Bool:bGo");
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+            inst->SetBool("bGo", true);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "B");
+        }
+
+        SUBCASE("NotBool") {
+            auto inst = makeInstance("NotBool:bHold");
+            inst->SetBool("bHold", true);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+            inst->SetBool("bHold", false);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "B");
+        }
+
+        SUBCASE("FloatGreater") {
+            auto inst = makeInstance("FloatGreater:Speed:1.5");
+            inst->SetFloat("Speed", 1.5f);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+            inst->SetFloat("Speed", 1.6f);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "B");
+        }
+
+        SUBCASE("FloatLessEqual") {
+            auto inst = makeInstance("FloatLessEqual:Speed:0.2");
+            inst->SetFloat("Speed", 0.3f);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+            inst->SetFloat("Speed", 0.2f);
+            inst->NativeUpdateAnimation(0.016f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "B");
+        }
+
+        SUBCASE("TimeGreater waits for the threshold instead of firing on the first frame") {
+            auto inst = makeInstance("TimeGreater:0.5");
+            inst->NativeUpdateAnimation(0.1f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+            inst->NativeUpdateAnimation(0.3f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+            inst->NativeUpdateAnimation(0.2f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "B");
+        }
+
+        SUBCASE("Unknown condition never fires") {
+            auto inst = makeInstance("Nonsense:1");
+            inst->NativeUpdateAnimation(1.0f);
+            CHECK(inst->GetStateMachine().GetCurrentState() == "A");
+        }
+    }
+
     TEST_CASE("ACharacter writes anim rep state from movement") {
         auto world = UWorld::Create("AnimWorld");
         auto* character = world->SpawnActor<ACharacter>("Hero");

@@ -77,7 +77,8 @@ namespace Leon {
             return InInstance.GetFloat(rest.substr(0, colon)) <= threshold;
         }
         if (StartsWith(InName, "TimeGreater:")) {
-            const float threshold = std::strtof(InName.c_str() + 11, nullptr);
+            // Skip the whole "TimeGreater:" prefix (12 chars); parsing from the ':' always yielded 0.
+            const float threshold = std::strtof(InName.c_str() + 12, nullptr);
             return StateTime > threshold;
         }
         return false;
