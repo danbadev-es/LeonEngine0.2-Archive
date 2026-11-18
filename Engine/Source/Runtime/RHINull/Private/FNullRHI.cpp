@@ -61,6 +61,7 @@ namespace Leon {
             void SetVertexBuffer(IRHIBuffer*) override {}
             void SetIndexBuffer(IRHIBuffer*) override {}
             void SetVertexData(const void*, uint32_t, uint32_t) override {}
+            void SetIndexData(const void*, uint32_t, uint32_t) override {}
             void SetConstants(ERHIConstantSlot, const void*, uint32_t) override {}
             void SetTexture(uint32_t, IRHITexture*) override {}
             void Draw(uint32_t, uint32_t) override {

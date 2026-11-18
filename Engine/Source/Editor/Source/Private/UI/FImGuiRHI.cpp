@@ -66,6 +66,8 @@ namespace Leon::Editor {
 
         ImGuiIO& io = ImGui::GetIO();
         io.BackendRendererName = "LeonEngine RHI";
+        // Lists with more than 65535 vertices are split into commands with a vertex offset.
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
         unsigned char* pixels = nullptr;
         int width = 0;
         int height = 0;
@@ -136,18 +138,15 @@ namespace Leon::Editor {
         InCommands.SetPipeline(pipeline);
         InCommands.SetConstants(ERHIConstantSlot::Pass, &constants, sizeof(constants));
 
-        // The RHI has no per-frame index data, so each list is expanded to plain triangles: three
-        // vertices per triangle, in index order. A command's first index is then its first vertex.
-        std::vector<ImDrawVert> expanded;
         for (int listIndex = 0; listIndex < InDrawData->CmdListsCount; ++listIndex) {
             const ImDrawList* list = InDrawData->CmdLists[listIndex];
-            if (list->IdxBuffer.Size == 0)
+            if (list->IdxBuffer.Size == 0 || list->VtxBuffer.Size == 0)
                 continue;
-            expanded.resize(static_cast<size_t>(list->IdxBuffer.Size));
-            for (int i = 0; i < list->IdxBuffer.Size; ++i)
-                expanded[static_cast<size_t>(i)] = list->VtxBuffer[list->IdxBuffer[i]];
-            InCommands.SetVertexData(expanded.data(), static_cast<uint32_t>(expanded.size() * sizeof(ImDrawVert)),
+            // ImGui's own buffers go to the GPU as they are; they only live for this frame.
+            InCommands.SetVertexData(list->VtxBuffer.Data, static_cast<uint32_t>(list->VtxBuffer.Size * sizeof(ImDrawVert)),
                                      sizeof(ImDrawVert));
+            InCommands.SetIndexData(list->IdxBuffer.Data, static_cast<uint32_t>(list->IdxBuffer.Size * sizeof(ImDrawIdx)),
+                                    sizeof(ImDrawIdx));
 
             for (const ImDrawCmd& command : list->CmdBuffer) {
                 if (command.UserCallback || command.ElemCount == 0)
@@ -161,7 +160,7 @@ namespace Leon::Editor {
                     continue;
                 InCommands.SetScissor(scissor);
                 InCommands.SetTexture(0, reinterpret_cast<IRHITexture*>(static_cast<intptr_t>(command.GetTexID())));
-                InCommands.Draw(command.ElemCount, command.IdxOffset);
+                InCommands.DrawIndexed(command.ElemCount, command.IdxOffset, static_cast<int32_t>(command.VtxOffset));
             }
         }
         InCommands.EndRenderPass();

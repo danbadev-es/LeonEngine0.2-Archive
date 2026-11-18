@@ -151,6 +151,19 @@ namespace Leon {
         List->IASetVertexBuffers(0, 1, &view);
     }
 
+    void FD3D12CommandList::SetIndexData(const void* InData, uint32_t InSize, uint32_t InStride) {
+        if (!List || !InData || InSize == 0 || (InStride != 2 && InStride != 4))
+            return;
+        const D3D12_GPU_VIRTUAL_ADDRESS address = Device.AllocateConstants(InData, InSize);
+        if (!address)
+            return;
+        D3D12_INDEX_BUFFER_VIEW view{};
+        view.BufferLocation = address;
+        view.SizeInBytes = InSize;
+        view.Format = InStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+        List->IASetIndexBuffer(&view);
+    }
+
     void FD3D12CommandList::SetConstants(ERHIConstantSlot InSlot, const void* InData, uint32_t InSize) {
         if (!List || !InData || InSize == 0)
             return;

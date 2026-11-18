@@ -63,6 +63,8 @@ namespace Leon {
          * or keep, and the data is captured at the call like SetConstants.
          */
         virtual void SetVertexData(const void* InData, uint32_t InSize, uint32_t InStride) = 0;
+        /** The same for indices; InStride is 2 or 4 bytes per index. Use with DrawIndexed. */
+        virtual void SetIndexData(const void* InData, uint32_t InSize, uint32_t InStride) = 0;
 
         /**
          * Copies InSize bytes into this frame's constant memory and binds them at the slot. The data
