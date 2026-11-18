@@ -1324,7 +1324,7 @@ namespace Leon {
         profile.CulledActors = static_cast<int32_t>(stats.MeshesCulled);
         profile.DrawCalls = stats.DrawCalls;
         profile.TriangleCount = stats.TriangleCount;
-        if (const IRHIDevice* device = FRHI::GetDevice()) {
+        {
             profile.GPUShadowMs = device->GetGpuTimeMs(EGPUTimerSlot::Shadow);
             profile.GPUPlanarMs = device->GetGpuTimeMs(EGPUTimerSlot::Planar);
             profile.GPUOpaqueMs = device->GetGpuTimeMs(EGPUTimerSlot::Opaque);

@@ -19,7 +19,7 @@ namespace Leon {
      *   4 Color      vec3  (linear)
      *   5 LightmapUV vec2  (UV1)
      *
-     * Coordinate system: right-handed, Y-up, CCW front faces, OpenGL NDC.
+     * Coordinate system: right-handed, Y-up, CCW front faces, clip depth -1..1 in engine matrices.
      */
 #pragma pack(push, 1)
     struct FCanonicalMeshVertex {

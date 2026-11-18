@@ -170,13 +170,13 @@ namespace Leon {
                     ID3D12ShaderReflectionConstantBuffer* constantBuffer = reflection->GetConstantBufferByIndex(i);
                     if (!constantBuffer || FAILED(constantBuffer->GetDesc(&bufferDesc)) || !bufferDesc.Name)
                         continue;
-                    FShaderConstantBuffer entry;
-                    entry.Name = bufferDesc.Name;
-                    entry.Size = bufferDesc.Size;
+                    FShaderConstantBuffer reflected;
+                    reflected.Name = bufferDesc.Name;
+                    reflected.Size = bufferDesc.Size;
                     D3D12_SHADER_INPUT_BIND_DESC bindDesc{};
                     if (SUCCEEDED(reflection->GetResourceBindingDescByName(bufferDesc.Name, &bindDesc)))
-                        entry.Register = bindDesc.BindPoint;
-                    OutResult.ConstantBuffers.push_back(std::move(entry));
+                        reflected.Register = bindDesc.BindPoint;
+                    OutResult.ConstantBuffers.push_back(std::move(reflected));
                 }
             }
         }

@@ -11,7 +11,7 @@ namespace Leon {
     /**
      * Color contract:
      *   MaterialColor  = linear
-     *   TextureColor   = hardware-decoded linear (GL_SRGB8_ALPHA8 for sRGB assets)
+     *   TextureColor   = hardware-decoded linear (RGBA8_UNorm_sRGB for sRGB assets)
      *   Lighting       = linear HDR
      *   Display        = tone map then IEC 61966-2-1 sRGB (ToneMapping.hlsl)
      *

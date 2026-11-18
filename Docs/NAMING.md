@@ -117,7 +117,7 @@ Editor/
 
 | Kind | Convention | Example |
 | :--- | :--- | :--- |
-| Shaders | PascalCase | `PBR_Lit.glsl`, `PBR_Common.glsl` |
+| Shaders | PascalCase | `PBR_Lit.hlsl`, `PBR_Common.hlsli` |
 | Textures | `T_<Name>_<Suffix>` | `T_StudioFloor_Color.ltex` |
 | Fonts | `Family-Weight` | `Inter-Regular.ttf` |
 

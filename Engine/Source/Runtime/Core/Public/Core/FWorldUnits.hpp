@@ -12,7 +12,7 @@ namespace Leon {
      * and movement speeds are metres / metres-per-second.
      * FBX centimetres are converted at import (ufbx target_unit_meters = 1).
      *
-     * Right-handed Y-up (OpenGL / GLM):
+     * Right-handed Y-up (the GLM default):
      *   +X = Right
      *   +Y = Up
      *   -Z = Forward

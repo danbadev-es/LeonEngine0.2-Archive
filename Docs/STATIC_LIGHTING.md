@@ -49,7 +49,7 @@ Pipeline:
 
 ## Runtime
 
-`FWorldRenderer` binds atlas slot **12**. `PBR_Lit.glsl`: `Lo_diffuse = kD * albedo / PI * E` (baked irradiance) + dynamic Movable/Stationary lights + specular IBL (diffuse IBL off when a lightmap is bound).
+`FWorldRenderer` binds atlas slot **12**. `PBR_Lit.hlsl`: `Lo_diffuse = kD * albedo / PI * E` (baked irradiance) + dynamic Movable/Stationary lights + specular IBL (diffuse IBL off when a lightmap is bound).
 
 See `Docs/RENDERER_CONTRACT.md` for equations, mobility, and cache versions.
 

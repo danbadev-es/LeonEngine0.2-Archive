@@ -132,7 +132,7 @@ namespace Leon {
         }
     }
 
-    /** Inverse of SampleEquirectangular UV mapping (OpenGL Y-up). v=0 is +Y, u=0.5 is +X. */
+    /** Inverse of SampleEquirectangular UV mapping (Y up). v=0 is +Y, u=0.5 is +X. */
     inline glm::vec3 EquirectDirectionFromUV(float u, float v) {
         float phi = (u - 0.5f) * TWO_PI;
         float y = std::sin((0.5f - v) * PI);

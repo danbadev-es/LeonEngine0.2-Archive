@@ -42,7 +42,7 @@ namespace Leon {
                                          uint32_t InResolution, bool bInStabilize, float& OutWorldUnitsPerTexel);
 
         /**
-         * OpenGL cubemap face look-at: 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z.
+         * Cube map face look-at: 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z.
          */
         glm::mat4 PointCubeFaceView(const glm::vec3& InLightPos, uint32_t InFace);
 

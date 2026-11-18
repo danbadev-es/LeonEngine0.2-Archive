@@ -38,7 +38,7 @@ own copy of everything. See [ADR 0007](adr/0007-one-build-tree-and-enforced-modu
 LeonEngine2 strictly decouples physical file locations on disk from asset references in code and maps:
 
 ```text
-/Engine/Shaders/PBR_Lit.glsl  ──►  Engine/Content/Shaders/PBR_Lit.glsl
+/Engine/Materials/M_WorldGrid.lmat  ──►  Engine/Content/Materials/M_WorldGrid.lmat
 /Game/Maps/ShowcaseLevel      ──►  Games/<Project>/Content/Maps/ShowcaseLevel.lmap
 /Game/Materials/M_Floor       ──►  Games/<Project>/Content/Materials/M_Floor.lmat
 ```

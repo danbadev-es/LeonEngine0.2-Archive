@@ -153,7 +153,7 @@ namespace Leon {
         }
 
         glm::mat4 PointCubeFaceView(const glm::vec3& InLightPos, uint32_t InFace) {
-            // OpenGL cubemap face centers and ups (LearnOpenGL / spec).
+            // Cube map face centres and ups, in the order every graphics API uses (+X, -X, +Y, -Y, +Z, -Z).
             const glm::vec3 centers[6] = {
                 {1.0f, 0.0f, 0.0f},  {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
                 {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f},  {0.0f, 0.0f, -1.0f},

@@ -119,7 +119,7 @@ TEST_SUITE("Shader GPU - Shadow Cascaded Partitioning & Stabilization Math") {
         CHECK(proj[0][0] == doctest::Approx(proj[1][1]).epsilon(0.001f));
     }
 
-    TEST_CASE("ShadowMath - point cube faces look toward OpenGL axis centers") {
+    TEST_CASE("ShadowMath - point cube faces look toward the axis centres") {
         const glm::vec3 lightPos(2.0f, -1.0f, 0.5f);
         const glm::vec3 faceTargets[6] = {
             {1.0f, 0.0f, 0.0f},  {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},

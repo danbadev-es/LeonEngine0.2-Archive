@@ -11,7 +11,7 @@ namespace Leon {
     /**
      * Int4AsFloat: four 32-bit integers in the buffer, delivered to the shader as a float vec4
      * (declare the input as `vec4`). Use it for small integers such as bone indices: true integer
-     * attributes (`ivec4`) are not delivered reliably by every OpenGL driver.
+     * attributes were not delivered reliably by every OpenGL driver, and the data format has stayed.
      */
     enum class EShaderDataType {
         None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool, Int4AsFloat
