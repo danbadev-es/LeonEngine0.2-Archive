@@ -13,7 +13,7 @@
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 
-#include <glad/glad.h>
+#include "UI/FImGuiRHI.hpp"
 #include <stb_image.h>
 #include <algorithm>
 #include <cctype>
@@ -33,24 +33,19 @@ namespace Leon::Editor {
     }
 
     void FContentBrowserPanel::DestroyThumbnails() {
-        for (auto& [path, texId] : TextureThumbnailCache) {
-            if (texId != 0) {
-                glDeleteTextures(1, &texId);
-            }
-        }
         TextureThumbnailCache.clear();
     }
 
-    uint32_t FContentBrowserPanel::GetOrCreateTextureThumbnail(const std::string& InPath) {
+    IRHITexture* FContentBrowserPanel::GetOrCreateTextureThumbnail(const std::string& InPath) {
         auto it = TextureThumbnailCache.find(InPath);
         if (it != TextureThumbnailCache.end()) {
-            return it->second;
+            return it->second.get();
         }
 
         std::error_code ec;
         if (!fs::exists(InPath, ec) || ec) {
-            TextureThumbnailCache[InPath] = 0;
-            return 0;
+            TextureThumbnailCache[InPath] = nullptr;
+            return nullptr;
         }
 
         int w = 0, h = 0, channels = 0;
@@ -59,31 +54,22 @@ namespace Leon::Editor {
         if (!pixels || w <= 0 || h <= 0) {
             if (pixels)
                 stbi_image_free(pixels);
-            TextureThumbnailCache[InPath] = 0;
-            return 0;
+            TextureThumbnailCache[InPath] = nullptr;
+            return nullptr;
         }
 
-        uint32_t texId = 0;
-        glGenTextures(1, &texId);
-        glBindTexture(GL_TEXTURE_2D, texId);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
+        TRef<IRHITexture> texture = FImGuiRHI::CreateTexture(pixels, w, h, "Thumbnail");
         stbi_image_free(pixels);
 
-        TextureThumbnailCache[InPath] = texId;
-        return texId;
+        TextureThumbnailCache[InPath] = texture;
+        return texture.get();
     }
 
     void FContentBrowserPanel::DrawTextureThumbnail(ImDrawList* InDrawList, ImVec2 InMin, ImVec2 InMax,
                                                     const fs::path& InPath) {
-        uint32_t texId = GetOrCreateTextureThumbnail(InPath.string());
-        if (texId != 0) {
-            InDrawList->AddImageRounded(static_cast<ImTextureID>(static_cast<intptr_t>(texId)), InMin, InMax,
+        IRHITexture* thumbnail = GetOrCreateTextureThumbnail(InPath.string());
+        if (thumbnail) {
+            InDrawList->AddImageRounded(FImGuiRHI::ToImGuiTexture(thumbnail), InMin, InMax,
                                         ImVec2(0, 0), ImVec2(1, 1), IM_COL32_WHITE, 4.0f);
         } else {
             float midX = (InMin.x + InMax.x) * 0.5f;

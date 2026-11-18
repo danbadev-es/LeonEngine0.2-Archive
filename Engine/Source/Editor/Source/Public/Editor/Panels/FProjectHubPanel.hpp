@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
+#include "RHI/IRHIDevice.hpp"
 #include <functional>
 #include <string>
 #include <vector>
@@ -49,7 +50,7 @@ namespace Leon::Editor {
         std::vector<FRecentProjectInfo> RecentProjects;
         std::string SavedDirectory;
 
-        uint32_t BrandTextureId = 0;
+        TRef<IRHITexture> BrandTexture;
         int BrandWidth = 0;
         int BrandHeight = 0;
         bool bBrandLoadAttempted = false;

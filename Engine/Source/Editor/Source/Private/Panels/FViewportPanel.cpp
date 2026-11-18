@@ -18,11 +18,11 @@
 #include "Gameplay/APlayerStart.hpp"
 #include "Physics/FHitResult.hpp"
 #include "Renderer/FDebugRenderer.hpp"
-#include "RHI/FFramebuffer.hpp"
+#include "RHI/FRHIFrame.hpp"
+#include "UI/FImGuiRHI.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <glad/glad.h>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <limits>
@@ -530,7 +530,25 @@ namespace Leon::Editor {
             }
         }
 
-        WorldRenderer->Render(*Camera);
+        // Grid and gizmos are queued first: the renderer draws what is queued inside its scene pass.
+        if (!bPlayingInEditor && (bShowEditorGizmos || bShowGrid)) {
+            DrawEditorWorldGizmos(InWorld);
+        }
+
+        IRHIDevice* Device = FRHI::GetDevice();
+        IRHICommandList* Commands = FRHIFrame::GetCommands();
+        if (Device && (!ViewportTexture || ViewportTexture->GetDesc().Width != InWidth ||
+                       ViewportTexture->GetDesc().Height != InHeight)) {
+            FRHITextureDesc Desc;
+            Desc.Width = InWidth;
+            Desc.Height = InHeight;
+            Desc.Format = ERHIFormat::RGBA8_UNorm;
+            Desc.Usage = RHITextureUsage_Sampled | RHITextureUsage_RenderTarget;
+            Desc.DebugName = "EditorViewport";
+            ViewportTexture = Device->CreateTexture(Desc);
+        }
+        if (Commands && ViewportTexture)
+            WorldRenderer->RenderRHI(*Camera, *Commands, *ViewportTexture);
 
         for (const FHiddenVisRestore& Restore : HiddenRestore) {
             if (!Restore.Actor)
@@ -540,25 +558,14 @@ namespace Leon::Editor {
             if (Restore.Actor->HasComponent<FStaticMeshComponent>())
                 Restore.Actor->GetComponent<FStaticMeshComponent>().bVisible = Restore.bStatic;
         }
-
-        if (!bPlayingInEditor && (bShowEditorGizmos || bShowGrid)) {
-            DrawEditorWorldGizmos(InWorld);
-        }
     }
 
     void FViewportPanel::DrawEditorWorldGizmos(UWorld& InWorld) {
-        if (!WorldRenderer || !WorldRenderer->GetHDRSceneFramebuffer())
-            return;
-
-        auto fbo = WorldRenderer->GetHDRSceneFramebuffer();
-        fbo->Bind();
-
         FDebugRenderer::BeginScene(EditorCamera);
         if (bShowGrid)
             DrawEditorGrid();
         if (!bShowEditorGizmos) {
             FDebugRenderer::EndScene(false);
-            fbo->Unbind();
             return;
         }
         auto& reg = InWorld.GetRegistry();
@@ -647,7 +654,6 @@ namespace Leon::Editor {
 
         // Overlay without depth so volumes stay readable (matches game light-gizmo pass).
         FDebugRenderer::EndScene(false);
-        fbo->Unbind();
     }
 
     void FViewportPanel::DrawEditorGrid() {
@@ -949,15 +955,11 @@ namespace Leon::Editor {
             if (InWorld) {
                 RenderWorld(*InWorld, w, h);
 
-                if (WorldRenderer && WorldRenderer->GetHDRSceneFramebuffer()) {
-                    uint32_t texId = WorldRenderer->GetHDRSceneFramebuffer()->GetColorAttachmentRendererID(0);
-                    if (texId != 0) {
-                        ImGui::Image(static_cast<ImTextureID>(static_cast<intptr_t>(texId)), vpSize, ImVec2(0, 1),
-                                     ImVec2(1, 0));
-                        vpMin = ImGui::GetItemRectMin();
-                        vpSize = ImGui::GetItemRectSize();
-                        bHasViewportImage = true;
-                    }
+                if (ViewportTexture) {
+                    ImGui::Image(FImGuiRHI::ToImGuiTexture(ViewportTexture.get()), vpSize);
+                    vpMin = ImGui::GetItemRectMin();
+                    vpSize = ImGui::GetItemRectSize();
+                    bHasViewportImage = true;
                 }
             }
 

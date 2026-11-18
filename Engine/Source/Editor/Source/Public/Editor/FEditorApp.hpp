@@ -18,7 +18,6 @@
 #include "Editor/Play/FGameModuleLoader.hpp"
 #include "Editor/Play/FPlaySession.hpp"
 #include "Editor/Play/FPlaySettings.hpp"
-#include "Editor/Window/FEditorWindow.hpp"
 #include "Engine/UWorld.hpp"
 
 #include <atomic>

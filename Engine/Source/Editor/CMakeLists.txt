@@ -76,8 +76,8 @@ add_library(LeonEditorCore STATIC
     Source/Private/UI/FEditorTheme.cpp
     Source/Private/UI/FLucideIcons.cpp
     Source/Private/UI/FEditorWidgets.cpp
+    Source/Private/UI/FImGuiRHI.cpp
     Source/Private/Utils/FEditorFileDialog.cpp
-    Source/Private/Window/FEditorWindow.cpp
 )
 add_library(Leon::Editor ALIAS LeonEditorCore)
 
@@ -86,7 +86,6 @@ target_include_directories(LeonEditorCore
         "${CMAKE_CURRENT_SOURCE_DIR}/Source/Public"
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/Source/Private"
-        "${LEON_ENGINE_ROOT}/Engine/Plugins/RHI/OpenGL/Include"
         "${LEON_ENGINE_ROOT}/Engine/Plugins/Physics/Jolt/Include"
         "${LEON_ENGINE_ROOT}/Engine/Plugins/Networking/ENet/include"
 )
@@ -94,7 +93,8 @@ target_include_directories(LeonEditorCore
 target_link_libraries(LeonEditorCore PUBLIC
     LeonEngineCore
     Leon::Pipeline
-    Leon::OpenGL
+    LeonModule_RHID3D12
+    LeonModule_ShaderCompiler
     Leon::Jolt
     Leon::ENet
     ${_game_targets}
@@ -162,6 +162,11 @@ add_custom_command(TARGET LeonEditor POST_BUILD
         -DDST=${_editor_exe_dir}/Editor/Resources
         -DREMOVE_ORPHANS=OFF
         -P ${_leon_sync}
+)
+
+# The editor lives in its own folder, so the shader compiler has to be copied there too.
+add_custom_command(TARGET LeonEditor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LEON_DXCOMPILER_DLL}" "${LEON_DXIL_DLL}" "${_editor_exe_dir}"
 )
 
 leon_apply_compile_options(LeonEditorCore LeonEditor)

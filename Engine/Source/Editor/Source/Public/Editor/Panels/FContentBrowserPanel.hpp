@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
+#include "RHI/IRHIDevice.hpp"
 #include "Editor/Context/FEditorContext.hpp"
 
 #include <filesystem>
@@ -68,7 +69,8 @@ namespace Leon::Editor {
                                    const std::filesystem::path& InPath);
         void DrawMeshThumbnail(ImDrawList* InDrawList, ImVec2 InMin, ImVec2 InMax, const std::filesystem::path& InPath);
 
-        uint32_t GetOrCreateTextureThumbnail(const std::string& InPath);
+        /** Null when the file is not an image that can be shown. */
+        IRHITexture* GetOrCreateTextureThumbnail(const std::string& InPath);
         void DestroyThumbnails();
 
         // Navigation
@@ -124,7 +126,8 @@ namespace Leon::Editor {
         std::vector<FAssetReferenceInfo> CachedDeleteReferences;
 
         // Thumbnail Cache (filepath -> OpenGL Texture ID)
-        std::unordered_map<std::string, uint32_t> TextureThumbnailCache;
+        /** By file path; a null entry is a file that failed to load, so it is not retried every frame. */
+        std::unordered_map<std::string, TRef<IRHITexture>> TextureThumbnailCache;
     };
 
 } // namespace Leon::Editor

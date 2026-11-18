@@ -8,7 +8,7 @@
 #include "Editor/UI/FLucideIcons.hpp"
 #include "Editor/Utils/FEditorFileDialog.hpp"
 
-#include <glad/glad.h>
+#include "UI/FImGuiRHI.hpp"
 #include <stb_image.h>
 #include <imgui.h>
 #include <fstream>
@@ -103,10 +103,7 @@ namespace Leon::Editor {
     }
 
     void FProjectHubPanel::DestroyBrandTexture() {
-        if (BrandTextureId != 0) {
-            glDeleteTextures(1, &BrandTextureId);
-            BrandTextureId = 0;
-        }
+        BrandTexture.reset();
         BrandWidth = 0;
         BrandHeight = 0;
     }
@@ -168,14 +165,7 @@ namespace Leon::Editor {
             return;
         }
 
-        glGenTextures(1, &BrandTextureId);
-        glBindTexture(GL_TEXTURE_2D, BrandTextureId);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        BrandTexture = FImGuiRHI::CreateTexture(pixels, w, h, "EditorLogo");
 
         stbi_image_free(pixels);
         BrandWidth = w;
@@ -327,9 +317,9 @@ namespace Leon::Editor {
                                   ImGuiWindowFlags_AlwaysUseWindowPadding)) {
                 try {
                     // Header with Logo
-                    if (BrandTextureId != 0) {
+                    if (BrandTexture) {
                         constexpr float kLogoSize = 56.0f;
-                        ImGui::Image(static_cast<ImTextureID>(static_cast<intptr_t>(BrandTextureId)),
+                        ImGui::Image(FImGuiRHI::ToImGuiTexture(BrandTexture.get()),
                                      ImVec2(kLogoSize, kLogoSize));
                         ImGui::SameLine();
                     }

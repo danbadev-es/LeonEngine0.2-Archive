@@ -24,7 +24,7 @@ endif()
 set(LEON_ENGINE_ROOT "${CMAKE_SOURCE_DIR}" CACHE PATH "LeonEngine2 repository root")
 
 # OFF while the engine has no GPU backend: the editor draws through ImGui, which needs one.
-option(LEON_BUILD_EDITOR "Build the editor" OFF)
+option(LEON_BUILD_EDITOR "Build the editor" ON)
 option(LEON_BUILD_TOOLS "Build AssetTool, LightmassTool and ProjectTool" ON)
 option(LEON_BUILD_TESTS "Build the test executables" ON)
 set(LEON_GAMES "Sandbox;LeonTournament;LeonHorror" CACHE STRING "Game folders under Games/ or Samples/ to build")

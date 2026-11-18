@@ -6,6 +6,7 @@
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Renderer/FPerspectiveCamera.hpp"
+#include "RHI/IRHIDevice.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 
 #include <functional>
@@ -86,6 +87,8 @@ namespace Leon::Editor {
         FOnActorSpawned OnActorSpawned;
 
         std::unique_ptr<FWorldRenderer> WorldRenderer;
+        /** The finished image of the world, shown by the panel. Recreated when the panel changes size. */
+        TRef<IRHITexture> ViewportTexture;
 
         EViewportShadingMode ShadingMode = EViewportShadingMode::Lit;
         EViewportViewMode ViewMode = EViewportViewMode::Perspective;

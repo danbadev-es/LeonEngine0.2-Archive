@@ -25,8 +25,10 @@
 #endif
 #include <GLFW/glfw3.h>
 #include <imgui.h>
+#include "RHI/FRHIFrame.hpp"
+#include "UI/FImGuiRHI.hpp"
+
 #include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 #include <imgui_internal.h>
 
 #include <cstring>
@@ -226,9 +228,10 @@ namespace Leon::Editor {
         FEditorTheme::ApplyTheme();
         FEditorTheme::LoadFonts(IO, "Editor/Resources/Fonts");
 
-        ImGui_ImplGlfw_InitForOpenGL(Native, true);
-        ImGui_ImplOpenGL3_Init("#version 450");
-        bImGuiReady = true;
+        ImGui_ImplGlfw_InitForOther(Native, true);
+        bImGuiReady = FImGuiRHI::Init();
+        if (!bImGuiReady)
+            LE_CORE_ERROR("Editor: the interface could not be initialised (no render device).");
 
         // Initialize Core Asset Subsystems
         UAssetManager::Init();
@@ -1289,7 +1292,7 @@ namespace Leon::Editor {
         }
 
         if (bImGuiReady) {
-            ImGui_ImplOpenGL3_Shutdown();
+            FImGuiRHI::Shutdown();
             ImGui_ImplGlfw_Shutdown();
             ImGui::DestroyContext();
             bImGuiReady = false;
@@ -1420,7 +1423,6 @@ namespace Leon::Editor {
         else
             Io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 
-        ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
@@ -1433,7 +1435,11 @@ namespace Leon::Editor {
 
     void FEditorApp::EndImGuiFrame() {
         ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // Over whatever the frame holds: the window's back buffer.
+        IRHICommandList* commands = FRHIFrame::GetCommands();
+        IRHITexture* output = FRHIFrame::GetOutput();
+        if (commands && output)
+            FImGuiRHI::Render(ImGui::GetDrawData(), *commands, *output);
     }
 
     void FEditorApp::DrawDockspace() {

@@ -1,14 +1,17 @@
 #include "Editor/FEditorApp.hpp"
 
-#include "FOpenGLRenderDriver.hpp"
-#include "FJoltPhysicsDriver.hpp" // link Leon::Jolt — auto-registers IPhysicsScene factory
+#include "FJoltPhysicsDriver.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
+#include "RHID3D12/FD3D12RHI.hpp"
 
 #include <exception>
 #include <iostream>
 
 int main(int argc, char** argv) {
     try {
-        Leon::FOpenGLRenderDriver::Register();
+        // The editor draws; register what a drawing executable needs before the application starts.
+        Leon::FLegacyRenderDriver::Register();
+        Leon::FD3D12RHI::Register();
         Leon::FJoltPhysicsDriver::Register();
 
         Leon::FApplicationCommandLineArgs Args{argc, argv};

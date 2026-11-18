@@ -172,6 +172,17 @@ namespace Leon {
 
         NativeWindow = glfwCreateWindow((int)Data.Width, (int)Data.Height, Data.Title.c_str(), nullptr, nullptr);
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
+        if (NativeWindow) {
+            // A window created maximised is larger than the size asked for, and no resize event says
+            // so. Whoever sizes things from the window (the swapchain) must see the real size.
+            int actualWidth = 0;
+            int actualHeight = 0;
+            glfwGetFramebufferSize(NativeWindow, &actualWidth, &actualHeight);
+            if (actualWidth > 0 && actualHeight > 0) {
+                Data.Width = static_cast<unsigned int>(actualWidth);
+                Data.Height = static_cast<unsigned int>(actualHeight);
+            }
+        }
         if (!NativeWindow) {
             LE_CORE_ERROR("Failed to create GLFW window!");
             return;
