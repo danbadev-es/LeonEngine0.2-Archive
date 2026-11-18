@@ -1,4 +1,5 @@
 # LeonEngine2 Map Asset File (.lmap)
+# Human-Readable & Deterministic Serialization
 Map:
   Name: "Slice"
   Version: "2.2"
@@ -6,7 +7,7 @@ Map:
 Environment:
   WorldSettings:
     GameModeClass: "ALeonHorrorGameMode"
-    StaticLighting: false
+    StaticLighting: true
     LightingBuildQuality: Draft
     LightmapResolution: 64
     NumIndirectBounces: 2
@@ -17,38 +18,55 @@ Environment:
     AORadius: 1
     TexelPadding: 2
     WorldScale: 1
+    LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    LightmapBakeHash: "7598e210987ce981"
   Skybox:
-    Enabled: false
+    Enabled: true
     Exposure: 0.9
     SunIntensity: 0
-    EnvironmentIntensity: 0.05
+    EnvironmentIntensity: 0.04
     UseHDREnvironmentMap: false
-    SkyZenithColor: [0.01, 0.012, 0.02]
-    HorizonColor: [0.02, 0.022, 0.03]
-    GroundColor: [0.005, 0.005, 0.008]
+    HDREnvironmentMap: ""
+    SkyZenithColor: [0.008, 0.01, 0.014]
+    HorizonColor: [0.014, 0.016, 0.02]
+    GroundColor: [0.004, 0.004, 0.006]
     SunColor: [0.3, 0.32, 0.4]
+    FogEnabled: true
+    FogColor: [0.03, 0.034, 0.038]
+    FogDensity: 0.085
+    FogStartDistance: 1.5
+    FogHeightFalloff: 0
+    FogBaseHeight: 0
+    FogMaxOpacity: 0.96
 
 Actors:
   - Name: "PlayerStart"
     Class: "APlayerStart"
-    GUID: "4c454f4e484f5252000000000000a001"
+    GUID: "a561d5ea46646cd9b718e39d937c9649"
     Transform:
-      Translation: [0, 1.8, 3]
+      Translation: [0, 1.2, 5.5]
       Rotation: [0, -90, 0]
       Scale: [1, 1, 1]
-  - Name: "Floor"
-    Class: "AActor"
-    GUID: "4c454f4e484f5252000000000000a002"
+  - Name: "NavBounds"
+    Class: "ANavMeshBoundsVolume"
+    GUID: "6b9969e326c4e606e411cc8985ab8693"
     Transform:
-      Translation: [0, -0.25, 0]
+      Translation: [0, 2, -8]
+      Rotation: [0, 0, 0]
+      Scale: [22, 4, 36]
+  - Name: "Start_Floor"
+    Class: "AActor"
+    GUID: "27321125a894c70c2436a557b7fc95b8"
+    Transform:
+      Translation: [0, -0.25, 4]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     StaticMesh:
       Type: "Box"
       Size: 1
-      Width: 12
+      Width: 8
       Height: 0.5
-      Depth: 12
+      Depth: 8
       Radius: 0.5
       MetersPerUv: 2
       SubdivisionsX: 24
@@ -59,18 +77,1543 @@ Actors:
       VisibleInReflection: false
       Mobility: Static
       LightmapResolution: 64
+      LightmapIndex: 0
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.0009765625, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
     Material:
       Asset: "/Game/Materials/M_HorrorFloor.lmat"
-  - Name: "RoomLight"
+  - Name: "Start_Ceiling"
     Class: "AActor"
-    GUID: "4c454f4e484f5252000000000000a003"
+    GUID: "c51071412aa64226357d9b9b9fb401f1"
+    Transform:
+      Translation: [0, 3.25, 4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8
+      Height: 0.5
+      Depth: 8
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 1
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.033203125, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "Corridor_Floor"
+    Class: "AActor"
+    GUID: "2c7b9b3cd292c97b7b9ace788cf69973"
+    Transform:
+      Translation: [0, -0.25, -12]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 3
+      Height: 0.5
+      Depth: 24
+      Radius: 0.5
+      MetersPerUv: 2
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 2
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.06542969, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorFloor.lmat"
+  - Name: "Corridor_Ceiling"
+    Class: "AActor"
+    GUID: "31b6c6c3d2d44516a6a043b802cc33aa"
+    Transform:
+      Translation: [0, 3.25, -12]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 3
+      Height: 0.5
+      Depth: 24
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 3
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.09765625, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "RoomC_Floor"
+    Class: "AActor"
+    GUID: "19b3650824d87f122ae9f5b9cdc8d3f1"
+    Transform:
+      Translation: [-5.5, -0.25, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8
+      Height: 0.5
+      Depth: 6
+      Radius: 0.5
+      MetersPerUv: 2
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 4
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.12988281, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorFloor.lmat"
+  - Name: "RoomC_Ceiling"
+    Class: "AActor"
+    GUID: "dd12c48a0c8797b3cf0f9ce85ccd7c58"
+    Transform:
+      Translation: [-5.5, 3.25, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8
+      Height: 0.5
+      Depth: 6
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 5
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.16210938, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "RoomB_Floor"
+    Class: "AActor"
+    GUID: "1e4ad1f1b7d10a633da87cc3448d5c19"
+    Transform:
+      Translation: [5.5, -0.25, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8
+      Height: 0.5
+      Depth: 6
+      Radius: 0.5
+      MetersPerUv: 2
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 6
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.19433594, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorFloor.lmat"
+  - Name: "RoomB_Ceiling"
+    Class: "AActor"
+    GUID: "78a5d49280e294b316b3da93c8a1924a"
+    Transform:
+      Translation: [5.5, 3.25, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8
+      Height: 0.5
+      Depth: 6
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 7
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.2265625, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "Start_South_0"
+    Class: "AActor"
+    GUID: "1e41c8f1d834c3d806570f7dc1bb0d05"
+    Transform:
+      Translation: [0, 1.5, 8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8.3
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 8
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.25878906, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Start_West_0"
+    Class: "AActor"
+    GUID: "4652b00c1f4de5dc632374defb33596f"
+    Transform:
+      Translation: [-4, 1.5, 4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 8.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 9
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.29101562, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Start_East_0"
+    Class: "AActor"
+    GUID: "c774924458480c12ccc9af5b7440ceb5"
+    Transform:
+      Translation: [4, 1.5, 4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 8.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 10
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.3232422, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Start_North_0"
+    Class: "AActor"
+    GUID: "ec0179fbbff5518ce31d9dd36ba598c9"
+    Transform:
+      Translation: [-2.525, 1.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 3.25
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 11
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.35546875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Start_North_Lintel0"
+    Class: "AActor"
+    GUID: "4289f3fd4309698e637f41048d71702a"
     Transform:
       Translation: [0, 2.6, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1.8
+      Height: 0.8
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 12
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.3876953, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Start_North_1"
+    Class: "AActor"
+    GUID: "c54aabf5a3d6ae4d18d06a6c3f8e6097"
+    Transform:
+      Translation: [2.525, 1.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 3.25
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 13
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.41992188, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_West_0"
+    Class: "AActor"
+    GUID: "8da6948186d3ef03191123e369392ad9"
+    Transform:
+      Translation: [-1.5, 1.5, -18.025]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 12.25
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 14
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.45214844, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_West_Lintel0"
+    Class: "AActor"
+    GUID: "43abc9c792c62504610c6577b8c3eaea"
+    Transform:
+      Translation: [-1.5, 2.6, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 0.8
+      Depth: 1.8
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 15
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.484375, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_West_1"
+    Class: "AActor"
+    GUID: "65897752859730f1530d86d9efb30181"
+    Transform:
+      Translation: [-1.5, 1.5, -4.975]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 10.25
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 16
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.51660156, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_East_0"
+    Class: "AActor"
+    GUID: "b5ae5714bfa588a6c9ce12006f9d7b5a"
+    Transform:
+      Translation: [1.5, 1.5, -21.025]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 6.25
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 17
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.5488281, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_East_Lintel0"
+    Class: "AActor"
+    GUID: "a119443c4c68d35a5bb34f3a2238a853"
+    Transform:
+      Translation: [1.5, 2.6, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 0.8
+      Depth: 1.8
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 18
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.5810547, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_East_1"
+    Class: "AActor"
+    GUID: "4142950317724747aa303bb409f488c2"
+    Transform:
+      Translation: [1.5, 1.5, -7.975]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 16.25
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 19
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.61328125, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Corridor_End_0"
+    Class: "AActor"
+    GUID: "178fcef77143696a550f24dee3499580"
+    Transform:
+      Translation: [0, 1.5, -24]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 3.3
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 20
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.6455078, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "RoomC_North_0"
+    Class: "AActor"
+    GUID: "1c4f07683321c12a6d934982b644e9db"
+    Transform:
+      Translation: [-5.5, 1.5, -14]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8.3
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 21
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.6777344, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "RoomC_South_0"
+    Class: "AActor"
+    GUID: "3ccd93410e05a34b00fe509b180e2395"
+    Transform:
+      Translation: [-5.5, 1.5, -8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8.3
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 22
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.70996094, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "RoomC_West_0"
+    Class: "AActor"
+    GUID: "003de22d9a001ad33fdaa348f4bbbc1c"
+    Transform:
+      Translation: [-9.5, 1.5, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 6.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 23
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.7421875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "RoomB_North_0"
+    Class: "AActor"
+    GUID: "ea6a714a84b68af2aee416c18da31b74"
+    Transform:
+      Translation: [5.5, 1.5, -20]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8.3
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 24
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.77441406, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "RoomB_South_0"
+    Class: "AActor"
+    GUID: "2a88bb72e53bc3d96c5accf822efc570"
+    Transform:
+      Translation: [5.5, 1.5, -14]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 8.3
+      Height: 3
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 25
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.8066406, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "RoomB_East_0"
+    Class: "AActor"
+    GUID: "0dc514bba40345187573ea3a686df5a1"
+    Transform:
+      Translation: [9.5, 1.5, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.3
+      Height: 3
+      Depth: 6.3
+      Radius: 0.5
+      MetersPerUv: 1.5
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 26
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.8388672, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorWall.lmat"
+  - Name: "Door_Start"
+    Class: "ALeonHorrorDoor"
+    GUID: "a5dc2424c95562c38c5161a3fc249791"
+    Properties:
+      SlideX: "1.75"
+      SlideY: "0"
+      SlideZ: "0"
+    Transform:
+      Translation: [0, 1.1, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1.8
+      Height: 2.2
+      Depth: 0.12
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorDoor.lmat"
+  - Name: "Door_RoomC"
+    Class: "ALeonHorrorDoor"
+    GUID: "8af68cc7e574de8da9dc9c1230bebc67"
+    Properties:
+      SlideX: "0"
+      SlideY: "0"
+      SlideZ: "1.75"
+    Transform:
+      Translation: [-1.5, 1.1, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.12
+      Height: 2.2
+      Depth: 1.8
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorDoor.lmat"
+  - Name: "Door_RoomB"
+    Class: "ALeonHorrorDoor"
+    GUID: "426c0c6b71d8f3a04596183b87240804"
+    Properties:
+      RequiredKey: "Key.Storage"
+      SlideX: "0"
+      SlideY: "0"
+      SlideZ: "1.75"
+    Transform:
+      Translation: [1.5, 1.1, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.12
+      Height: 2.2
+      Depth: 1.8
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorDoor.lmat"
+  - Name: "Start_Desk"
+    Class: "AActor"
+    GUID: "b02ae082c8b7007d2e03bc214345541d"
+    Transform:
+      Translation: [-3, 0.4, 4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.8
+      Height: 0.8
+      Depth: 1.6
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 27
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.87109375, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "SavePoint"
+    Class: "ALeonHorrorSavePoint"
+    GUID: "474c5890ec118109565ef1a85d2646bc"
+    Transform:
+      Translation: [-3, 0.96, 3.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.42
+      Height: 0.32
+      Depth: 0.34
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Note_Start"
+    Class: "ALeonHorrorNote"
+    GUID: "48ccb50f44249fd3f59772b959bead15"
+    Properties:
+      Text: "They locked the storage room after what happened.\\n\\nThe key is still in the office down the corridor, on the left. I am not going back for it. Something walks out there when the lights go.\\n\\nIf you go, take the pipe by the door. And do not run. It hears you."
+      Title: "Torn page"
+    Transform:
+      Translation: [-3, 0.812, 4.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.21
+      Height: 0.02
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "Start_Shelf"
+    Class: "AActor"
+    GUID: "7850580e599926d67e77a1cd2bc4f2ef"
+    Transform:
+      Translation: [3.225, 0.95, 6.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1.25
+      Height: 1.9
+      Depth: 2.5
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 28
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.9033203, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "Start_Crate"
+    Class: "AActor"
+    GUID: "4bae9914680becae08080f131ef579c0"
+    Transform:
+      Translation: [2.05, 0.35, 7.1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.9
+      Height: 0.7
+      Depth: 1
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 29
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.9355469, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "Pickup_Pipe"
+    Class: "ALeonHorrorPickup"
+    GUID: "8d35dca503472477ccacca5f16320ed9"
+    Properties:
+      Item: "Weapon.Pipe"
+    Transform:
+      Translation: [1.3, 0.05, 0.9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.07
+      Height: 0.07
+      Depth: 0.95
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Corridor_Cabinet"
+    Class: "AActor"
+    GUID: "93717f7cc4c93245613fd420f15f6bbb"
+    Transform:
+      Translation: [1.1, 0.9, -5.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.5
+      Height: 1.8
+      Depth: 1.2
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 30
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.96777344, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Corridor_Crate"
+    Class: "AActor"
+    GUID: "5d926858969f41a5cb861de8bd1a76df"
+    Transform:
+      Translation: [-0.975, 0.3, -20.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.75
+      Height: 0.6
+      Depth: 0.8
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 31
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.0009765625, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "EnemySpawn_Corridor"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "fc3abf9bd6b630aa59737db61cb35e3f"
+    Properties:
+      WanderRadius: "5"
+    Transform:
+      Translation: [0, 0, -19]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "RoomC_Desk"
+    Class: "AActor"
+    GUID: "b6f802f3ae3cf9884b2c02ba470e7dc8"
+    Transform:
+      Translation: [-7, 0.4, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1
+      Height: 0.8
+      Depth: 2
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 32
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.033203125, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "Pickup_KeyStorage"
+    Class: "ALeonHorrorPickup"
+    GUID: "1f1542f60f5462828cf54cd58230ed2c"
+    Properties:
+      Item: "Key.Storage"
+    Transform:
+      Translation: [-7, 0.83, -11.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.14
+      Height: 0.03
+      Depth: 0.06
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Pickup_Pistol"
+    Class: "ALeonHorrorPickup"
+    GUID: "7cd794761fc89ac3e74a15cad218c0ae"
+    Properties:
+      Item: "Weapon.Pistol"
+    Transform:
+      Translation: [-7, 0.85, -10.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.24
+      Height: 0.1
+      Depth: 0.06
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "RoomC_Cabinet"
+    Class: "AActor"
+    GUID: "5c0f05171186f29f8588480f941575f5"
+    Transform:
+      Translation: [-8.75, 0.95, -13.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1.1
+      Height: 1.9
+      Depth: 0.6
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 33
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.06542969, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "RoomC_SideTable"
+    Class: "AActor"
+    GUID: "dfe4cd365dc779428f14c185cabe4be5"
+    Transform:
+      Translation: [-4.5, 0.35, -13.3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1
+      Height: 0.7
+      Depth: 0.6
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 34
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.09765625, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "Pickup_AmmoC"
+    Class: "ALeonHorrorPickup"
+    GUID: "7bccf03f5a57e6e9d70f4f72aaeb24f1"
+    Properties:
+      Count: "6"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [-4.5, 0.75, -13.3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.14
+      Height: 0.1
+      Depth: 0.1
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Note_Office"
+    Class: "ALeonHorrorNote"
+    GUID: "edf1582019a5474690fd7d3e024bc004"
+    Properties:
+      Text: "Storage room: one first aid kit, spare rounds, and the key to the outer door.\\n\\nSix rounds in the desk. Make them count."
+      Title: "Inventory slip"
+    Transform:
+      Translation: [-4.9, 0.712, -13.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.21
+      Height: 0.02
+      Depth: 0.3
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "RoomB_ShelfA"
+    Class: "AActor"
+    GUID: "b3681c28d20ee2bdf96976f9f4efb232"
+    Transform:
+      Translation: [6, 0.95, -19.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 4
+      Height: 1.9
+      Depth: 0.6
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 35
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.12988281, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "RoomB_ShelfB"
+    Class: "AActor"
+    GUID: "f18523a3d746fba45581275060c524c2"
+    Transform:
+      Translation: [9.175, 0.95, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.35
+      Height: 1.9
+      Depth: 3
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 36
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.16210938, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "RoomB_Bench"
+    Class: "AActor"
+    GUID: "f61c47fb4f1995734cb9216e53cb4dea"
+    Transform:
+      Translation: [6.5, 0.425, -14.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 2.4
+      Height: 0.85
+      Depth: 0.7
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 37
+      LightmapScale: [0.03125, 0.25]
+      LightmapBias: [0.19433594, 0.265625]
+      LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
+    Material:
+      Asset: "/Game/Materials/M_HorrorProp.lmat"
+  - Name: "Pickup_Medkit"
+    Class: "ALeonHorrorPickup"
+    GUID: "b739237dfe8dfd777e04c2df2ae691d2"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [5.8, 0.93, -14.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.28
+      Height: 0.16
+      Depth: 0.2
+      Radius: 0.5
+      MetersPerUv: 3
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorCeiling.lmat"
+  - Name: "Pickup_KeyExit"
+    Class: "ALeonHorrorPickup"
+    GUID: "87f18ea948f0b99f6006ca4390a57818"
+    Properties:
+      Item: "Key.Exit"
+    Transform:
+      Translation: [7.2, 0.88, -14.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.14
+      Height: 0.03
+      Depth: 0.06
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Pickup_AmmoB"
+    Class: "ALeonHorrorPickup"
+    GUID: "c998dab764db4dbf7700efa252c1c4f3"
+    Properties:
+      Count: "4"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [6.5, 0.9, -14.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 0.14
+      Height: 0.1
+      Depth: 0.1
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Exit"
+    Class: "ALeonHorrorExit"
+    GUID: "0b70b852bf3a7ed4f410a4a808ef6d24"
+    Properties:
+      RequiredKey: "Key.Exit"
+    Transform:
+      Translation: [0, 1.1, -23.78]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Type: "Box"
+      Size: 1
+      Width: 1.8
+      Height: 2.2
+      Depth: 0.1
+      Radius: 0.5
+      MetersPerUv: 1
+      SubdivisionsX: 24
+      SubdivisionsZ: 24
+      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: false
+      Mobility: Movable
+      LightmapResolution: 64
+    Material:
+      Asset: "/Game/Materials/M_HorrorMetal.lmat"
+  - Name: "Light_Start"
+    Class: "AActor"
+    GUID: "d85715de97bae4089d226f647fbe6327"
+    Transform:
+      Translation: [0, 2.6, 4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
     PointLight:
       Enabled: true
-      Color: [1, 0.82, 0.6]
-      Intensity: 4
-      Radius: 9
+      Color: [1, 0.78, 0.55]
+      Intensity: 3.2
+      Radius: 8
+      Mobility: Stationary
+  - Name: "Light_CorridorNear"
+    Class: "AActor"
+    GUID: "06695c091d85cffcb49a90d71fa517be"
+    Transform:
+      Translation: [0, 2.7, -4.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.62, 0.78, 0.66]
+      Intensity: 1.1
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_CorridorFar"
+    Class: "AActor"
+    GUID: "f405c7b3d31fd8ebfd0fbfa90f5cdc78"
+    Transform:
+      Translation: [0, 2.7, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.32, 0.22]
+      Intensity: 1.2
+      Radius: 6
+      Mobility: Stationary
+  - Name: "Light_RoomC"
+    Class: "AActor"
+    GUID: "67873fc854a34b1ac002a870484953aa"
+    Transform:
+      Translation: [-5.5, 2.6, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.62, 0.78, 0.66]
+      Intensity: 1.8
+      Radius: 7
+      Mobility: Stationary
+  - Name: "Light_RoomB"
+    Class: "AActor"
+    GUID: "47c147047f33cd4f599682df7b54651c"
+    Transform:
+      Translation: [5.5, 2.6, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.78, 0.55]
+      Intensity: 1.2
+      Radius: 6.5
       Mobility: Stationary

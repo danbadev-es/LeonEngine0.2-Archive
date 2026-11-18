@@ -143,6 +143,7 @@ namespace Leon {
         bool Interact(ALeonHorrorCharacter& InPlayer) override;
 
         void SetRequiredKey(const std::string& InKey) { RequiredKey = InKey; }
+        const std::string& GetRequiredKey() const { return RequiredKey; }
 
     private:
         std::string RequiredKey;

@@ -38,6 +38,10 @@ namespace Leon {
         // First tick after the map began play: every actor exists, so a save can be applied.
         if (!bPendingSaveChecked) {
             bPendingSaveChecked = true;
+            // The engine does not build navigation by itself. Without a bounds volume this does
+            // nothing and enemies walk straight at their goal.
+            if (World)
+                World->RebuildNavigation();
             ApplyPendingSaveFromInstance();
         }
         ElapsedPlaySeconds += DeltaSeconds;

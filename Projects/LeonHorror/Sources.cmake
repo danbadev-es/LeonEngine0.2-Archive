@@ -31,6 +31,7 @@ set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/EnemyTests.cpp"
     "${LEONHORROR_ROOT}/Tests/SaveTests.cpp"
     "${LEONHORROR_ROOT}/Tests/HudTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/SliceMapTests.cpp"
 )
 
 function(leonhorror_add_game_library)
