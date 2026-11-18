@@ -121,8 +121,12 @@ namespace Leon {
                 hash = HashBytes(hash, &smc.bCastShadows, sizeof(smc.bCastShadows));
                 hash = HashString(hash, actor.GetName());
                 if (smc.Mobility == EComponentMobility::Static && smc.StaticMesh) {
-                    hash = HashString(hash, smc.StaticMesh->GetAssetPath());
-                    hash = HashAssetFileFingerprint(hash, smc.StaticMesh->GetAssetPath());
+                    // The path the map names. The asset remembers the path it was first loaded by,
+                    // which depends on what was loaded before this map.
+                    const std::string& meshPath =
+                        smc.AssetPath.empty() ? smc.StaticMesh->GetAssetPath() : smc.AssetPath;
+                    hash = HashString(hash, meshPath);
+                    hash = HashAssetFileFingerprint(hash, meshPath);
                     for (const auto& slot : smc.StaticMesh->GetMaterialSlots()) {
                         hash = HashString(hash, slot.DefaultMaterialPath);
                         hash = HashAssetFileFingerprint(hash, slot.DefaultMaterialPath);

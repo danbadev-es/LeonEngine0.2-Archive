@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "Assets/UAssetManager.hpp"
+#include "Assets/UStaticMesh.hpp"
 #include "Scene/Components.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UWorld.hpp"
@@ -101,6 +102,22 @@ namespace Leon {
             // It still follows the asset: another material is another hash.
             floor->GetComponent<FMaterialComponent>().AssetPath = "/Game/Materials/M_Other.lmat";
             CHECK(FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{}) != there);
+        }
+
+        TEST_CASE("the hash does not depend on what loaded a mesh first") {
+            // The asset manager hands out one mesh per file, and the mesh remembers the path of
+            // whoever asked first. A game that reached the map through another one saw a different
+            // hash than the baker did.
+            auto hashWith = [](const char* InPathTheAssetRemembers) {
+                auto world = UWorld::Create("SharedMesh");
+                AActor* crate = world->SpawnActor<AActor>("Crate");
+                auto mesh = UStaticMesh::Create("Cube");
+                mesh->SetAssetPath(InPathTheAssetRemembers);
+                auto& component = crate->AddComponent<FStaticMeshComponent>(mesh, "Engine/Meshes/Cube.lmesh");
+                component.Mobility = EComponentMobility::Static;
+                return FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{});
+            };
+            CHECK(hashWith("Engine/Meshes/Cube.lmesh") == hashWith("Engine/Content/Meshes/Cube.lmesh"));
         }
 
         TEST_CASE("a bake is valid for the map as the game then loads it") {
