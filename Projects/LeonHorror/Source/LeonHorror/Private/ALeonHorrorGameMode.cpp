@@ -1,17 +1,20 @@
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 
+#include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
 
 #include "Core/FApplication.hpp"
 #include "Core/FLog.hpp"
 #include "Engine/UEngine.hpp"
+#include "Engine/UWorld.hpp"
+#include "Gameplay/APlayerController.hpp"
 
 namespace Leon {
 
     ALeonHorrorGameMode::ALeonHorrorGameMode(entt::entity InHandle, UWorld* InWorld, const std::string& InName)
         : AGameModeBase(InHandle, InWorld, InName) {
         SetClass("ALeonHorrorGameMode");
-        DefaultPawnClass = "ACharacter";
+        DefaultPawnClass = "ALeonHorrorCharacter";
         PlayerControllerClass = "APlayerController";
         HUDClass = "AHUD";
         GameStateClass = "AGameStateBase";
@@ -24,6 +27,17 @@ namespace Leon {
         AGameModeBase::Tick(DeltaSeconds);
         ElapsedPlaySeconds += DeltaSeconds;
         TickSmokeRun();
+    }
+
+    ALeonHorrorCharacter* ALeonHorrorGameMode::GetPlayerCharacter() const {
+        APlayerController* pc = World ? World->GetFirstPlayerController() : nullptr;
+        return pc ? dynamic_cast<ALeonHorrorCharacter*>(pc->GetPawn()) : nullptr;
+    }
+
+    void ALeonHorrorGameMode::NotifyPlayerDied(ALeonHorrorCharacter& InCharacter) {
+        (void)InCharacter;
+        bPlayerDied = true;
+        LE_CORE_INFO("LeonHorror: the player died.");
     }
 
     void ALeonHorrorGameMode::TickSmokeRun() {

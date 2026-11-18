@@ -6,6 +6,10 @@ set(LEONHORROR_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 set(LEONHORROR_GAME_SOURCES
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorGameModule.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorGameMode.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorCharacter.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorFlashlight.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorInputState.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorAnimInstance.cpp"
 )
 
 # Explicit list: a GLOB would silently skip new test files until the next configure.
@@ -13,6 +17,7 @@ set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/Main.cpp"
     "${LEONHORROR_ROOT}/Tests/BootTests.cpp"
     "${LEONHORROR_ROOT}/Tests/AnimationPipelineTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/CharacterTests.cpp"
 )
 
 function(leonhorror_add_game_library)
