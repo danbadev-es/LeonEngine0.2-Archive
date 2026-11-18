@@ -152,6 +152,12 @@ add_custom_command(TARGET LeonEditor POST_BUILD
         -DDST=${_editor_exe_dir}/Engine/Resources
         -DREMOVE_ORPHANS=ON
         -P ${_leon_sync}
+    # The editor runs from its own folder, so the HLSL sources it compiles at start-up go there too.
+    COMMAND ${CMAKE_COMMAND}
+        -DSRC=${LEON_ENGINE_ROOT}/Engine/Shaders
+        -DDST=${_editor_exe_dir}/Engine/Shaders
+        -DREMOVE_ORPHANS=ON
+        -P ${_leon_sync}
     COMMAND ${CMAKE_COMMAND}
         -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/Resources
         -DDST=${_editor_exe_dir}/Resources

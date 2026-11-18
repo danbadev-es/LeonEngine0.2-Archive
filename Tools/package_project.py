@@ -315,6 +315,9 @@ def main() -> int:
     _copytree(config_src, os.path.join(stage_dir, "Config"))
     print("[INFO] Staging Engine/Resources/")
     _copytree(engine_assets_src, os.path.join(stage_dir, "Engine", "Resources"))
+    # The HLSL sources: the game compiles its shaders when it starts.
+    print("[INFO] Staging Engine/Shaders/")
+    _copytree(os.path.join(root, "Engine", "Shaders"), os.path.join(stage_dir, "Engine", "Shaders"))
 
     lproject_dst = os.path.join(stage_dir, os.path.basename(project))
     shutil.copy2(project, lproject_dst)
