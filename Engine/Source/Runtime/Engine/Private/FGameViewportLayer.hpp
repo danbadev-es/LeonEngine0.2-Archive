@@ -78,6 +78,17 @@ namespace Leon {
             {
                 FFrameProfiler::FScope render(&FFrameProfiler::Working().RenderMs);
                 World->OnRender(activeCamera);
+                // The same view through the new RHI, straight into the window.
+                if (FApplication::HasInstance()) {
+                    FApplication& application = FApplication::Get();
+                    IRHICommandList* commands = application.GetFrameCommands();
+                    IRHISwapchain* swapchain = application.GetSwapchain();
+                    FWorldRenderer* renderer = World->GetWorldRenderer();
+                    if (commands && swapchain && renderer && swapchain->GetBackBuffer()) {
+                        application.NotifyBackBufferDrawn();
+                        renderer->RenderRHI(activeCamera, *commands, *swapchain->GetBackBuffer());
+                    }
+                }
             }
             DrawLightGizmos(activeCamera);
             {

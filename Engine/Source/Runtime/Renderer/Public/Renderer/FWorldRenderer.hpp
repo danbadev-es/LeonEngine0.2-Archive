@@ -83,6 +83,10 @@ namespace Leon {
     /**
      * @brief Owns the full rendering pipeline for a UWorld.
      */
+    class IRHICommandList;
+    class IRHITexture;
+    struct FWorldRendererRHIState;
+
     class FWorldRenderer {
     public:
         explicit FWorldRenderer(UWorld* InWorld);
@@ -97,6 +101,12 @@ namespace Leon {
          * Order: CSM → Spot Shadow → Planar → Opaque → Skybox → Transparent → SSAO → PostProcess
          */
         void Render(const FPerspectiveCamera& InCamera);
+
+        /**
+         * Draws the world into InTarget through the new RHI. The renderer is being moved here pass by
+         * pass; what this draws today is listed at the top of FWorldRendererRHI.cpp.
+         */
+        void RenderRHI(const FPerspectiveCamera& InCamera, IRHICommandList& InCommands, IRHITexture& InTarget);
         void RenderScene(const FPerspectiveCamera& InCamera) { Render(InCamera); }
 
         void SetWorld(UWorld* InWorld) { World = InWorld; }
@@ -199,6 +209,7 @@ namespace Leon {
 
         // ----- Members -------------------------------------------------------
         UWorld* World = nullptr;
+        std::shared_ptr<FWorldRendererRHIState> RHIState;
 
         uint32_t ViewportWidth = 1280;
         uint32_t ViewportHeight = 720;

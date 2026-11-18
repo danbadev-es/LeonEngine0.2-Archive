@@ -10,6 +10,7 @@
 #include "RHI/FRenderer.hpp"
 #include "RHI/FRenderCommand.hpp"
 #include "Renderer/FTextRenderer.hpp"
+#include "Renderer/FShaderLibrary.hpp"
 #include "Physics/IPhysicsScene.hpp"
 
 #include <algorithm>
@@ -79,6 +80,7 @@ namespace Leon {
         FDebugRenderer::Shutdown();
         UAssetManager::Shutdown();
         FRenderer::Shutdown();
+        FShaderLibrary::Clear();
         // The swapchain's images must be gone before the device.
         if (IRHIDevice* device = FRHI::GetDevice())
             device->WaitIdle();

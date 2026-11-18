@@ -1,9 +1,11 @@
-#include "RHI/FNullRenderDriver.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
 
 #include "RHI/FTextureCube.hpp"
+#include "RHI/IRHIDevice.hpp"
 #include "RHI/IRenderDriver.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -52,27 +54,82 @@ namespace Leon {
             FGPUVRAMStats GetGPUVRAMStats() override { return {}; }
         };
 
-        class FNullVertexBuffer final : public FVertexBuffer {
+        /** Vertex data kept in memory until the first draw needs it on the device. */
+        class FLegacyVertexBuffer final : public FVertexBuffer {
         public:
+            explicit FLegacyVertexBuffer(unsigned int InSize) : Bytes(InSize), bDynamic(true) {}
+            FLegacyVertexBuffer(const void* InData, unsigned int InSize)
+                : Bytes(static_cast<const uint8_t*>(InData), static_cast<const uint8_t*>(InData) + InSize) {}
+
             void Bind() const override {}
             void Unbind() const override {}
-            void SetData(const void*, unsigned int) override {}
+            void SetData(const void* InData, unsigned int InSize) override {
+                if (!InData)
+                    return;
+                if (InSize > Bytes.size())
+                    Bytes.resize(InSize);
+                std::memcpy(Bytes.data(), InData, InSize);
+                if (Buffer && bDynamic && InSize <= Buffer->GetDesc().Size) {
+                    if (IRHIDevice* device = FRHI::GetDevice())
+                        device->WriteBuffer(*Buffer, InData, InSize);
+                } else {
+                    Buffer.reset(); // grew, or was static: recreate on next use
+                }
+            }
             const FBufferLayout& GetLayout() const override { return Layout; }
             void SetLayout(const FBufferLayout& InLayout) override { Layout = InLayout; }
 
+            IRHIBuffer* GetOrCreate() {
+                IRHIDevice* device = FRHI::GetDevice();
+                if (!device || Bytes.empty())
+                    return nullptr;
+                if (!Buffer) {
+                    FRHIBufferDesc desc;
+                    desc.Size = Bytes.size();
+                    desc.Usage = ERHIBufferUsage::Vertex;
+                    desc.Stride = Layout.GetStride();
+                    desc.bDynamic = bDynamic;
+                    desc.DebugName = "LegacyVertexBuffer";
+                    Buffer = device->CreateBuffer(desc, Bytes.data());
+                }
+                return Buffer.get();
+            }
+
         private:
             FBufferLayout Layout;
+            std::vector<uint8_t> Bytes;
+            TRef<IRHIBuffer> Buffer;
+            bool bDynamic = false;
         };
 
-        class FNullIndexBuffer final : public FIndexBuffer {
+        class FLegacyIndexBuffer final : public FIndexBuffer {
         public:
-            explicit FNullIndexBuffer(unsigned int InCount) : Count(InCount) {}
+            FLegacyIndexBuffer(const uint32_t* InIndices, unsigned int InCount)
+                : Indices(InIndices ? std::vector<uint32_t>(InIndices, InIndices + InCount) : std::vector<uint32_t>()),
+                  Count(InCount) {}
             void Bind() const override {}
             void Unbind() const override {}
             unsigned int GetCount() const override { return Count; }
 
+            IRHIBuffer* GetOrCreate() {
+                IRHIDevice* device = FRHI::GetDevice();
+                if (!device || Indices.empty())
+                    return nullptr;
+                if (!Buffer) {
+                    FRHIBufferDesc desc;
+                    desc.Size = Indices.size() * sizeof(uint32_t);
+                    desc.Usage = ERHIBufferUsage::Index;
+                    desc.Stride = sizeof(uint32_t);
+                    desc.DebugName = "LegacyIndexBuffer";
+                    Buffer = device->CreateBuffer(desc, Indices.data());
+                }
+                return Buffer.get();
+            }
+
         private:
+            std::vector<uint32_t> Indices;
             unsigned int Count;
+            TRef<IRHIBuffer> Buffer;
         };
 
         class FNullUniformBuffer final : public FUniformBuffer {
@@ -190,18 +247,22 @@ namespace Leon {
             uint32_t Id;
         };
 
-        class FNullDriver final : public IRenderDriver {
+        class FLegacyDriver final : public IRenderDriver {
         public:
             TScope<IGraphicsContext> CreateGraphicsContext(void*) override {
                 return CreateScope<FNullGraphicsContext>();
             }
             TScope<IRenderAPI> CreateRenderAPI() override { return CreateScope<FNullRenderAPI>(); }
-            TRef<FVertexBuffer> CreateVertexBuffer(unsigned int) override { return CreateRef<FNullVertexBuffer>(); }
-            TRef<FVertexBuffer> CreateVertexBuffer(const float*, unsigned int) override {
-                return CreateRef<FNullVertexBuffer>();
+            TRef<FVertexBuffer> CreateVertexBuffer(unsigned int InSize) override {
+                return CreateRef<FLegacyVertexBuffer>(InSize);
             }
-            TRef<FIndexBuffer> CreateIndexBuffer(const uint32_t*, unsigned int InCount) override {
-                return CreateRef<FNullIndexBuffer>(InCount);
+            TRef<FVertexBuffer> CreateVertexBuffer(const float* InVertices, unsigned int InSize) override {
+                if (!InVertices)
+                    return CreateRef<FLegacyVertexBuffer>(InSize);
+                return CreateRef<FLegacyVertexBuffer>(static_cast<const void*>(InVertices), InSize);
+            }
+            TRef<FIndexBuffer> CreateIndexBuffer(const uint32_t* InIndices, unsigned int InCount) override {
+                return CreateRef<FLegacyIndexBuffer>(InIndices, InCount);
             }
             TRef<FVertexArray> CreateVertexArray() override { return CreateRef<FNullVertexArray>(); }
             TRef<FShader> CreateShader(const std::string& InFilePath) override {
@@ -235,9 +296,66 @@ namespace Leon {
 
     } // namespace
 
-    void FNullRenderDriver::Register() {
+    IRHIBuffer* GetRHIVertexBuffer(const FVertexArray& InVertexArray) {
+        const auto& buffers = InVertexArray.GetVertexBuffers();
+        if (buffers.empty())
+            return nullptr;
+        auto* buffer = dynamic_cast<FLegacyVertexBuffer*>(buffers.front().get());
+        return buffer ? buffer->GetOrCreate() : nullptr;
+    }
+
+    IRHIBuffer* GetRHIIndexBuffer(const FVertexArray& InVertexArray) {
+        auto* buffer = dynamic_cast<FLegacyIndexBuffer*>(InVertexArray.GetIndexBuffer().get());
+        return buffer ? buffer->GetOrCreate() : nullptr;
+    }
+
+    uint32_t GetRHIIndexCount(const FVertexArray& InVertexArray) {
+        const auto& indices = InVertexArray.GetIndexBuffer();
+        return indices ? indices->GetCount() : 0;
+    }
+
+    FRHIVertexLayout MakeRHIVertexLayout(const FBufferLayout& InLayout) {
+        FRHIVertexLayout layout;
+        layout.Stride = InLayout.GetStride();
+        for (const FBufferElement& element : InLayout.GetElements()) {
+            FRHIVertexAttribute attribute;
+            attribute.Offset = static_cast<uint32_t>(element.Offset);
+            switch (element.Type) {
+            case EShaderDataType::Float:
+                attribute.Format = ERHIVertexFormat::Float;
+                break;
+            case EShaderDataType::Float2:
+                attribute.Format = ERHIVertexFormat::Float2;
+                break;
+            case EShaderDataType::Float3:
+                attribute.Format = ERHIVertexFormat::Float3;
+                break;
+            case EShaderDataType::Float4:
+                attribute.Format = ERHIVertexFormat::Float4;
+                break;
+            // Bone indices: integers in the buffer, and integers in HLSL too (int4).
+            case EShaderDataType::Int4:
+            case EShaderDataType::Int4AsFloat:
+                attribute.Format = ERHIVertexFormat::Int4;
+                break;
+            default:
+                continue; // not used by any engine vertex format
+            }
+            layout.Attributes.push_back(attribute);
+        }
+        return layout;
+    }
+
+    FRHIVertexLayout GetRHIVertexLayout(const FVertexArray& InVertexArray) {
+        const auto& buffers = InVertexArray.GetVertexBuffers();
+        if (buffers.empty() || !buffers.front())
+            return {};
+        return MakeRHIVertexLayout(buffers.front()->GetLayout());
+    }
+
+    void FLegacyRenderDriver::Register() {
         if (!FRenderDriverRegistry::GetDriver(ERenderAPI::Null))
-            FRenderDriverRegistry::RegisterDriver(ERenderAPI::Null, CreateScope<FNullDriver>());
+            FRenderDriverRegistry::RegisterDriver(ERenderAPI::Null, CreateScope<FLegacyDriver>());
         IRenderAPI::SetAPI(ERenderAPI::Null);
     }
 

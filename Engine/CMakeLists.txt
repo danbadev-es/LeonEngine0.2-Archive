@@ -26,7 +26,7 @@ leon_add_module(Core
 leon_add_module(RHI
     SOURCES
     Source/Runtime/RHI/Private/FPlatformMemory.cpp
-    Source/Runtime/RHI/Private/FNullRenderDriver.cpp
+    Source/Runtime/RHI/Private/FLegacyRenderDriver.cpp
     Source/Runtime/RHI/Private/FRHI.cpp
     Source/Runtime/RHI/Private/FFrameProfiler.cpp
     Source/Runtime/RHI/Private/IGraphicsContext.cpp
@@ -120,6 +120,8 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Renderer/Private/FWorldRendererLighting.cpp
     Source/Runtime/Renderer/Private/FWorldRendererGeometry.cpp
     Source/Runtime/Renderer/Private/FWorldRendererPostProcess.cpp
+    Source/Runtime/Renderer/Private/FWorldRendererRHI.cpp
+    Source/Runtime/Renderer/Private/FShaderLibrary.cpp
     Source/Runtime/Renderer/Private/FMaterial.cpp
     Source/Runtime/Renderer/Private/FMaterialInstance.cpp
     Source/Runtime/Renderer/Private/FMeshPrimitives.cpp
@@ -262,6 +264,7 @@ target_link_libraries(LeonEngineCore
         LeonModule_Core
         LeonModule_Platform
         LeonModule_RHI
+        LeonModule_ShaderCompiler
         glfw
         glm::glm
         EnTT::EnTT

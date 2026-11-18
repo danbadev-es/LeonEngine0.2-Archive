@@ -5,7 +5,7 @@
 
 // The backends this build of the engine ships with. Games never name them.
 #include "FJoltPhysicsDriver.hpp"
-#include "RHI/FNullRenderDriver.hpp"
+#include "RHI/FLegacyRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
 
 #include <cstdlib>
@@ -53,7 +53,7 @@ namespace Leon {
     int LaunchGame(int InArgc, char** InArgv, const FGameLaunchDesc& InDesc) {
         // The renderer still talks to the old interface, served by a driver that draws nothing; it is
         // being ported pass by pass to the new RHI, which runs on Direct3D 12.
-        FNullRenderDriver::Register();
+        FLegacyRenderDriver::Register();
         FD3D12RHI::Register();
         FJoltPhysicsDriver::Register();
 
