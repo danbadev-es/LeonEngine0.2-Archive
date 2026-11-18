@@ -9,7 +9,7 @@
 #include "Engine/UEngine.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/FGraphicsQuality.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "RHI/FRenderer.hpp"
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"

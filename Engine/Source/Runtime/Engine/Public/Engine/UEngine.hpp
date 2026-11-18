@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Core/FConfigFile.hpp"
 #include "Platform/FInputSettings.hpp"
 #include "Core/FProjectDescriptor.hpp"
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "Engine/UGameInstance.hpp"
 #include "Engine/UWorld.hpp"
 

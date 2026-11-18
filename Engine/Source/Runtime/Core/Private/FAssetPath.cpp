@@ -1,4 +1,4 @@
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include <algorithm>
 
 namespace Leon {

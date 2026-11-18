@@ -18,7 +18,7 @@
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/UNetDriver.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Renderer/FRenderingMath.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 

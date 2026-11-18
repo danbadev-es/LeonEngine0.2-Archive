@@ -2,7 +2,7 @@
 #include "ProjectTool/Commands/ValidateMapCommand.hpp"
 #include "Core/FProjectDescriptor.hpp"
 #include "Core/FProjectPaths.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 
 #include <iostream>
 #include <filesystem>

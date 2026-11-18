@@ -13,7 +13,7 @@
 #include "Renderer/FMeshPrimitives.hpp"
 #include "RHI/FRenderCommand.hpp"
 #include "RHI/FRenderer.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Renderer/FTextRenderer.hpp"
 #include "Renderer/FParticleRenderer.hpp"
 #include "RHI/FVertexArray.hpp"

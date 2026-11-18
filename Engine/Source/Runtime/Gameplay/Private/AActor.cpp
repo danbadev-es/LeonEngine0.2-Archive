@@ -3,7 +3,7 @@
 #include "Engine/UWorld.hpp"
 #include "Engine/UNetDriver.hpp"
 #include "Physics/IPhysicsScene.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <cctype>
 #include <cstdlib>

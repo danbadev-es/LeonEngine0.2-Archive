@@ -4,7 +4,7 @@
 #include "Engine/Components.hpp"
 #include "Renderer/FMaterialInstance.hpp"
 #include "Renderer/FMeshPrimitives.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 
 #include <cmath>
 

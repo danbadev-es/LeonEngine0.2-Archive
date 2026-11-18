@@ -3,7 +3,7 @@
 #include "Engine/UEngine.hpp"
 #include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Core/events/FKeyEvent.hpp"
 #include "Core/events/FMouseEvent.hpp"
 #include "Gameplay/ADefaultPawn.hpp"

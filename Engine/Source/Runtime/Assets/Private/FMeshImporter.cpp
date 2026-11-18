@@ -1,6 +1,6 @@
 #include "Assets/FMeshImporter.hpp"
 #include "Assets/FSkeletalImporter.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
 #include "Renderer/FVertexLayout.hpp"
 #include <ufbx.h>

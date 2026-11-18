@@ -1,5 +1,5 @@
 #include "UMG/FUILayout.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"
 

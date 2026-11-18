@@ -5,7 +5,7 @@
 #include "LeonHorror/ULeonHorrorCombatComponent.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/FOnScreenDebugMessage.hpp"

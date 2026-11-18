@@ -8,7 +8,7 @@
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
 
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectPaths.hpp"
 #include "Engine/UEngine.hpp"

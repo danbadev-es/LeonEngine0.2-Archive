@@ -6,7 +6,7 @@
 
 #include "AI/UAIPerceptionComponent.hpp"
 #include "Assets/USkeletalMesh.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/UCharacterMovementComponent.hpp"
 #include "Gameplay/UGameplayStatics.hpp"

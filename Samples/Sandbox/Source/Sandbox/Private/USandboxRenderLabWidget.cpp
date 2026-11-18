@@ -4,7 +4,7 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Engine/UEngine.hpp"
 #include "Engine/UWorld.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Renderer/FShadowTypes.hpp"
 #include "Renderer/FPlanarReflectionTypes.hpp"
 #include "Renderer/FWorldRenderer.hpp"

@@ -3,7 +3,7 @@
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"
 #include "Engine/UWorld.hpp"

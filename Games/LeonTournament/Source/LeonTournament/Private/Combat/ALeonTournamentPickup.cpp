@@ -7,7 +7,7 @@
 #include "Renderer/FMaterialInstance.hpp"
 #include "Renderer/FMeshPrimitives.hpp"
 #include "Engine/Components.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 
 namespace Leon {
 

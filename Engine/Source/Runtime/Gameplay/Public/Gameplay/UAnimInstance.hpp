@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "Assets/FAnimTypes.hpp"
 #include "Assets/UAnimSequence.hpp"
 #include "Assets/UBlendSpace.hpp"

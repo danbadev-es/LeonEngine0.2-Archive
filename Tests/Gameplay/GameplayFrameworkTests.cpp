@@ -13,7 +13,7 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerState.hpp"
 #include "Gameplay/UClassRegistry.hpp"
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UEngine.hpp"

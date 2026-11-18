@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 #include "Assets/FTextureImporter.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 
 #include <filesystem>
 #include <vector>

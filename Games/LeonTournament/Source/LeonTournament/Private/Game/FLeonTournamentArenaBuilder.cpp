@@ -1,7 +1,7 @@
 #include "FLeonTournamentArenaBuilder.hpp"
 #include "Gameplay/FProceduralPrimitiveSpawner.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"

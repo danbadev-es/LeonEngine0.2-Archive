@@ -2,7 +2,7 @@
 
 #include "Core/Base.hpp"
 #include "Core/FTimestep.hpp"
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "Assets/FAssetTypes.hpp"
 #include "Renderer/FPerspectiveCamera.hpp"
 #include "Renderer/FPlanarReflectionTypes.hpp"

@@ -1,7 +1,7 @@
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Core/events/FKeyEvent.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Renderer/FDebugOverlay.hpp"
@@ -32,6 +32,13 @@ namespace Leon {
         FWindowProps WindowProps(InProps.Name, InProps.WindowWidth, InProps.WindowHeight, true,
                                  InProps.bHdClientPolicy, true, InProps.bMaximized);
         AppWindow = FWindow::Create(WindowProps);
+        GraphicsContext = IGraphicsContext::Create(AppWindow->GetNativeHandle());
+        if (GraphicsContext) {
+            GraphicsContext->Init();
+            AppWindow->SetVSync(AppWindow->IsVSync());
+        } else {
+            LE_CORE_ERROR("Failed to create IGraphicsContext! No active RenderDriver is registered.");
+        }
         WindowCreationTime = std::chrono::high_resolution_clock::now();
         AppWindow->SetEventCallback(LE_BIND_EVENT_FN(FApplication::OnEvent));
 
@@ -167,6 +174,8 @@ namespace Leon {
             {
                 const auto presentStart = std::chrono::high_resolution_clock::now();
                 AppWindow->OnUpdate();
+                if (GraphicsContext)
+                    GraphicsContext->SwapBuffers();
                 const auto presentEnd = std::chrono::high_resolution_clock::now();
                 FFrameProfiler::SetPresentMs(
                     std::chrono::duration<float, std::milli>(presentEnd - presentStart).count());

@@ -1,11 +1,11 @@
 #include "Engine/FGraphicsQuality.hpp"
 #include "Engine/UEngine.hpp"
 #include "Engine/UWorld.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Core/FProjectPaths.hpp"
 #include "RHI/FRenderer.hpp"
-#include "Renderer/FRenderStats.hpp"
+#include "RHI/FRenderStats.hpp"
 
 #include <algorithm>
 #include <cctype>

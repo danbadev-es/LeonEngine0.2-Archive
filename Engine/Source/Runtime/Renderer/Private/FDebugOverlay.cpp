@@ -1,5 +1,5 @@
 #include "Renderer/FDebugOverlay.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FRenderCommand.hpp"
 

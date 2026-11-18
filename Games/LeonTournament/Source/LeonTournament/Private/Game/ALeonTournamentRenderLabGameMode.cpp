@@ -4,7 +4,7 @@
 #include "ALeonTournamentPlayerState.hpp"
 #include "ULeonTournamentGameInstance.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UEngine.hpp"
 #include "Engine/UWorld.hpp"

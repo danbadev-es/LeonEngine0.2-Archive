@@ -1,5 +1,5 @@
-#include "Core/FFrameProfiler.hpp"
-#include "Core/FPlatformMemory.hpp"
+#include "RHI/FFrameProfiler.hpp"
+#include "RHI/FPlatformMemory.hpp"
 
 #include <algorithm>
 #include <cmath>

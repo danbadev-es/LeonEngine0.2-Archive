@@ -2,7 +2,6 @@
 
 #include "Core/Base.hpp"
 #include "Core/events/FEvent.hpp"
-#include "RHI/IGraphicsContext.hpp"
 
 #include <functional>
 #include <string>
@@ -52,6 +51,7 @@ namespace Leon {
         FWindow(const FWindowProps& InProps);
         ~FWindow();
 
+        /** Pumps OS events. Presenting the frame is the renderer's job. */
         void OnUpdate();
 
         unsigned int GetWidth() const { return Data.Width; }
@@ -102,7 +102,6 @@ namespace Leon {
 
     private:
         GLFWwindow* NativeWindow = nullptr;
-        TScope<IGraphicsContext> Context;
         int WindowedPosX = 100;
         int WindowedPosY = 100;
         unsigned int WindowedWidth = FWindowDisplayPolicy::DefaultWidth;

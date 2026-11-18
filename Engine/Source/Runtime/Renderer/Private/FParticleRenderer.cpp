@@ -4,7 +4,7 @@
 #include "Engine/UWorld.hpp"
 #include "RHI/FRenderCommand.hpp"
 #include "RHI/FBuffer.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <algorithm>
 #include <vector>

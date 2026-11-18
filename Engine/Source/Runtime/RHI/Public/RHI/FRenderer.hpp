@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RHI/FRenderCommand.hpp"
-#include "Renderer/FRenderStats.hpp"
+#include "RHI/FRenderStats.hpp"
 
 namespace Leon {
 

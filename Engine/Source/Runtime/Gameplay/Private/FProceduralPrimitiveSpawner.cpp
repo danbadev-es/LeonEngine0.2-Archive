@@ -1,7 +1,7 @@
 #include "Gameplay/FProceduralPrimitiveSpawner.hpp"
 #include "Assets/FEngineBuiltins.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Core/FLog.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"

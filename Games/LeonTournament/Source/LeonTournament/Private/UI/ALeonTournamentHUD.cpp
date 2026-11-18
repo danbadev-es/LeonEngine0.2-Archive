@@ -14,7 +14,7 @@
 #include "Gameplay/FGameplayDebugger.hpp"
 #include "Gameplay/UCharacterMovementComponent.hpp"
 #include "Engine/UWorld.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Platform/FInput.hpp"
 #include "UMG/UUserWidget.hpp"
 #include "ULeonTournamentGameInstance.hpp"

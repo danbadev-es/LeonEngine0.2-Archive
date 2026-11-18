@@ -2,7 +2,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/UStaticMesh.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Platform/FInput.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectPaths.hpp"

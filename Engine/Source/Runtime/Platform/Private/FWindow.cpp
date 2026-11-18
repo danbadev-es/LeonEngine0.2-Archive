@@ -195,16 +195,9 @@ namespace Leon {
         }
         glfwGetWindowPos(NativeWindow, &WindowedPosX, &WindowedPosY);
 
-        // Initialize graphics context via RHI
-        Context = IGraphicsContext::Create(NativeWindow);
-        if (Context) {
-            Context->Init();
-        } else {
-            LE_CORE_ERROR("Failed to create IGraphicsContext! No active RenderDriver is registered.");
-        }
-
         glfwSetWindowUserPointer(NativeWindow, &Data);
-        SetVSync(InProps.bVSync);
+        // Applied by the owner once a graphics context exists (the swap interval needs one).
+        Data.bVSync = InProps.bVSync;
         ApplyEmbeddedWin32Icon();
 
         // GLFW event callbacks
@@ -306,9 +299,6 @@ namespace Leon {
 
     void FWindow::OnUpdate() {
         glfwPollEvents();
-        if (Context) {
-            Context->SwapBuffers();
-        }
     }
 
     void FWindow::SetVSync(bool bInEnabled) {

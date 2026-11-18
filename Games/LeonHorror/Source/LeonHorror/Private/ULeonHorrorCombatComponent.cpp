@@ -5,7 +5,7 @@
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "AI/UAIPerceptionComponent.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Engine/FParticleTypes.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/FDamageInfo.hpp"

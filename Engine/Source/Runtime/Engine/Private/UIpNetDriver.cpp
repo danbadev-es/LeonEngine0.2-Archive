@@ -4,7 +4,7 @@
 #include "Gameplay/AGameModeBase.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerState.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <cstring>
 

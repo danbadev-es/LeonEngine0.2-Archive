@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Core/FLayerStack.hpp"
+#include "Application/FLayerStack.hpp"
 #include "Core/FTimestep.hpp"
 #include "Platform/FWindow.hpp"
+#include "RHI/IGraphicsContext.hpp"
 #include "Core/events/FApplicationEvent.hpp"
 
 #include <chrono>
@@ -75,6 +76,7 @@ namespace Leon {
 
     private:
         TScope<FWindow> AppWindow;
+        TScope<IGraphicsContext> GraphicsContext;
         std::chrono::high_resolution_clock::time_point WindowCreationTime;
         bool bRunning = true;
         bool bMinimized = false;

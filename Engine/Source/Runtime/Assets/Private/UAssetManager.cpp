@@ -1,5 +1,5 @@
 #include "Assets/UAssetManager.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Assets/FEngineBuiltins.hpp"
 #include "Assets/UBlendSpace.hpp"
 #include "Core/FLog.hpp"

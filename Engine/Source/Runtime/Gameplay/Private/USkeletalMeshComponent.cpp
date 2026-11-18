@@ -7,7 +7,7 @@
 #include "Engine/ENetTypes.hpp"
 #include "Engine/UWorld.hpp"
 #include "Physics/IPhysicsScene.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Gameplay/FGameplayDebugger.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 

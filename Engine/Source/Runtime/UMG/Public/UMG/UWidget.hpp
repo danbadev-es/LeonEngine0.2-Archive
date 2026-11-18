@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "UMG/FUIRenderer.hpp"
 
 #include <glm/glm.hpp>

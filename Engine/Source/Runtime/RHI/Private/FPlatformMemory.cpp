@@ -1,4 +1,4 @@
-#include "Core/FPlatformMemory.hpp"
+#include "RHI/FPlatformMemory.hpp"
 #include "RHI/FRenderCommand.hpp"
 
 #ifdef _WIN32

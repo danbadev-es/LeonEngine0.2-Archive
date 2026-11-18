@@ -2,7 +2,7 @@
 #include "Core/Base.hpp"
 #include "Core/FLog.hpp"
 #include "Assets/FAssetTypes.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Assets/FTextureImporter.hpp"
 #include "Assets/FMeshImporter.hpp"
 #include "Assets/FMaterialImporter.hpp"

@@ -1,5 +1,5 @@
 #include "Lightmass/FLightmass.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Assets/FHDRImporter.hpp"
 #include "Assets/FLightmapAsset.hpp"
 #include "Assets/FLightmapUV.hpp"

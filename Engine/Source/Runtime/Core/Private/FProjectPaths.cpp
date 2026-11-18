@@ -1,5 +1,5 @@
 #include "Core/FProjectPaths.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include <filesystem>
 #include <algorithm>
 

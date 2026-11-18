@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Core/FPerformanceTimer.hpp"
 
 #include <thread>

@@ -1,5 +1,5 @@
 #include "Assets/FSkeletalImporter.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Assets/FAnimTypes.hpp"
 #include "Core/FLog.hpp"
 #include "Renderer/FVertexLayout.hpp"

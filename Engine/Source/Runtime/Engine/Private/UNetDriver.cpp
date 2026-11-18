@@ -10,7 +10,7 @@
 #include "Gameplay/APlayerState.hpp"
 #include "Gameplay/AAIController.hpp"
 #include "Gameplay/UClassRegistry.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <cstring>
 #include <functional>

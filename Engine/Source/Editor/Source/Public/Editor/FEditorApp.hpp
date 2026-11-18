@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Core/FProjectDescriptor.hpp"
 #include "Editor/Context/FEditorContext.hpp"
 #include "Editor/FEditorLayoutStore.hpp"

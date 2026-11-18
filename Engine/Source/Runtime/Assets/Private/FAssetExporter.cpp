@@ -1,5 +1,5 @@
 #include "Assets/FAssetExporter.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Assets/FHDRImporter.hpp"
 #include "Assets/FTextureImporter.hpp"
 #include "Assets/UStaticMesh.hpp"

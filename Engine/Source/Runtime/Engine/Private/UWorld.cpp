@@ -1,6 +1,6 @@
 #include "Engine/UWorld.hpp"
 #include "Core/FLog.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/AGameModeBase.hpp"
 #include "Gameplay/AGameStateBase.hpp"

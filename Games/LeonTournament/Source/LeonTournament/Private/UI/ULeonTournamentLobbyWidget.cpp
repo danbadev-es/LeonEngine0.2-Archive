@@ -14,7 +14,7 @@
 #include "Gameplay/UGameplayStatics.hpp"
 #include "Engine/UEngine.hpp"
 #include "Engine/UWorld.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"
 #include "UMG/FUIRenderer.hpp"

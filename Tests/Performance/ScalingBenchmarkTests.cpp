@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "AI/UBehaviorTree.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Core/FPerformanceTimer.hpp"
 #include "Core/FTimestep.hpp"
 #include "Engine/UWorld.hpp"

@@ -15,7 +15,7 @@
 #include "Renderer/FRenderingMath.hpp"
 #include "Renderer/FShadowTypes.hpp"
 #include "RHI/FTexture.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <algorithm>
 #include <cmath>

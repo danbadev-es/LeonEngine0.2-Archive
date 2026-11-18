@@ -3,7 +3,7 @@
 #include "Core/FConfigFile.hpp"
 #include "Core/FProjectDescriptor.hpp"
 #include "Core/FProjectPaths.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Engine/UEngine.hpp"
 
 #include <filesystem>

@@ -1,7 +1,7 @@
 #include "Gameplay/AHUD.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/FOnScreenDebugMessage.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 #include "UMG/FUIRenderer.hpp"
 #include <algorithm>
 

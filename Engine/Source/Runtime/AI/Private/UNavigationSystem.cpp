@@ -5,7 +5,7 @@
 #include "Engine/ECollisionChannel.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 #include "Core/FLog.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <algorithm>
 #include <cmath>

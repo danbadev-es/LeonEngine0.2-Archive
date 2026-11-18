@@ -4,7 +4,7 @@
 #include "Core/FLog.hpp"
 #include "Assets/FAssetTypes.hpp"
 #include "Gameplay/UActorComponent.hpp"
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/ENetTypes.hpp"

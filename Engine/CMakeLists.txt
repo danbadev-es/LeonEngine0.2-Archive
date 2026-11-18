@@ -10,19 +10,23 @@ endif()
 
 set(LEON_RUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Source/Runtime")
 
-set(LEON_ENGINE_SOURCES
-    # Core
-    Source/Runtime/Core/Private/FApplication.cpp
+include("${LEON_ENGINE_ROOT}/cmake/LeonModule.cmake")
+
+# --- Lower layers: real modules. Each one only sees the headers of what it depends on. --------
+leon_add_module(Core
+    SOURCES
     Source/Runtime/Core/Private/FConfigFile.cpp
-    Source/Runtime/Core/Private/FLayerStack.cpp
-    Source/Runtime/Core/Private/FFrameProfiler.cpp
     Source/Runtime/Core/Private/FLog.cpp
-    Source/Runtime/Core/Private/FPlatformMemory.cpp
     Source/Runtime/Core/Private/FProjectDescriptor.cpp
     Source/Runtime/Core/Private/FProjectPaths.cpp
-    Source/Runtime/Platform/Private/FInput.cpp
-    Source/Runtime/Platform/Private/FWindow.cpp
-    # RHI
+    Source/Runtime/Core/Private/FAssetPath.cpp
+    LIBRARIES glm::glm
+)
+
+leon_add_module(RHI
+    SOURCES
+    Source/Runtime/RHI/Private/FPlatformMemory.cpp
+    Source/Runtime/RHI/Private/FFrameProfiler.cpp
     Source/Runtime/RHI/Private/IGraphicsContext.cpp
     Source/Runtime/RHI/Private/IRenderAPI.cpp
     Source/Runtime/RHI/Private/IRenderDriver.cpp
@@ -33,25 +37,39 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/RHI/Private/FTexture.cpp
     Source/Runtime/RHI/Private/FVertexArray.cpp
     Source/Runtime/RHI/Private/FRenderer.cpp
-    # Assets
+    DEPENDS Core
+)
+if(WIN32)
+    target_link_libraries(LeonModule_RHI PRIVATE psapi dxgi)
+endif()
+
+leon_add_module(Platform
+    SOURCES
+    Source/Runtime/Platform/Private/FInput.cpp
+    Source/Runtime/Platform/Private/FWindow.cpp
+    DEPENDS Core
+    PRIVATE_LIBRARIES glfw stb_image
+)
+
+# --- Everything above them still builds as one library. These modules include each other in
+# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
+set(LEON_ENGINE_SOURCES
+    Source/Runtime/Application/Private/FApplication.cpp
+    Source/Runtime/Application/Private/FLayerStack.cpp
     Source/Runtime/Assets/Private/UAssetManager.cpp
-        Source/Runtime/Assets/Private/UStaticMesh.cpp
-        Source/Runtime/Assets/Private/FMeshSimplifier.cpp
-        Source/Runtime/Assets/Private/USkeleton.cpp
+    Source/Runtime/Assets/Private/UStaticMesh.cpp
+    Source/Runtime/Assets/Private/FMeshSimplifier.cpp
+    Source/Runtime/Assets/Private/USkeleton.cpp
     Source/Runtime/Assets/Private/USkeletalMesh.cpp
     Source/Runtime/Assets/Private/UAnimSequence.cpp
     Source/Runtime/Assets/Private/UBlendSpace.cpp
     Source/Runtime/Assets/Private/FAnimRuntime.cpp
     Source/Runtime/Assets/Private/FAssetManifest.cpp
-    Source/Runtime/Assets/Private/FAssetPath.cpp
     Source/Runtime/Assets/Private/FEngineBuiltins.cpp
-    # Native .lhdr / .ltex loaders are runtime (OpenGL + IBL). Source import stays callable from Core
-    # because stb_image is already a Core dependency; Pipeline keeps FBX (ufbx) + Lightmass.
     Source/Runtime/Assets/Private/FHDRImporter.cpp
     Source/Runtime/Assets/Private/FTextureImporter.cpp
     Source/Runtime/Assets/Private/FAssetExporter.cpp
     Source/Runtime/Assets/Private/FLightmapAsset.cpp
-    # Renderer
     Source/Runtime/Renderer/Private/FWorldRenderer.cpp
     Source/Runtime/Renderer/Private/FWorldRendererLighting.cpp
     Source/Runtime/Renderer/Private/FWorldRendererGeometry.cpp
@@ -68,7 +86,6 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Renderer/Private/FParticleRenderer.cpp
     Source/Runtime/Renderer/Private/FTextRenderer.cpp
     Source/Runtime/Renderer/Private/FShadowMath.cpp
-    # UMG
     Source/Runtime/UMG/Private/UWidget.cpp
     Source/Runtime/UMG/Private/UPanelWidget.cpp
     Source/Runtime/UMG/Private/UCanvasPanel.cpp
@@ -88,11 +105,9 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/UMG/Private/UScrollBox.cpp
     Source/Runtime/UMG/Private/UTableView.cpp
     Source/Runtime/UMG/Private/ULoadingSpinner.cpp
-    # Audio
     Source/Runtime/Audio/Private/FAudioDevice.cpp
     Source/Runtime/Audio/Private/USoundWave.cpp
     Source/Runtime/Audio/Private/UAudioComponent.cpp
-    # Engine + Gameplay
     Source/Runtime/Engine/Private/UEngine.cpp
     Source/Runtime/Engine/Private/UEngineTravel.cpp
     Source/Runtime/Engine/Private/FGameplaySession.cpp
@@ -180,9 +195,7 @@ add_library(Leon::Gameplay ALIAS LeonEngineCore)
 
 target_include_directories(LeonEngineCore
     PUBLIC
-        "${LEON_RUNTIME_ROOT}/Core/Public"
-        "${LEON_RUNTIME_ROOT}/Platform/Public"
-        "${LEON_RUNTIME_ROOT}/RHI/Public"
+        "${LEON_RUNTIME_ROOT}/Application/Public"
         "${LEON_RUNTIME_ROOT}/Assets/Public"
         "${LEON_RUNTIME_ROOT}/Renderer/Public"
         "${LEON_RUNTIME_ROOT}/UMG/Public"
@@ -200,6 +213,9 @@ target_compile_features(LeonEngineCore PUBLIC cxx_std_20)
 
 target_link_libraries(LeonEngineCore
     PUBLIC
+        LeonModule_Core
+        LeonModule_Platform
+        LeonModule_RHI
         glfw
         glm::glm
         EnTT::EnTT

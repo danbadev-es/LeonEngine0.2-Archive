@@ -1,5 +1,5 @@
 #include "Gameplay/FGameplayDebugger.hpp"
-#include "Core/FApplication.hpp"
+#include "Application/FApplication.hpp"
 
 #include <algorithm>
 

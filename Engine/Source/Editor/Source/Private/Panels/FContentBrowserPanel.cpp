@@ -1,5 +1,5 @@
 #include "Editor/Panels/FContentBrowserPanel.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectPaths.hpp"
 #include "Editor/UI/FEditorWidgets.hpp"

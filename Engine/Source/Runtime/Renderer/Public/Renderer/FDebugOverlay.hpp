@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Core/FPlatformMemory.hpp"
+#include "RHI/FPlatformMemory.hpp"
 #include "Core/FTimestep.hpp"
-#include "Renderer/FRenderStats.hpp"
+#include "RHI/FRenderStats.hpp"
 #include "RHI/FShader.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FVertexArray.hpp"

@@ -3,7 +3,7 @@
 #include "Engine/UWorld.hpp"
 #include "Engine/UEngine.hpp"
 #include "FENetTransport.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Core/FConfigFile.hpp"
 #include "Core/FProjectPaths.hpp"
 #include "Gameplay/UGameplayStatics.hpp"

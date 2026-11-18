@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Gameplay/UObject.hpp"
+#include "Core/UObject.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/ENetTypes.hpp"
 #include "Engine/UIpNetDriver.hpp"

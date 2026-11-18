@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "Core/FTimestep.hpp"
-#include "Core/FFrameProfiler.hpp"
+#include "RHI/FFrameProfiler.hpp"
 #include "Core/FWorldUnits.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/Components.hpp"

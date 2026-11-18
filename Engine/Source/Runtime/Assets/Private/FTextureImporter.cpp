@@ -1,5 +1,5 @@
 #include "Assets/FTextureImporter.hpp"
-#include "Assets/FAssetPath.hpp"
+#include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
 #include "Renderer/FColorSpace.hpp"
 
