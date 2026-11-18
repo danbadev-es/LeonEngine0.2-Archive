@@ -11,7 +11,10 @@
 #include "AI/UNavigationSystem.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Gameplay/APlayerController.hpp"
+#include "Assets/USkeletalMesh.hpp"
 #include "Gameplay/APlayerStart.hpp"
+#include "Gameplay/USkeletalMeshComponent.hpp"
+#include "Gameplay/USpringArmComponent.hpp"
 #include "Gameplay/UHealthComponent.hpp"
 
 #include <cmath>
@@ -204,6 +207,39 @@ namespace Leon {
             CHECK(navigation->FindPath({0.0f, 0.0f, -22.0f}, {0.0f, 0.0f, 5.0f}).Status == ENavPathStatus::Valid);
             // The office door is still shut: no complete path leads inside.
             CHECK(navigation->FindPath({0.0f, 0.0f, -2.0f}, {-6.0f, 0.0f, -11.0f}).Status != ENavPathStatus::Valid);
+        }
+
+        TEST_CASE("the camera sits behind the player at full arm length in the start room") {
+            FSliceWorld slice(true);
+            glm::vec3 camera, forward;
+            slice.Player->GetViewPoint(camera, forward);
+            auto arm = slice.Player->GetSpringArm();
+            REQUIRE(arm);
+            const glm::vec3 eye = slice.Player->GetPawnViewLocation();
+            MESSAGE("eye " << eye.x << " " << eye.y << " " << eye.z << " camera " << camera.x << " " << camera.y
+                           << " " << camera.z << " arm " << arm->GetCurrentArmLength() << " target " << arm->TargetArmLength);
+            CHECK(arm->GetCurrentArmLength() == doctest::Approx(arm->TargetArmLength));
+            CHECK(glm::length(camera - eye) > 1.8f);
+            auto mesh = slice.Player->GetMesh();
+            REQUIRE(mesh);
+            CHECK(mesh->GetSkeletalMesh() != nullptr);
+            CHECK_FALSE(mesh->IsHiddenInGame());
+
+            // Standing still, the player is upright: head over the hips, not in the enemy's hunch.
+            slice.Tick(1.0f);
+            auto skeleton = mesh->GetSkeletalMesh()->GetSkeleton();
+            REQUIRE(skeleton);
+            const int32_t hips = skeleton->FindBoneIndex("mixamorig:Hips");
+            const int32_t head = skeleton->FindBoneIndex("mixamorig:Head");
+            REQUIRE(hips >= 0);
+            REQUIRE(head >= 0);
+            const auto& bones = mesh->GetComponentSpaceTransforms();
+            REQUIRE(bones.size() > static_cast<size_t>(std::max(hips, head)));
+            const glm::vec3 hipsPos(bones[hips][3]);
+            const glm::vec3 headPos(bones[head][3]);
+            MESSAGE("standing: hips " << hipsPos.x << " " << hipsPos.y << " " << hipsPos.z << " head " << headPos.x
+                                      << " " << headPos.y << " " << headPos.z);
+            CHECK(glm::length(glm::vec2(headPos.x - hipsPos.x, headPos.z - hipsPos.z)) < 0.10f);
         }
 
         TEST_CASE("the slice can be played from the first room to the exit") {

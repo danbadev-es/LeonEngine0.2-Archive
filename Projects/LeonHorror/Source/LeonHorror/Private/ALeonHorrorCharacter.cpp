@@ -52,6 +52,8 @@ namespace Leon {
         if (auto arm = GetSpringArm()) {
             arm->TargetArmLength = Tuning.ArmLength;
             arm->SocketOffset = Tuning.ShoulderOffset;
+            arm->bSmoothRecovery = true;
+            arm->RecoverySpeed = Tuning.CameraRecoverySpeed;
         }
 
         Stamina = Tuning.StaminaMax;
@@ -143,9 +145,12 @@ namespace Leon {
                 light->Toggle();
         }
 
+        WishDirection = glm::vec3(0.0f);
+
         if (InState.bInteractPressed) {
             Focused = FindInteractable();
-            TryInteract();
+            if (TryInteract())
+                FaceViewRemaining = Tuning.FaceViewSeconds;
         }
 
         bAiming = InState.bAimHeld;
@@ -157,8 +162,8 @@ namespace Leon {
                 Combat->Equip(ELeonHorrorWeapon::Pistol);
             if (InState.bReloadPressed)
                 Combat->StartReload();
-            if (InState.bAttackPressed)
-                Combat->StartAttack(bAiming);
+            if (InState.bAttackPressed && Combat->StartAttack(bAiming))
+                FaceViewRemaining = Tuning.FaceViewSeconds; // strike where the camera looks
         }
 
         glm::vec2 move = InState.Move;
@@ -182,8 +187,9 @@ namespace Leon {
             if (bMoving) {
                 const glm::vec3 forward = GetControlPlanarForward();
                 const glm::vec3 right(-forward.z, 0.0f, forward.x);
+                WishDirection = forward * move.y + right * move.x;
                 // The movement component treats the input vector's length as the wished speed.
-                movement->AddInputVector((forward * move.y + right * move.x) * speed);
+                movement->AddInputVector(WishDirection * speed);
             }
         }
     }
@@ -216,6 +222,7 @@ namespace Leon {
 
     void ALeonHorrorCharacter::Tick(float DeltaSeconds) {
         ACharacter::Tick(DeltaSeconds);
+        UpdateBodyFacing(DeltaSeconds);
         UpdateCameraRig(DeltaSeconds);
         UpdateFlashlight();
         Focused = bDead ? nullptr : FindInteractable();
@@ -223,10 +230,34 @@ namespace Leon {
             Anim->SetAiming(bAiming && !bDead);
     }
 
+    void ALeonHorrorCharacter::UpdateBodyFacing(float DeltaSeconds) {
+        if (!bBodyYawInitialised) {
+            BodyYaw = GetControlYaw();
+            bBodyYawInitialised = true;
+        }
+        if (bDead)
+            return;
+        if (ShouldApplyControlYawToActor()) {
+            // The engine has already turned the actor to the view this frame.
+            BodyYaw = GetControlYaw();
+            FaceViewRemaining = std::max(0.0f, FaceViewRemaining - DeltaSeconds);
+            return;
+        }
+        if (glm::dot(WishDirection, WishDirection) > 0.01f) {
+            const float target = glm::degrees(std::atan2(WishDirection.z, WishDirection.x));
+            float difference = std::fmod(target - BodyYaw + 540.0f, 360.0f) - 180.0f;
+            const float step = Tuning.TurnRateDegrees * DeltaSeconds;
+            BodyYaw += std::clamp(difference, -step, step);
+        }
+        // Same mapping the engine uses for the view: a control yaw of -90 faces -Z.
+        GetTransform().Rotation = glm::vec3(0.0f, -BodyYaw - 90.0f, 0.0f);
+    }
+
     void ALeonHorrorCharacter::UpdateCameraRig(float DeltaSeconds) {
         auto arm = GetSpringArm();
         if (!arm)
             return;
+        arm->AddRecoveryTime(DeltaSeconds);
         const float targetLength = bAiming ? Tuning.AimArmLength : Tuning.ArmLength;
         const glm::vec3 targetOffset = bAiming ? Tuning.AimShoulderOffset : Tuning.ShoulderOffset;
         const float alpha = std::clamp(Tuning.CameraBlendRate * DeltaSeconds, 0.0f, 1.0f);
@@ -297,6 +328,14 @@ namespace Leon {
     void ALeonHorrorCharacter::UpdateAnimInstance(UAnimInstance& InAnim) const {
         ACharacter::UpdateAnimInstance(InAnim);
         InAnim.SetBool("bIsDead", bDead);
+        // The engine measures the walking direction against the view. This body turns on its own, so
+        // measure against where it actually faces: walking away from the camera is still "forward".
+        if (auto movement = GetCharacterMovement()) {
+            const glm::vec3 velocity = movement->GetVelocity();
+            const float yaw = glm::radians(BodyYaw);
+            const glm::vec3 facing(std::cos(yaw), 0.0f, std::sin(yaw));
+            InAnim.SetFloat("Direction", ComputeLocomotionDirection({velocity.x, 0.0f, velocity.z}, facing));
+        }
     }
 
     void ALeonHorrorCharacter::HandleDeath(const FDamageInfo& InInfo) {

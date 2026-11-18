@@ -34,24 +34,26 @@ namespace Leon {
                 add(InSpeed, direction, InPath);
         };
 
-        addAllDirections(0.0f, "/Game/Animations/Idle.lanim");
         if (Profile == ELeonHorrorAnimProfile::Enemy) {
+            addAllDirections(0.0f, "/Game/Animations/EnemyIdle.lanim");
             addAllDirections(110.0f, "/Game/Animations/EnemyShamble.lanim");
             addAllDirections(600.0f, "/Game/Animations/EnemyShamble.lanim");
             return blend;
         }
 
-        // Player: an authored slow walk forward; the run set covers strafing, backing up and sprinting.
-        add(230.0f, 0.0f, "/Game/Animations/WalkForward.lanim");
-        add(230.0f, 90.0f, "/Game/Animations/RunRight.lanim");
-        add(230.0f, -90.0f, "/Game/Animations/RunLeft.lanim");
-        add(230.0f, 180.0f, "/Game/Animations/RunBackward.lanim");
-        add(230.0f, -180.0f, "/Game/Animations/RunBackward.lanim");
-        add(460.0f, 0.0f, "/Game/Animations/RunForward.lanim");
-        add(460.0f, 90.0f, "/Game/Animations/RunRight.lanim");
-        add(460.0f, -90.0f, "/Game/Animations/RunLeft.lanim");
-        add(460.0f, 180.0f, "/Game/Animations/RunBackward.lanim");
-        add(460.0f, -180.0f, "/Game/Animations/RunBackward.lanim");
+        // Player: an authored walk forward; the run set covers strafing (while aiming), backing up
+        // and sprinting. Speeds match FLeonHorrorPlayerTuning (walk 2.6 m/s, sprint 5 m/s).
+        addAllDirections(0.0f, "/Game/Animations/IdleRelaxed.lanim");
+        add(260.0f, 0.0f, "/Game/Animations/WalkForward.lanim");
+        add(260.0f, 90.0f, "/Game/Animations/RunRight.lanim");
+        add(260.0f, -90.0f, "/Game/Animations/RunLeft.lanim");
+        add(260.0f, 180.0f, "/Game/Animations/RunBackward.lanim");
+        add(260.0f, -180.0f, "/Game/Animations/RunBackward.lanim");
+        add(500.0f, 0.0f, "/Game/Animations/RunForward.lanim");
+        add(500.0f, 90.0f, "/Game/Animations/RunRight.lanim");
+        add(500.0f, -90.0f, "/Game/Animations/RunLeft.lanim");
+        add(500.0f, 180.0f, "/Game/Animations/RunBackward.lanim");
+        add(500.0f, -180.0f, "/Game/Animations/RunBackward.lanim");
         return blend;
     }
 

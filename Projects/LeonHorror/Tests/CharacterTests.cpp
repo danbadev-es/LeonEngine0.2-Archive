@@ -74,18 +74,43 @@ namespace Leon {
             CHECK_FALSE(f.Player->IsSprinting());
         }
 
-        TEST_CASE("sideways input strafes: the body keeps facing the view direction") {
+        TEST_CASE("while aiming, sideways input strafes: the body keeps facing the view direction") {
             FPlayerFixture f;
-            f.TickSeconds(0.05f); // let the body align with the view before measuring
+            FLeonHorrorInputState aim;
+            aim.bAimHeld = true;
+            f.Drive(aim, 0.1f); // let the body align with the view before measuring
             const glm::vec3 start = f.Player->GetActorLocation();
             const glm::vec3 rotationBefore = f.Player->GetActorRotation();
-            FLeonHorrorInputState right;
+            FLeonHorrorInputState right = aim;
             right.Move = {1.0f, 0.0f};
             f.Drive(right, 1.5f);
             const glm::vec3 delta = f.Player->GetActorLocation() - start;
             CHECK(delta.x > 1.0f); // facing -Z, right is +X
             CHECK(std::abs(delta.z) < 0.2f);
             CHECK(f.Player->GetActorRotation().y == doctest::Approx(rotationBefore.y));
+            CHECK(f.Player->GetBodyYaw() == doctest::Approx(f.Player->GetControlYaw()));
+        }
+
+        TEST_CASE("when not aiming, the body turns to face where it walks and the view stays put") {
+            FPlayerFixture f;
+            f.TickSeconds(0.05f);
+            const float viewYaw = f.Player->GetControlYaw(); // -90: looking down -Z
+            const glm::vec3 start = f.Player->GetActorLocation();
+            FLeonHorrorInputState right;
+            right.Move = {1.0f, 0.0f};
+            f.Drive(right, 1.0f);
+            const glm::vec3 delta = f.Player->GetActorLocation() - start;
+            CHECK(delta.x > 1.0f); // still moves to the right of the view
+            CHECK(f.Player->GetControlYaw() == doctest::Approx(viewYaw));
+            CHECK(f.Player->GetBodyYaw() == doctest::Approx(0.0f).epsilon(0.01)); // facing +X
+            // Standing still keeps the last facing.
+            f.Drive(FLeonHorrorInputState{}, 0.5f);
+            CHECK(f.Player->GetBodyYaw() == doctest::Approx(0.0f).epsilon(0.01));
+            // Aiming snaps the body back to the view.
+            FLeonHorrorInputState aim;
+            aim.bAimHeld = true;
+            f.Drive(aim, 0.1f);
+            CHECK(f.Player->GetBodyYaw() == doctest::Approx(viewYaw));
         }
 
         TEST_CASE("no input means no movement") {
@@ -186,7 +211,7 @@ namespace Leon {
             const glm::vec3 look = f.Player->GetControlLookDirection();
             CHECK(glm::dot(glm::normalize(light->GetLightDirection()), look) > 0.999f);
             // Carried at the body, not left behind.
-            CHECK(glm::length(light->GetLightPosition() - f.Player->GetPawnViewLocation()) < 0.8f);
+            CHECK(glm::length(light->GetLightPosition() - f.Player->GetPawnViewLocation()) < 1.0f); // just ahead of the body
 
             FLeonHorrorInputState press;
             press.bFlashlightPressed = true;

@@ -244,6 +244,19 @@ def clip_poses():
     clips = {}
     steps = 8
 
+    # Standing still, arms at the sides, breathing. The Mixamo Idle is a rifle-ready stance.
+    breathe = merge(RELAXED, {"Spine": torso(5), "Spine1": torso(2), "Head": torso(-4),
+                              "LeftArm": arm("L", 78), "RightArm": arm("R", 78)})
+    clips["IdleRelaxed"] = ([(0.0, RELAXED), (1.6, breathe), (3.2, RELAXED)], True)
+
+    # Enemy at rest: hunched and lopsided, like its walk, swaying slightly.
+    slump = merge(RELAXED, {"Spine": torso(24, 0, 8), "Spine1": torso(10, 0, 5), "Neck": torso(8),
+                            "Head": torso(18, -12, 12), "LeftArm": arm("L", 82), "LeftForeArm": elbow("L", 8),
+                            "RightArm": arm("R", 86, 34, 22), "RightForeArm": elbow("R", 62),
+                            "RightUpLeg": thigh(3), "RightLeg": knee(10), "Hips": torso(0, 0, 4)})
+    sway = merge(slump, {"Spine": torso(27, 5, 11), "Head": torso(20, -6, 14), "Hips": torso(0, 0, 6)})
+    clips["EnemyIdle"] = ([(0.0, slump), (1.4, sway), (2.8, slump)], True)
+
     # Slow, guarded walk: short steps, arms barely swinging.
     def walk(phase):
         swing = math.sin(phase)

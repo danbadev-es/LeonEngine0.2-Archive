@@ -100,6 +100,40 @@ namespace Leon {
             CHECK(worstPosition < 0.01f);
         }
 
+        TEST_CASE("the player stands upright at rest and the enemy stands hunched") {
+            auto skeleton = LoadSkeleton();
+            REQUIRE(skeleton);
+            const int32_t hips = skeleton->FindBoneIndex("mixamorig:Hips");
+            const int32_t head = skeleton->FindBoneIndex("mixamorig:Head");
+            const int32_t rightHand = skeleton->FindBoneIndex("mixamorig:RightHand");
+            REQUIRE(hips >= 0);
+            REQUIRE(head >= 0);
+            REQUIRE(rightHand >= 0);
+            const auto sample = [&](const char* InName, glm::vec3& OutHead, glm::vec3& OutHand, glm::vec3& OutHips) {
+                auto clip = LoadClip(std::string("Projects/LeonHorror/Content/Animations/") + InName + ".lanim", skeleton);
+                REQUIRE(clip);
+                FPose pose;
+                FAnimRuntime::SampleSequence(*clip, *skeleton, 0.0f, false, pose);
+                OutHead = BoneComponentPosition(*skeleton, pose, head);
+                OutHand = BoneComponentPosition(*skeleton, pose, rightHand);
+                OutHips = BoneComponentPosition(*skeleton, pose, hips);
+            };
+            glm::vec3 headPos, handPos, hipsPos;
+            sample("IdleRelaxed", headPos, handPos, hipsPos);
+            MESSAGE("IdleRelaxed head " << headPos.x << " " << headPos.y << " " << headPos.z << " hand " << handPos.x
+                                        << " " << handPos.y << " " << handPos.z);
+            const float uprightLean = glm::length(glm::vec2(headPos.x - hipsPos.x, headPos.z - hipsPos.z));
+            CHECK(uprightLean < 0.10f);          // head over the hips
+            CHECK(handPos.y < hipsPos.y + 0.05f); // arm hanging at the side
+
+            sample("EnemyIdle", headPos, handPos, hipsPos);
+            MESSAGE("EnemyIdle head " << headPos.x << " " << headPos.y << " " << headPos.z << " hand " << handPos.x
+                                      << " " << handPos.y << " " << handPos.z);
+            const float hunchedLean = glm::length(glm::vec2(headPos.x - hipsPos.x, headPos.z - hipsPos.z));
+            CHECK(hunchedLean > 0.15f);          // bent forward
+            CHECK(handPos.z > hipsPos.z + 0.20f); // one arm drawn up in front of the chest
+        }
+
         TEST_CASE("authored clips are well formed and move the part of the body they are meant to") {
             struct FExpectedClip {
                 const char* Name;

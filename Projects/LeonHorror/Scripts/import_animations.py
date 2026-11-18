@@ -37,8 +37,8 @@ BLENDER_CANDIDATES = [
 ]
 
 # Clips that existed before authoring; never deleted by the cleanup below.
-AUTHORED = ["WalkForward", "MeleeSwing", "PistolAimIdle", "PistolFire", "HitReact", "Interact", "EnemyShamble",
-            "EnemyAttack"]
+AUTHORED = ["IdleRelaxed", "EnemyIdle", "WalkForward", "MeleeSwing", "PistolAimIdle", "PistolFire", "HitReact",
+            "Interact", "EnemyShamble", "EnemyAttack"]
 
 
 def find_blender() -> str:

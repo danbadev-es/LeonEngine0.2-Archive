@@ -239,20 +239,20 @@ Environment:
     Enabled: true
     Exposure: 0.9
     SunIntensity: 0
-    EnvironmentIntensity: 0.04
+    EnvironmentIntensity: 0.6
     UseHDREnvironmentMap: false
     HDREnvironmentMap: ""
-    SkyZenithColor: [0.008, 0.01, 0.014]
-    HorizonColor: [0.014, 0.016, 0.02]
-    GroundColor: [0.004, 0.004, 0.006]
+    SkyZenithColor: [0.03, 0.034, 0.042]
+    HorizonColor: [0.04, 0.042, 0.048]
+    GroundColor: [0.02, 0.02, 0.024]
     SunColor: [0.3, 0.32, 0.4]
     FogEnabled: true
     FogColor: [0.03, 0.034, 0.038]
-    FogDensity: 0.085
-    FogStartDistance: 1.5
+    FogDensity: 0.05
+    FogStartDistance: 2.5
     FogHeightFalloff: 0
     FogBaseHeight: 0
-    FogMaxOpacity: 0.96
+    FogMaxOpacity: 0.92
 
 Actors:
 """
@@ -343,15 +343,16 @@ def build() -> str:
     lv.game_actor("Exit", "ALeonHorrorExit", (0.0, DOOR_H * 0.5, -24.0 + WALL_T * 0.5 + 0.07), (DOOR_W, DOOR_H, 0.1),
                   "Metal", {"RequiredKey": KEY_EXIT})
 
-    # --- Lights: few and weak, so the flashlight matters ---
+    # --- Lights: few and dim, so the flashlight matters ---
     warm = (1.0, 0.78, 0.55)
     sick = (0.62, 0.78, 0.66)
     red = (1.0, 0.32, 0.22)
-    lv.light("Light_Start", (0.0, 2.6, 4.0), warm, 3.2, 8.0)
-    lv.light("Light_CorridorNear", (0.0, 2.7, -4.5), sick, 1.1, 6.5)
-    lv.light("Light_CorridorFar", (0.0, 2.7, -22.0), red, 1.2, 6.0)
-    lv.light("Light_RoomC", (-5.5, 2.6, -11.0), sick, 1.8, 7.0)
-    lv.light("Light_RoomB", (5.5, 2.6, -17.0), warm, 1.2, 6.5)
+    # Intensities look large because the engine's falloff is 1 / (distance^2 + 1).
+    lv.light("Light_Start", (0.0, 2.4, 4.0), warm, 16.0, 9.0)
+    lv.light("Light_CorridorNear", (0.0, 2.5, -4.5), sick, 6.0, 7.5)
+    lv.light("Light_CorridorFar", (0.0, 2.5, -22.0), red, 7.0, 7.0)
+    lv.light("Light_RoomC", (-5.5, 2.4, -11.0), sick, 9.0, 8.0)
+    lv.light("Light_RoomB", (5.5, 2.4, -17.0), warm, 6.0, 7.5)
 
     return HEADER + "".join(lv.blocks)
 

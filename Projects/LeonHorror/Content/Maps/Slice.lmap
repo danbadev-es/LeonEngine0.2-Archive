@@ -19,25 +19,25 @@ Environment:
     TexelPadding: 2
     WorldScale: 1
     LightmapAsset: "/Game/Lightmaps/Slice.llightmap"
-    LightmapBakeHash: "7598e210987ce981"
+    LightmapBakeHash: "26940dff2ae78c35"
   Skybox:
     Enabled: true
     Exposure: 0.9
     SunIntensity: 0
-    EnvironmentIntensity: 0.04
+    EnvironmentIntensity: 0.6
     UseHDREnvironmentMap: false
     HDREnvironmentMap: ""
-    SkyZenithColor: [0.008, 0.01, 0.014]
-    HorizonColor: [0.014, 0.016, 0.02]
-    GroundColor: [0.004, 0.004, 0.006]
+    SkyZenithColor: [0.03, 0.034, 0.042]
+    HorizonColor: [0.04, 0.042, 0.048]
+    GroundColor: [0.02, 0.02, 0.024]
     SunColor: [0.3, 0.32, 0.4]
     FogEnabled: true
     FogColor: [0.03, 0.034, 0.038]
-    FogDensity: 0.085
-    FogStartDistance: 1.5
+    FogDensity: 0.05
+    FogStartDistance: 2.5
     FogHeightFalloff: 0
     FogBaseHeight: 0
-    FogMaxOpacity: 0.96
+    FogMaxOpacity: 0.92
 
 Actors:
   - Name: "PlayerStart"
@@ -1556,64 +1556,64 @@ Actors:
     Class: "AActor"
     GUID: "d85715de97bae4089d226f647fbe6327"
     Transform:
-      Translation: [0, 2.6, 4]
+      Translation: [0, 2.4, 4]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     PointLight:
       Enabled: true
       Color: [1, 0.78, 0.55]
-      Intensity: 3.2
-      Radius: 8
+      Intensity: 16
+      Radius: 9
       Mobility: Stationary
   - Name: "Light_CorridorNear"
     Class: "AActor"
     GUID: "06695c091d85cffcb49a90d71fa517be"
     Transform:
-      Translation: [0, 2.7, -4.5]
+      Translation: [0, 2.5, -4.5]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     PointLight:
       Enabled: true
       Color: [0.62, 0.78, 0.66]
-      Intensity: 1.1
-      Radius: 6.5
+      Intensity: 6
+      Radius: 7.5
       Mobility: Stationary
   - Name: "Light_CorridorFar"
     Class: "AActor"
     GUID: "f405c7b3d31fd8ebfd0fbfa90f5cdc78"
     Transform:
-      Translation: [0, 2.7, -22]
+      Translation: [0, 2.5, -22]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     PointLight:
       Enabled: true
       Color: [1, 0.32, 0.22]
-      Intensity: 1.2
-      Radius: 6
+      Intensity: 7
+      Radius: 7
       Mobility: Stationary
   - Name: "Light_RoomC"
     Class: "AActor"
     GUID: "67873fc854a34b1ac002a870484953aa"
     Transform:
-      Translation: [-5.5, 2.6, -11]
+      Translation: [-5.5, 2.4, -11]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     PointLight:
       Enabled: true
       Color: [0.62, 0.78, 0.66]
-      Intensity: 1.8
-      Radius: 7
+      Intensity: 9
+      Radius: 8
       Mobility: Stationary
   - Name: "Light_RoomB"
     Class: "AActor"
     GUID: "47c147047f33cd4f599682df7b54651c"
     Transform:
-      Translation: [5.5, 2.6, -17]
+      Translation: [5.5, 2.4, -17]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     PointLight:
       Enabled: true
       Color: [1, 0.78, 0.55]
-      Intensity: 1.2
-      Radius: 6.5
+      Intensity: 6
+      Radius: 7.5
       Mobility: Stationary

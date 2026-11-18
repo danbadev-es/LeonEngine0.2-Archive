@@ -27,7 +27,7 @@ After adding a source or test file to `Projects/LeonHorror/Sources.cmake`, recon
 
 | Action | Keyboard and mouse | Gamepad |
 | :--- | :--- | :--- |
-| Move | W A S D | Left stick |
+| Move (the body turns to face where it walks) | W A S D | Left stick |
 | Look | Mouse | Right stick |
 | Run (uses stamina) | Shift | Left bumper |
 | Interact / confirm | E | A |
@@ -106,3 +106,8 @@ the feel of movement and combat. Those need a person playing.
   through the player by itself.
 - **Flat floors only.** Slopes and stair meshes are out of scope; steps up to 0.4 m work.
 - Lightmaps are baked at Draft quality.
+- **The flashlight casts no shadows.** On Intel UHD graphics the spot shadow map comes out empty
+  (everything reads as shadowed), so the flashlight opts out with `FSpotLightComponent::bCastShadows`.
+  The cause in the renderer is still to be found.
+- **Light intensities look large** (a room light is 6 to 16, the flashlight 40) because the engine
+  attenuates as `1 / (distance^2 + 1)`.

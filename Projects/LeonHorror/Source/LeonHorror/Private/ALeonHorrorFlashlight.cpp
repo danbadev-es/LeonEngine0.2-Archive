@@ -17,11 +17,14 @@ namespace Leon {
         auto& spot = AddComponent<FSpotLightComponent>();
         spot.Mobility = ELightMobility::Movable;
         spot.bEnabled = bOn;
+        // Known issue: the spot shadow map comes out empty on Intel UHD (every surface reads as
+        // shadowed, so the beam vanishes). Until that is fixed in the renderer the beam is unshadowed.
+        spot.bCastShadows = false;
         spot.Light.Color = glm::vec3(1.0f, 0.95f, 0.84f);
-        spot.Light.Intensity = 16.0f;
-        spot.Light.Radius = 22.0f;
-        spot.Light.CutOff = 15.0f;
-        spot.Light.OuterCutOff = 24.0f;
+        spot.Light.Intensity = 40.0f;
+        spot.Light.Radius = 26.0f;
+        spot.Light.CutOff = 11.0f;
+        spot.Light.OuterCutOff = 26.0f;
     }
 
     void ALeonHorrorFlashlight::SetOn(bool bInOn) {
@@ -36,8 +39,10 @@ namespace Leon {
         glm::vec3 right = glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f));
         right = glm::length(right) > 1e-5f ? glm::normalize(right) : glm::vec3(1.0f, 0.0f, 0.0f);
 
-        // Chest height, a hand's width to the right and ahead of the body, so the mesh does not shadow it.
-        const glm::vec3 position = InEyeLocation + forward * 0.45f + right * 0.22f - glm::vec3(0.0f, 0.25f, 0.0f);
+        // Chest height and well ahead of the eye along the view. The body turns independently of the
+        // view and its arms reach forward, so anything closer ends up inside the mesh, whose shadow
+        // then swallows the whole beam.
+        const glm::vec3 position = InEyeLocation + forward * 0.8f + right * 0.15f - glm::vec3(0.0f, 0.2f, 0.0f);
         const glm::vec3 rotation = SpotLightEulerFromWorldDirection(forward);
         SetActorLocation(position);
         SetActorRotation(rotation);
