@@ -2,7 +2,7 @@
 
 #include "Core/Base.hpp"
 #include "Assets/FAssetTypes.hpp"
-#include "Assets/FMeshImporter.hpp"
+#include "AssetPipeline/FMeshImporter.hpp"
 #include "Assets/FMaterial.hpp"
 #include "Assets/FMaterialInstance.hpp"
 

@@ -54,10 +54,10 @@ Every module is `Engine/Source/Runtime/<Module>/{Public/<Module>,Private}`:
 
 ```text
 Core  Platform  RHI  RHINull  RHID3D12  RenderCore  Assets  Audio  Physics
-Renderer  Engine  Gameplay  AI  UMG  Application  Lightmass  Launch
+Renderer  Engine  Gameplay  AI  UMG  Application  Launch
 ```
 
-Development-only modules are under `Engine/Source/Developer` (`ShaderCompiler`). What each module
+Development-only modules are under `Engine/Source/Developer` (`ShaderCompiler`, `AssetPipeline`, `Lightmass`). What each module
 holds and may depend on: [ARCHITECTURE.md](ARCHITECTURE.md), section 1.
 
 Plugins (not Runtime modules): `Engine/Plugins/Physics/Jolt` (`FJolt*`), `Engine/Plugins/Networking/ENet` (`FENetTransport`).

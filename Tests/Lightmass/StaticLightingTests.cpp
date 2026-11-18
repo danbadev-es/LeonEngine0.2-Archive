@@ -1,7 +1,7 @@
 ﻿#include <doctest/doctest.h>
 
 #include "Assets/FLightmapAsset.hpp"
-#include "Assets/FLightmapUV.hpp"
+#include "AssetPipeline/FLightmapUV.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Engine/EMobility.hpp"
 #include "Engine/Components.hpp"

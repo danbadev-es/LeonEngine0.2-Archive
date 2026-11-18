@@ -28,7 +28,6 @@
 #include "Gameplay/UGameplayStatics.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerCameraManager.hpp"
-#include "Lightmass/FLightmass.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
 #include "Assets/FMaterial.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
@@ -637,70 +636,6 @@ namespace Leon {
         }
         bArenaLightingBaked = true;
         LE_CORE_INFO("Applied cached arena lightmaps from {0}", lmAbs.string());
-    }
-
-    void ALeonTournamentGameMode::TryBakeArenaLighting() {
-        // Opt-in only: set LEON_BAKE_ARENA=1 to rebuild lightmaps (blocks StartMatch for several seconds).
-        const char* flag = std::getenv("LEON_BAKE_ARENA");
-        if (!flag || flag[0] != '1')
-            return;
-        if (bArenaLightingBaked || !World || !UEngine::HasInstance())
-            return;
-        auto live = UEngine::Get().GetWorld();
-        if (!live)
-            return;
-
-        namespace fs = std::filesystem;
-        const fs::path mapAbs = fs::path(UAssetManager::GetContentRoot()) / "Maps" / ArenaMapFileName();
-        std::error_code ec;
-        fs::create_directories(mapAbs.parent_path(), ec);
-
-        FMapSerializer serializer(live);
-        if (!serializer.Serialize(mapAbs.string())) {
-            LE_CORE_WARN("Arena bake: failed to serialize {0}", mapAbs.string());
-            return;
-        }
-
-        FLightmassSettings settings;
-        ApplyLightingBuildQuality(ELightingBuildQuality::Preview, settings);
-        const auto result = FLightmass::BakeMap(mapAbs.string(), settings, true);
-        if (!result.bSuccess) {
-            LE_CORE_WARN("Arena bake skipped: {0}", result.Message);
-            return;
-        }
-
-        auto stamped = UWorld::Create("ArenaBakeRead");
-        FMapSerializer reader(stamped);
-        if (!reader.Deserialize(mapAbs.string())) {
-            LE_CORE_WARN("Arena bake: could not re-read stamped map");
-            return;
-        }
-
-        for (const auto& bakedRef : stamped->GetAllActors()) {
-            if (!bakedRef || !bakedRef->HasComponent<FMeshComponent>())
-                continue;
-            AActor* liveActor = World->FindActorByName(bakedRef->GetName());
-            if (!liveActor || !liveActor->HasComponent<FMeshComponent>())
-                continue;
-            auto& src = bakedRef->GetComponent<FMeshComponent>();
-            auto& dst = liveActor->GetComponent<FMeshComponent>();
-            dst.LightmapAssetPath = src.LightmapAssetPath;
-            dst.LightmapIndex = src.LightmapIndex;
-            dst.LightmapScale = src.LightmapScale;
-            dst.LightmapBias = src.LightmapBias;
-            if (dst.LightmapAssetPath.empty())
-                dst.LightmapAssetPath = ArenaLightmapPath();
-        }
-        if (AActor* envLive = World->FindActorByName("Environment Skybox")) {
-            if (envLive->HasComponent<FWorldSettingsComponent>()) {
-                auto& liveWs = envLive->GetComponent<FWorldSettingsComponent>();
-                liveWs.LightmapBakeHash = result.BakeHash;
-                liveWs.LightmapAssetPath = ArenaLightmapPath();
-            }
-        }
-        bArenaLightingBaked = true;
-        LE_CORE_INFO("Arena lightmap bake ok atlas={0}x{1} meshes={2}", result.AtlasWidth, result.AtlasHeight,
-                     result.StaticMeshCount);
     }
 
     glm::vec3 ALeonTournamentGameMode::GetTeamSpawnLocation(ELeonTournamentTeam InTeam) const {

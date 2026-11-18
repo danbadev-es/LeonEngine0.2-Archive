@@ -1,5 +1,5 @@
-#include "Assets/FMeshImporter.hpp"
-#include "Assets/FSkeletalImporter.hpp"
+#include "AssetPipeline/FMeshImporter.hpp"
+#include "AssetPipeline/FSkeletalImporter.hpp"
 #include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
 #include "RenderCore/FVertexLayout.hpp"

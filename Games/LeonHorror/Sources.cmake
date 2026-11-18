@@ -43,7 +43,6 @@ function(leonhorror_add_game_library)
     target_include_directories(LeonHorrorGame PUBLIC "${LEONHORROR_ROOT}/Source/LeonHorror/Public")
     target_link_libraries(LeonHorrorGame PUBLIC
         LeonEngineCore
-        Leon::Pipeline
         Leon::Jolt
     )
     if(COMMAND leon_apply_compile_options)

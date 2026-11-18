@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Assets/FMeshImporter.hpp"
-#include "Assets/FLightmapUV.hpp"
+#include "AssetPipeline/FMeshImporter.hpp"
+#include "AssetPipeline/FLightmapUV.hpp"
 #include "RenderCore/FVertexLayout.hpp"
 
 #include <cmath>

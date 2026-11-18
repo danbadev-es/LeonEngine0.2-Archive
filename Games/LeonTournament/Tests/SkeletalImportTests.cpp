@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "Assets/FAnimRuntime.hpp"
-#include "Assets/FMeshImporter.hpp"
+#include "AssetPipeline/FMeshImporter.hpp"
 #include "Assets/UAnimSequence.hpp"
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/USkeleton.hpp"

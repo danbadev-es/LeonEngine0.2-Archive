@@ -42,6 +42,7 @@ not compile.
 | `Physics` | Core, Assets | Physics interface for backends, collision vocabulary, physics assets |
 | `LeonEngineCore` (one library) | all of the above | `Renderer` (the world renderer), `Engine` (world, maps, net), `Gameplay`, `AI`, `UMG`, `Application` |
 | `Launch` | LeonEngineCore, RHID3D12, Jolt | The `main()` every game shares |
+| `LeonEnginePipeline` (Developer: `AssetPipeline`, `Lightmass`) | LeonEngineCore, ufbx | Importers (FBX meshes, skeletons, materials), lightmap UVs and the light baker. Linked by the tools, the editor and tests; games do not link it |
 
 The modules inside `LeonEngineCore` keep their own folders but still compile together, because they
 include each other in cycles around `UWorld` and `AActor`. What separating them needs is recorded in
@@ -52,7 +53,8 @@ include each other in cycles around `UWorld` and `AActor`. What separating them 
 1. **Engine → games: forbidden.** Engine sources never include game code nor contain a game's name or
    path. Enforced by `Tools/verify_ue_naming.py` and `Tests/Gameplay/EngineGameSeparationTests.cpp`.
 2. **Runtime → Developer / Editor: forbidden.** Importers, the light baker and the editor depend on
-   the runtime, never the other way round.
+   the runtime, never the other way round. What a game needs from the baker, checking that a bake still
+   matches the map it loads, is runtime code (`Engine/FLightmapBakeInputs`).
 3. **Graphics API only below the RHI.** Direct3D is used in `RHID3D12` and nowhere else; the renderer,
    the editor and the tests draw through `IRHIDevice` / `IRHICommandList`.
 4. **Plugins implement engine interfaces** (`IPhysicsScene` by Jolt, `INetTransport` by ENet) and are
@@ -91,7 +93,7 @@ LeonEngine2/
 ├── Engine/
 │   ├── Source/
 │   │   ├── Runtime/<Module>/{Public/<Module>,Private}   # what ships with a game (table above)
-│   │   ├── Developer/ShaderCompiler/      # development only
+│   │   ├── Developer/                     # development only: ShaderCompiler, AssetPipeline, Lightmass
 │   │   ├── Editor/                        # LeonEditor
 │   │   └── Programs/                      # AssetTool, LightmassTool, ProjectTool
 │   ├── Shaders/                           # HLSL

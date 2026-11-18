@@ -1,6 +1,4 @@
 #include "Assets/FEngineBuiltins.hpp"
-#include "Assets/FLightmapUV.hpp"
-#include "Assets/FMeshImporter.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
@@ -317,55 +315,21 @@ namespace Leon {
                 LE_CORE_INFO("FEngineBuiltins: Wrote {}", disk);
         }
 
-        /** Prefer authored FBX next to the .lmesh (Blender export); else keep procedural mesh. */
+        /**
+         * The primitive as stored in Engine/Content, or the procedural one (written there) when the
+         * file is missing. Re-importing a primitive from its FBX is a development step:
+         * `AssetTool primitives` (FEnginePrimitiveImport in the asset pipeline).
+         */
         TRef<UStaticMesh> ResolvePrimitiveMesh(const std::string& InVirtualPath, const std::string& InName,
                                                const TRef<UStaticMesh>& InProceduralFallback) {
             const std::string lmeshDisk = UAssetManager::ResolveVirtualPath(InVirtualPath);
             if (lmeshDisk.empty())
                 return InProceduralFallback;
-
-            const fs::path fbxPath = fs::path(lmeshDisk).replace_extension(".fbx");
-            // The imported .lmesh is checked in next to its source. Re-import (and rewrite it) only
-            // when it is missing or older than the FBX; otherwise every run would touch a tracked file.
-            std::error_code timeError;
-            if (fs::exists(lmeshDisk, timeError) && fs::exists(fbxPath, timeError) &&
-                fs::last_write_time(lmeshDisk, timeError) >= fs::last_write_time(fbxPath, timeError) && !timeError) {
-                auto cached = UStaticMesh::Create(InName);
-                if (cached->LoadFromFile(lmeshDisk))
-                    return cached;
+            if (fs::exists(lmeshDisk)) {
+                auto stored = UStaticMesh::Create(InName);
+                if (stored->LoadFromFile(lmeshDisk))
+                    return stored;
             }
-            if (fs::exists(fbxPath)) {
-                FMeshImportSettings settings;
-                settings.bSplitStaticMeshes = false;
-                settings.bExtractMaterials = false;
-                settings.bGenerateTangents = true;
-                settings.bGenerateNormalsIfMissing = true;
-
-                FMeshImportResult result;
-                if (FMeshImporter::ImportFBX(fbxPath.string(), settings, result) && result.StaticMesh) {
-                    auto mesh = result.StaticMesh;
-                    mesh->GetMaterialSlots().clear();
-                    mesh->GetMaterialSlots().push_back({"Default", FEngineBuiltins::kWorldGridMaterial, nullptr});
-                    if (mesh->GetSubmeshes().empty()) {
-                        FStaticSubmesh sub;
-                        sub.Name = InName;
-                        sub.IndexCount = static_cast<uint32_t>(mesh->GetIndices().size());
-                        sub.VertexCount = static_cast<uint32_t>(mesh->GetVertices().size());
-                        sub.MaterialSlotIndex = 0;
-                        mesh->GetSubmeshes().push_back(sub);
-                    }
-                    // FBX import leaves LightmapUV at (0,0) — bake needs unique UV1.
-                    FLightmapUV::GenerateBoxPackedLightmapUVs(*mesh);
-                    mesh->CalculateBounds();
-                    EnsureMeshFile(InVirtualPath, mesh, true);
-                    LE_CORE_INFO("FEngineBuiltins: Imported primitive '{}' from {} (with lightmap UVs)", InName,
-                                 fbxPath.string());
-                    return mesh;
-                }
-                for (const auto& err : result.Errors)
-                    LE_CORE_WARN("FEngineBuiltins: FBX import '{}': {}", fbxPath.string(), err);
-            }
-
             EnsureMeshFile(InVirtualPath, InProceduralFallback, false);
             return InProceduralFallback;
         }

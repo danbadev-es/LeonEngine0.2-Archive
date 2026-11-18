@@ -14,7 +14,6 @@ target_include_directories(Sandbox PRIVATE
 
 target_link_libraries(Sandbox PRIVATE
     LeonEngineCore
-    Leon::Pipeline
     Leon::Jolt
     Leon::Launch
 )

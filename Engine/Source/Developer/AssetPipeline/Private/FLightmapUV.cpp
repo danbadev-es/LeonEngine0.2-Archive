@@ -1,4 +1,4 @@
-#include "Assets/FLightmapUV.hpp"
+#include "AssetPipeline/FLightmapUV.hpp"
 
 #include <algorithm>
 #include <cmath>

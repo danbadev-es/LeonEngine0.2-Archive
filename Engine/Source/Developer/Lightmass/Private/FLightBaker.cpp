@@ -1,5 +1,5 @@
 #include "Lightmass/FLightBaker.hpp"
-#include "Assets/FLightmapUV.hpp"
+#include "AssetPipeline/FLightmapUV.hpp"
 #include "RenderCore/FLightAttenuation.hpp"
 #include "RenderCore/FIBLMath.hpp"
 

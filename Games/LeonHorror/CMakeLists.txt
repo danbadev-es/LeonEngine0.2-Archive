@@ -22,6 +22,8 @@ if(LEON_BUILD_TESTS)
     )
     target_link_libraries(LeonHorrorTests PRIVATE
         LeonHorrorGame
+        # Importers and the light baker: tests may use them, the game does not.
+        Leon::Pipeline
         Leon::Module::RHID3D12
         doctest
         glfw

@@ -23,6 +23,8 @@ if(LEON_BUILD_TESTS)
     )
     target_link_libraries(LeonTournamentTests PRIVATE
         LeonTournamentGame
+        # Importers and the light baker: tests use them, the game does not.
+        Leon::Pipeline
         doctest
         glfw
         glm

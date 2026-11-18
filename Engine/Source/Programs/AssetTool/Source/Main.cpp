@@ -3,6 +3,7 @@
 #include "AssetTool/Commands/ExportCommand.hpp"
 #include "AssetTool/Commands/ValidateCommand.hpp"
 #include "AssetTool/Commands/InspectCommand.hpp"
+#include "AssetTool/Commands/PrimitivesCommand.hpp"
 
 #include <memory>
 
@@ -14,6 +15,7 @@ int main(int argc, char** argv) {
     registry.RegisterCommand(std::make_unique<FExportCommand>());
     registry.RegisterCommand(std::make_unique<FValidateCommand>());
     registry.RegisterCommand(std::make_unique<FInspectCommand>());
+    registry.RegisterCommand(std::make_unique<FPrimitivesCommand>());
 
     return registry.Dispatch(argc, argv);
 }

@@ -14,7 +14,7 @@
 #include "Engine/FMapSerializer.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/APlayerController.hpp"
-#include "Lightmass/FLightmass.hpp"
+#include "Engine/FLightmapBakeInputs.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
 
 #ifdef _WIN32
@@ -512,7 +512,7 @@ namespace Leon::Editor {
             OutputLog.AddLog(ELogLevel::Info, "Map",
                              "Loaded map: " + ActiveMapName + " (" +
                                  std::to_string(EditorWorld->GetAllActors().size()) + " actors)");
-            FLightmass::RefreshRuntimeLightmapTrust(*EditorWorld);
+            FLightmapBakeInputs::RefreshRuntimeTrust(*EditorWorld);
             if (!EditorWorld->AreLightmapsTrusted()) {
                 OutputLog.AddLog(ELogLevel::Warning, "Lighting",
                                  "Lightmaps are stale or missing — Static lights fall back to dynamic until you "

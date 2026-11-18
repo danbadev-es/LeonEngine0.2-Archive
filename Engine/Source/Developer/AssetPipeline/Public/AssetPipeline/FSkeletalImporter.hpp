@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Assets/FMeshImporter.hpp"
+#include "AssetPipeline/FMeshImporter.hpp"
 #include "Assets/UAnimSequence.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Assets/USkeletalMesh.hpp"

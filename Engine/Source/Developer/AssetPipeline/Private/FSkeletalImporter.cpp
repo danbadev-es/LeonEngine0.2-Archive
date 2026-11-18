@@ -1,4 +1,4 @@
-#include "Assets/FSkeletalImporter.hpp"
+#include "AssetPipeline/FSkeletalImporter.hpp"
 #include "Core/FAssetPath.hpp"
 #include "Assets/FAnimTypes.hpp"
 #include "Core/FLog.hpp"

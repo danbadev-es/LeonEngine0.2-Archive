@@ -197,6 +197,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Engine/Private/ULoopbackNetDriver.cpp
     Source/Runtime/Engine/Private/UIpNetDriver.cpp
     Source/Runtime/Engine/Private/FGraphicsQuality.cpp
+    Source/Runtime/Engine/Private/FLightmapBakeInputs.cpp
     Source/Runtime/Gameplay/Private/AActor.cpp
     Source/Runtime/Gameplay/Private/ACameraActor.cpp
     Source/Runtime/Gameplay/Private/ACharacter.cpp
@@ -274,8 +275,6 @@ target_include_directories(LeonEngineCore
         "${LEON_RUNTIME_ROOT}/Gameplay/Public"
         "${LEON_RUNTIME_ROOT}/AI/Public"
         "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb"
-    PRIVATE
-        "${LEON_RUNTIME_ROOT}/Lightmass/Public"
 )
 
 target_compile_features(LeonEngineCore PUBLIC cxx_std_20)
@@ -301,14 +300,16 @@ if(WIN32)
     target_link_libraries(LeonEngineCore PRIVATE psapi dxgi ws2_32)
 endif()
 
+# Development only: importers and the light baker. Tools, the editor and tests link it; games do not.
 set(LEON_PIPELINE_SOURCES
-    Source/Runtime/Assets/Private/FMaterialImporter.cpp
-    Source/Runtime/Assets/Private/FMeshImporter.cpp
-    Source/Runtime/Assets/Private/FSkeletalImporter.cpp
-    Source/Runtime/Assets/Private/FLightmapUV.cpp
-    Source/Runtime/Lightmass/Private/FLightmapBuilder.cpp
-    Source/Runtime/Lightmass/Private/FLightBaker.cpp
-    Source/Runtime/Lightmass/Private/FLightmass.cpp
+    Source/Developer/AssetPipeline/Private/FMaterialImporter.cpp
+    Source/Developer/AssetPipeline/Private/FMeshImporter.cpp
+    Source/Developer/AssetPipeline/Private/FSkeletalImporter.cpp
+    Source/Developer/AssetPipeline/Private/FLightmapUV.cpp
+    Source/Developer/AssetPipeline/Private/FEnginePrimitiveImport.cpp
+    Source/Developer/Lightmass/Private/FLightmapBuilder.cpp
+    Source/Developer/Lightmass/Private/FLightBaker.cpp
+    Source/Developer/Lightmass/Private/FLightmass.cpp
 )
 
 add_library(LeonEnginePipeline STATIC ${LEON_PIPELINE_SOURCES})
@@ -316,7 +317,8 @@ add_library(Leon::Pipeline ALIAS LeonEnginePipeline)
 
 target_include_directories(LeonEnginePipeline
     PUBLIC
-        "${LEON_RUNTIME_ROOT}/Lightmass/Public"
+        "${LEON_DEVELOPER_ROOT}/AssetPipeline/Public"
+        "${LEON_DEVELOPER_ROOT}/Lightmass/Public"
         "${LEON_ENGINE_ROOT}/Engine/ThirdParty/ufbx"
 )
 

@@ -1,13 +1,9 @@
 #pragma once
 
-#include "Assets/FLightmapAsset.hpp"
-#include "Engine/EMobility.hpp"
-#include "RenderCore/FLight.hpp"
 #include "Engine/Components.hpp"
 
-#include <glm/glm.hpp>
+#include <cstdint>
 #include <string>
-#include <vector>
 
 namespace Leon {
 
@@ -49,39 +45,30 @@ namespace Leon {
         }
     }
 
-    struct FLightmassBakeResult {
-        bool bSuccess = false;
-        std::string Message;
-        std::string LightmapPath;
-        uint64_t BakeHash = 0;
-        uint32_t StaticMeshCount = 0;
-        uint32_t StaticLightCount = 0;
-        uint32_t AtlasWidth = 0;
-        uint32_t AtlasHeight = 0;
-    };
-
     /**
-     * @brief Offline static lighting (Unreal Lightmass analogue).
-     * Does not run inside FWorldRenderer. Invoked by LightmassTool.
+     * What a lightmap bake was made from, as one number.
      *
-     * Flow: load map → filter Static receivers + Static/Stationary lights → UV1 →
-     * atlas → CPU bake → write .llightmap → stamp .lmap metadata (hash excludes that metadata).
+     * The baker (a development tool) stamps the hash of its inputs in the map. The game computes the
+     * same hash when it loads that map and uses the lightmaps only if the two agree: geometry, lights
+     * or materials that changed since the bake would otherwise be lit by the wrong data.
+     *
+     * The hash must come out the same in the tool and in the game. It therefore depends only on the
+     * map's data: not on where the project folder is, nor on whether a renderer is running.
      */
-    class FLightmass {
+    class FLightmapBakeInputs {
     public:
-        static FLightmassBakeResult BakeMap(const std::string& InMapPath, const FLightmassSettings& InSettings,
-                                            bool bForce = false);
-
-        static bool ValidateMap(const std::string& InMapPath, std::string& OutMessage);
+        /** The world's lighting settings over the defaults of its build quality. */
+        static void ApplyWorldSettings(const FWorldSettingsComponent& InWorldSettings, FLightmassSettings& OutSettings,
+                                       std::string& OutLightmapVirtual);
 
         /**
-         * Stable bake-input fingerprint from world + settings (ignores LightmapBakeHash /
-         * LightmapScale/Bias/Index/Asset stamped by a previous bake).
+         * Ignores what a previous bake stamped in the map (the hash itself, and the scale, bias, index
+         * and asset of each lightmap).
          */
-        static uint64_t ComputeBakeInputHash(const UWorld& InWorld, const FLightmassSettings& InSettings);
+        static uint64_t ComputeHash(const UWorld& InWorld, const FLightmassSettings& InSettings);
 
-        /** Compare stored LightmapBakeHash to the current world. Disables sampling when stale. */
-        static void RefreshRuntimeLightmapTrust(UWorld& InWorld);
+        /** Compares the stored hash with the world as loaded and stops lightmaps being used when stale. */
+        static void RefreshRuntimeTrust(UWorld& InWorld);
     };
 
 } // namespace Leon

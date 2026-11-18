@@ -92,7 +92,6 @@ namespace Leon {
         void BuildArena();
         void EnsurePlayableLighting();
         void TryApplyCachedArenaLightmaps();
-        void TryBakeArenaLighting();
 
         bool IsCaptureTheFlagMode() const { return ActiveGameMode == ELeonTournamentGameModeId::CaptureTheFlag; }
         ALeonTournamentFlag* GetTeamFlag(ELeonTournamentTeam InTeam) const;

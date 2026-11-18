@@ -20,8 +20,8 @@ LeonEngine2/
 │   ├── AI/            UBehaviorTree, UBlackboard*, navigation, perception
 │   ├── UMG/           UWidget hierarchy, FUIRenderer, FUILayout
 │   ├── Application/   FApplication, layers
-│   ├── Lightmass/     static lighting bake (pipeline library)
 │   └── Launch/        the main() every game shares
+├── Engine/Source/Developer/   ShaderCompiler, AssetPipeline (importers), Lightmass (light baker)
 ├── Engine/Plugins/    Jolt, ENet
 ├── Games/, Samples/   LeonHorror, LeonTournament; Sandbox
 └── Tests/             Engine suite; each game has its own

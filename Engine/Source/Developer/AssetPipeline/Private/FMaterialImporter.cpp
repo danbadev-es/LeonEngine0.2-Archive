@@ -1,4 +1,4 @@
-#include "Assets/FMaterialImporter.hpp"
+#include "AssetPipeline/FMaterialImporter.hpp"
 #include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
 #include "Assets/FMaterialSerializer.hpp"
