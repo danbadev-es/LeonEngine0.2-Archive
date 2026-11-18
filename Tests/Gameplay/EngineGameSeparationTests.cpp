@@ -15,14 +15,14 @@ namespace fs = std::filesystem;
 TEST_SUITE("Engine / Game separation") {
 
     TEST_CASE("Engine sources do not reference game types or assets") {
-        const fs::path engineSrc = "Engine/Source";
+        const fs::path engineSrc = "Engine/Source/Runtime"; // the editor and programs may name games
         REQUIRE(fs::exists(engineSrc));
 
         const char* forbidden[] = {
             "AShooter",
             "UShooter",
             "LeonTournament",
-            "Projects/LeonTournament",
+            "Games/LeonTournament",
             "LeonHorror",
             "SetupDefaultTPSGraph",
             "IsFiring",

@@ -9,7 +9,7 @@
 TEST_SUITE("IBL - Specular Prefilter Regression Tests") {
 
     TEST_CASE("Specular Prefilter Mip Chain Smooth Roughness Dispersion (No Fireflies)") {
-        const std::string hdrPath = "Projects/Sandbox/Content/HDR/DaySky1k.lhdr";
+        const std::string hdrPath = "Samples/Sandbox/Content/HDR/DaySky1k.lhdr";
         REQUIRE(std::filesystem::exists(hdrPath));
 
         Leon::FNativeHDRData nativeData;

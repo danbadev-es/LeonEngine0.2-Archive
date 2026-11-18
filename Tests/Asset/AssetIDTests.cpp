@@ -7,30 +7,30 @@ using namespace Leon;
 TEST_SUITE("AssetPath & Asset Identification Tests") {
 
     TEST_CASE("AssetPath - Path Normalization") {
-        CHECK(FAssetPath::Normalize("Projects\\Sandbox\\Content\\Raw\\Mesh.fbx") ==
-              "Projects/Sandbox/Content/Raw/Mesh.fbx");
+        CHECK(FAssetPath::Normalize("Samples\\Sandbox\\Content\\Raw\\Mesh.fbx") ==
+              "Samples/Sandbox/Content/Raw/Mesh.fbx");
         CHECK(FAssetPath::Normalize("C:\\Engine//Assets///Shaders\\\\PBR_Lit.glsl") ==
               "C:/Engine/Assets/Shaders/PBR_Lit.glsl");
         CHECK(FAssetPath::Normalize("") == "");
     }
 
     TEST_CASE("AssetPath - Extension & Filename Extraction") {
-        std::string path = "Projects/Sandbox/Content/Textures/T_Wood_D.ltex";
+        std::string path = "Samples/Sandbox/Content/Textures/T_Wood_D.ltex";
         CHECK(FAssetPath::GetExtension(path) == "ltex");
         CHECK(FAssetPath::GetFileName(path) == "T_Wood_D.ltex");
         CHECK(FAssetPath::GetFileNameWithoutExtension(path) == "T_Wood_D");
-        CHECK(FAssetPath::GetDirectory(path) == "Projects/Sandbox/Content/Textures");
+        CHECK(FAssetPath::GetDirectory(path) == "Samples/Sandbox/Content/Textures");
     }
 
     TEST_CASE("AssetPath - Virtual Path Resolution") {
-        std::string root = "Projects/Sandbox/Content";
-        std::string full = "Projects/Sandbox/Content/Meshes/Cube.lmesh";
+        std::string root = "Samples/Sandbox/Content";
+        std::string full = "Samples/Sandbox/Content/Meshes/Cube.lmesh";
         CHECK(FAssetPath::MakeVirtualPath(root, full) == "Meshes/Cube.lmesh");
     }
 
     TEST_CASE("AssetPath - Path Combining") {
-        CHECK(FAssetPath::Combine("Projects/Sandbox", "Content/Textures") == "Projects/Sandbox/Content/Textures");
-        CHECK(FAssetPath::Combine("Projects/Sandbox/", "/Content/Textures") == "Projects/Sandbox/Content/Textures");
+        CHECK(FAssetPath::Combine("Samples/Sandbox", "Content/Textures") == "Samples/Sandbox/Content/Textures");
+        CHECK(FAssetPath::Combine("Samples/Sandbox/", "/Content/Textures") == "Samples/Sandbox/Content/Textures");
     }
 
     TEST_CASE("AssetID - UUID Generation and Formatting") {

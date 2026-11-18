@@ -107,7 +107,7 @@ TEST_SUITE("Naming conventions") {
             "GetIsAuthority", "GetShooter", "GetTournamentPawn",
         };
 
-        const fs::path roots[] = {fs::path("Engine"), fs::path("Projects"), fs::path("Tests"), fs::path("Plugins")};
+        const fs::path roots[] = {fs::path("Engine"), fs::path("Games"), fs::path("Samples"), fs::path("Tests")};
         int hits = 0;
         for (const auto& scanRoot : roots) {
             REQUIRE(fs::exists(scanRoot));

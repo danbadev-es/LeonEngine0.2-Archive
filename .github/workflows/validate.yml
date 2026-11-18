@@ -17,7 +17,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Verify naming
-        run: python Scripts/verify_ue_naming.py
+        run: python Tools/verify_ue_naming.py
 
       - name: Configure
         run: cmake --preset ci
@@ -32,4 +32,4 @@ jobs:
         run: out/build/ci/bin/LeonHorrorTests.exe
 
       - name: Validate Sandbox
-        run: out/build/ci/bin/AssetTool.exe validate_project --project Projects/Sandbox/Sandbox.lproject
+        run: out/build/ci/bin/AssetTool.exe validate_project --project Samples/Sandbox/Sandbox.lproject

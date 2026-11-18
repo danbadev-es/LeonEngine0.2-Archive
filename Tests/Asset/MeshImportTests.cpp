@@ -165,7 +165,7 @@ TEST_SUITE("StaticMesh & .lmesh Binary Format Tests") {
     }
 
     TEST_CASE("OrbitalPrism FBX splits into separate static meshes") {
-        const fs::path fbx = fs::path("Projects") / "LeonTournament" / "Raw" / "OrbitalPrism" / "SM_OrbitalPrism.fbx";
+        const fs::path fbx = fs::path("Games") / "LeonTournament" / "Raw" / "OrbitalPrism" / "SM_OrbitalPrism.fbx";
         if (!fs::exists(fbx))
             return;
         FMeshImportSettings settings;

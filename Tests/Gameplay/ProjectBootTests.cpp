@@ -13,7 +13,7 @@ namespace Leon {
     TEST_SUITE("Project Boot — .lproject / Multi-INI") {
 
         TEST_CASE("LocateProjectFile finds Sandbox.lproject from relative hint") {
-            std::string found = FProjectPaths::LocateProjectFile("Projects/Sandbox/Sandbox.lproject");
+            std::string found = FProjectPaths::LocateProjectFile("Samples/Sandbox/Sandbox.lproject");
             REQUIRE_FALSE(found.empty());
             CHECK(std::filesystem::exists(found));
             CHECK(found.find("Sandbox.lproject") != std::string::npos);
@@ -70,7 +70,7 @@ namespace Leon {
         }
 
         TEST_CASE("Sandbox default map resolves on disk") {
-            std::string project = FProjectPaths::LocateProjectFile("Projects/Sandbox/Sandbox.lproject");
+            std::string project = FProjectPaths::LocateProjectFile("Samples/Sandbox/Sandbox.lproject");
             REQUIRE_FALSE(project.empty());
             FProjectPaths::SetProjectRoot(project);
 

@@ -11,7 +11,7 @@
 TEST_SUITE("IBL - Solar HDR Regression Tests") {
 
     TEST_CASE("DaySky1k.lhdr irradiance convergence stays bounded") {
-        const std::string hdrPath = "Projects/Sandbox/Content/HDR/DaySky1k.lhdr";
+        const std::string hdrPath = "Samples/Sandbox/Content/HDR/DaySky1k.lhdr";
         REQUIRE(std::filesystem::exists(hdrPath));
 
         Leon::FNativeHDRData nativeData;

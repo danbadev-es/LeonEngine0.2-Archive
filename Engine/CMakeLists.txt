@@ -190,7 +190,7 @@ target_include_directories(LeonEngineCore
         "${LEON_RUNTIME_ROOT}/Physics/Public"
         "${LEON_RUNTIME_ROOT}/AI/Public"
         "${LEON_RUNTIME_ROOT}/Audio/Public"
-        "${LEON_ENGINE_ROOT}/ThirdParty/stb"
+        "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb"
     PRIVATE
         "${LEON_RUNTIME_ROOT}/Lightmass/Public"
 )
@@ -227,7 +227,7 @@ target_include_directories(LeonEnginePipeline
     PUBLIC
         "${LEON_RUNTIME_ROOT}/Lightmass/Public"
         "${LEON_RUNTIME_ROOT}/Assets/Public"
-        "${LEON_ENGINE_ROOT}/ThirdParty/ufbx"
+        "${LEON_ENGINE_ROOT}/Engine/ThirdParty/ufbx"
 )
 
 target_compile_features(LeonEnginePipeline PUBLIC cxx_std_20)

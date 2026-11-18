@@ -4,8 +4,8 @@
       "name": "Win32",
       "includePath": [
         "${workspaceFolder}/Engine/include",
-        "${workspaceFolder}/Plugins/RHI/include",
-        "${workspaceFolder}/ThirdParty/glad/include",
+        "${workspaceFolder}/Engine/Plugins/RHI/include",
+        "${workspaceFolder}/Engine/ThirdParty/glad/include",
         "${workspaceFolder}/build/_deps/glfw-src/include",
         "${workspaceFolder}/build/_deps/glm-src"
       ],

@@ -1,0 +1,127 @@
+# Leon Editor. Built as part of the root tree (cmake --preset dev-debug; target LeonEditor).
+# The engine stack and ImGui are provided by the root CMakeLists before this directory is added.
+
+include("${LEON_ENGINE_ROOT}/cmake/EditorTournamentModule.cmake")
+# LeonHorror is linked in-process too; its source list lives with the project.
+include("${LEON_ENGINE_ROOT}/Games/LeonHorror/Sources.cmake")
+leonhorror_add_game_library()
+
+add_library(LeonEditorCore STATIC
+    Source/Private/FEditorApp.cpp
+    Source/Private/FEditorLayoutStore.cpp
+    Source/Private/Context/FEditorContext.cpp
+    Source/Private/Context/FEditorSelection.cpp
+    Source/Private/Context/FEditorHistory.cpp
+    Source/Private/Commands/FDeleteActorsCommand.cpp
+    Source/Private/Commands/FTransformActorsCommand.cpp
+    Source/Private/Commands/FSelectActorsCommand.cpp
+    Source/Private/Commands/FDuplicateActorsCommand.cpp
+    Source/Private/Commands/FSpawnActorsCommand.cpp
+    Source/Private/Panels/FViewportPanel.cpp
+    Source/Private/Panels/FProjectHubPanel.cpp
+    Source/Private/Panels/FOutlinerPanel.cpp
+    Source/Private/Panels/FDetailsPanel.cpp
+    Source/Private/Panels/FContentBrowserPanel.cpp
+    Source/Private/Panels/FToolbarPanel.cpp
+    Source/Private/Panels/FOutputLogPanel.cpp
+    Source/Private/Panels/FPlaceActorsPanel.cpp
+    Source/Private/Panels/FWorldSettingsPanel.cpp
+    Source/Private/Panels/FProjectSettingsPanel.cpp
+    Source/Private/Play/FPlaySession.cpp
+    Source/Private/Play/FPlaySettings.cpp
+    Source/Private/Play/FGameModuleLoader.cpp
+    Source/Private/Gizmos/FTransformGizmo.cpp
+    Source/Private/UI/FEditorTheme.cpp
+    Source/Private/UI/FLucideIcons.cpp
+    Source/Private/UI/FEditorWidgets.cpp
+    Source/Private/Utils/FEditorFileDialog.cpp
+    Source/Private/Window/FEditorWindow.cpp
+)
+add_library(Leon::Editor ALIAS LeonEditorCore)
+
+target_include_directories(LeonEditorCore
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/Source/Public"
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/Source/Private"
+        "${LEON_ENGINE_ROOT}/Engine/Plugins/RHI/OpenGL/Include"
+        "${LEON_ENGINE_ROOT}/Engine/Plugins/Physics/Jolt/Include"
+        "${LEON_ENGINE_ROOT}/Engine/Plugins/Networking/ENet/include"
+)
+
+target_link_libraries(LeonEditorCore PUBLIC
+    LeonEngineCore
+    Leon::Pipeline
+    Leon::OpenGL
+    Leon::Jolt
+    Leon::ENet
+    LeonTournamentGame
+    LeonHorrorGame
+    imgui
+)
+
+target_compile_definitions(LeonEditorCore PUBLIC LEON_EDITOR_HAS_TOURNAMENT_MODULE=1 LEON_EDITOR_HAS_HORROR_MODULE=1)
+
+if(WIN32)
+    target_link_libraries(LeonEditorCore PUBLIC comdlg32 ole32)
+endif()
+
+add_executable(LeonEditor
+    Source/Private/main.cpp
+)
+target_link_libraries(LeonEditor PRIVATE LeonEditorCore)
+# GNU ld does not rescan static archives; Core references Pipeline (FLightmass).
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_libraries(LeonEditor PRIVATE
+        "-Wl,--start-group"
+        LeonEngineCore
+        LeonEnginePipeline
+        "-Wl,--end-group"
+    )
+endif()
+set_target_properties(LeonEditor PROPERTIES
+    OUTPUT_NAME LeonEditor
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/Editor"
+)
+
+# Windows: embed .ico for Explorer / taskbar before GLFW sets the live icon.
+if(WIN32)
+    enable_language(RC)
+    set(LEON_EDITOR_ICO_SRC "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icons/LeonEditor.ico")
+    if(NOT EXISTS "${LEON_EDITOR_ICO_SRC}")
+        message(FATAL_ERROR "Missing ${LEON_EDITOR_ICO_SRC} — run python Tools/make-editor-icon.py")
+    endif()
+    file(TO_CMAKE_PATH "${LEON_EDITOR_ICO_SRC}" LEON_EDITOR_ICO)
+    set(LEON_EDITOR_RC "${CMAKE_CURRENT_BINARY_DIR}/LeonEditor.rc")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icons/LeonEditor.rc.in"
+        "${LEON_EDITOR_RC}"
+        @ONLY
+    )
+    target_sources(LeonEditor PRIVATE "${LEON_EDITOR_RC}")
+    set_source_files_properties("${LEON_EDITOR_RC}" PROPERTIES OBJECT_DEPENDS "${LEON_EDITOR_ICO_SRC}")
+endif()
+
+# Stage Engine/Resources beside the exe so relative shader/font paths resolve.
+set(_leon_sync "${LEON_ENGINE_ROOT}/cmake/SyncDirectory.cmake")
+set(_editor_exe_dir "$<TARGET_FILE_DIR:LeonEditor>")
+set(LEON_ENGINE_RESOURCES "${LEON_ENGINE_ROOT}/Engine/Resources")
+add_custom_command(TARGET LeonEditor POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DSRC=${LEON_ENGINE_RESOURCES}
+        -DDST=${_editor_exe_dir}/Engine/Resources
+        -DREMOVE_ORPHANS=ON
+        -P ${_leon_sync}
+    COMMAND ${CMAKE_COMMAND}
+        -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/Resources
+        -DDST=${_editor_exe_dir}/Resources
+        -DREMOVE_ORPHANS=OFF
+        -P ${_leon_sync}
+    COMMAND ${CMAKE_COMMAND}
+        -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/Resources
+        -DDST=${_editor_exe_dir}/Editor/Resources
+        -DREMOVE_ORPHANS=OFF
+        -P ${_leon_sync}
+)
+
+leon_apply_compile_options(LeonEditorCore LeonEditor)

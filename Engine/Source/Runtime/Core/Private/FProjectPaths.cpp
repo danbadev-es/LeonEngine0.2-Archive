@@ -234,7 +234,7 @@ namespace Leon {
                 return hit;
         }
 
-        // 2. Walk parents: relative hint, then any .lproject beside Engine/ (or under Projects/)
+        // 2. Walk parents: relative hint, then any .lproject beside Engine/ (or under Games/, Samples/)
         fs::path cursor = fs::current_path();
         for (int depth = 0; depth < 8; ++depth) {
             if (!InPathOrDir.empty()) {
@@ -242,9 +242,11 @@ namespace Leon {
                     return hit;
             }
             if (fs::is_directory(cursor / "Engine")) {
-                // Prefer Projects/*/*.lproject without naming a specific game
-                fs::path projectsDir = cursor / "Projects";
-                if (fs::is_directory(projectsDir)) {
+                // Prefer Games/*/*.lproject, then Samples/*/*.lproject, without naming a specific game
+                for (const char* folder : {"Games", "Samples"}) {
+                    const fs::path projectsDir = cursor / folder;
+                    if (!fs::is_directory(projectsDir))
+                        continue;
                     for (const auto& entry : fs::directory_iterator(projectsDir)) {
                         if (!entry.is_directory())
                             continue;

@@ -49,7 +49,7 @@ TEST_CASE("UAudioComponent play stop on null device") {
 }
 
 TEST_CASE("USoundWave resolves /Game/Audio SFX without extension") {
-    const std::string project = FProjectPaths::LocateProjectFile("Projects/LeonTournament/LeonTournament.lproject");
+    const std::string project = FProjectPaths::LocateProjectFile("Games/LeonTournament/LeonTournament.lproject");
     REQUIRE_FALSE(project.empty());
     FProjectPaths::SetProjectRoot(project);
 

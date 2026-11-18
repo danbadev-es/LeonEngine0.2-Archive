@@ -4,41 +4,44 @@ Unreal Engine–inspired C++20 game engine for solo / small-team development. Fo
 
 ## Quick start
 
+One build tree (`out/build/<preset>`) holds the engine, editor, tools, tests and games. See
+[Docs/BUILD.md](Docs/BUILD.md).
+
 ```bash
-# Engine libraries / tools / tests → out/Engine
-python Scripts/build_engine.py --config Debug
+# Engine tests and tools
+python Tools/build_engine.py --config Debug
 
-# Editor (ImGui Docking) → out/Editor
-python Scripts/build_editor.py --config Debug
-python Scripts/run_editor.py
+# Editor
+python Tools/build_editor.py --run
 
-# One game project → out/Projects/<Name>
-python Scripts/build_project.py --project Projects/Sandbox/Sandbox.lproject --config Debug
+# A game: build, or build and run
+python Tools/build_project.py --project Games/LeonHorror/LeonHorror.lproject
+python Tools/run_project.py --project Games/LeonHorror/LeonHorror.lproject
 
-# Build and run game project
-python Scripts/run_project.py --project Projects/Sandbox/Sandbox.lproject
-
-# Unit / GPU tests (Engine product)
-python Scripts/run_tests.py
+# Engine test suite
+python Tools/run_tests.py
 
 # Validate project assets
-python Scripts/validate_project.py --project Projects/Sandbox/Sandbox.lproject
+python Tools/validate_project.py --project Samples/Sandbox/Sandbox.lproject
 ```
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `Scripts/` | Engine tooling (`build_engine`, `build_editor`, `build_project`, …) |
-| `CMake/` | Shared CMake (stack, ImGui deps, sync) |
-| `Engine/` | Product-agnostic runtime (`LeonEngineCore`) |
-| `Editor/` | Out-of-process editor (`LeonEditor`) |
-| `Plugins/RHI/OpenGL/` | OpenGL 4.5 RHI plugin |
-| `Projects/Sandbox/` | Reference game (`.lproject`, Content, Main, GameMode/HUD) |
-| `Tools/` | Specialized engine tools (`AssetTool`, `Lightmass`, `ProjectTool`) |
-| `Docs/` | Architecture, renderer, assets, decisions |
+| `Engine/Source/Runtime/` | Engine modules that ship with a game |
+| `Engine/Source/Editor/` | The editor (`LeonEditor`) |
+| `Engine/Source/Programs/` | Stand-alone tools (`AssetTool`, `LightmassTool`, `ProjectTool`) |
+| `Engine/Plugins/` | Backends and optional features (RHI, physics, networking) |
+| `Engine/Resources/` | Engine shaders, fonts and built-in assets |
+| `Engine/ThirdParty/` | Vendored dependencies |
+| `Games/` | Game projects (`LeonHorror`, `LeonTournament`) |
+| `Samples/` | Reference project (`Sandbox`) |
 | `Tests/` | Engine test suite (`RendererTests`) |
-| `out/` | Build artifacts (`Engine`, `Editor`, `Projects/<Name>`) |
+| `Tools/` | Python scripts: build, run, assets, checks |
+| `cmake/` | Shared CMake helpers |
+| `Docs/` | Architecture, renderer, assets, decisions |
+| `out/` | Build output (ignored) |
 
 ## Docs
 

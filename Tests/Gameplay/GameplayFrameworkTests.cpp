@@ -426,7 +426,7 @@ namespace Leon {
 
         TEST_CASE("17. DefaultEngine.ini parsing & 18. GameMode configuration resolution") {
             std::string testIniContent = "[/Script/EngineSettings.GameMapsSettings]\n"
-                                         "GameDefaultMap=Projects/Sandbox/Content/Maps/ShowcaseLevel.lmap\n"
+                                         "GameDefaultMap=Samples/Sandbox/Content/Maps/ShowcaseLevel.lmap\n"
                                          "GlobalDefaultGameMode=AGameModeBase\n\n"
                                          "[/Script/Engine.GameModeBase]\n"
                                          "DefaultPawnClass=ADefaultPawn\n"
@@ -449,7 +449,7 @@ namespace Leon {
             REQUIRE(config.Load(tempIniPath));
 
             CHECK(config.GetString("/Script/EngineSettings.GameMapsSettings", "GameDefaultMap", "") ==
-                  "Projects/Sandbox/Content/Maps/ShowcaseLevel.lmap");
+                  "Samples/Sandbox/Content/Maps/ShowcaseLevel.lmap");
             CHECK(config.GetString("/Script/EngineSettings.GameMapsSettings", "GlobalDefaultGameMode", "") ==
                   "AGameModeBase");
             CHECK(config.GetString("/Script/Engine.GameModeBase", "DefaultPawnClass", "") == "ADefaultPawn");

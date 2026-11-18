@@ -7,7 +7,7 @@
 TEST_SUITE("HDR - Decoding & Radiance Invariants") {
 
     TEST_CASE("DaySky1k.lhdr native binary decoding invariants") {
-        const std::string hdrPath = "Projects/Sandbox/Content/HDR/DaySky1k.lhdr";
+        const std::string hdrPath = "Samples/Sandbox/Content/HDR/DaySky1k.lhdr";
         REQUIRE(std::filesystem::exists(hdrPath));
 
         Leon::FNativeHDRData data;

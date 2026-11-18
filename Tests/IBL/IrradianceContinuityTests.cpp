@@ -9,7 +9,7 @@
 TEST_SUITE("IBL - Irradiance Cubemap Spatial Continuity") {
 
     TEST_CASE("All 6 Faces x 32x32 Spatial Neighbor Outlier Ratio <= 1.25x (Zero Fireflies)") {
-        const std::string hdrPath = "Projects/Sandbox/Content/HDR/DaySky1k.lhdr";
+        const std::string hdrPath = "Samples/Sandbox/Content/HDR/DaySky1k.lhdr";
         REQUIRE(std::filesystem::exists(hdrPath));
 
         Leon::FNativeHDRData nativeData;

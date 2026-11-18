@@ -94,13 +94,13 @@ set(LEON_ENGINE_TEST_SOURCES
 function(leon_configure_test_exe TargetName)
     target_include_directories(${TargetName} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${LEON_ENGINE_ROOT}/Plugins/RHI/OpenGL/include
-        ${LEON_ENGINE_ROOT}/Plugins/Physics/Jolt/include
-        ${LEON_ENGINE_ROOT}/Plugins/Networking/ENet/include
-        ${LEON_ENGINE_ROOT}/ThirdParty/glad/include
-        ${LEON_ENGINE_ROOT}/ThirdParty/stb
-        ${LEON_ENGINE_ROOT}/ThirdParty/doctest
-        ${LEON_ENGINE_ROOT}/ThirdParty
+        ${LEON_ENGINE_ROOT}/Engine/Plugins/RHI/OpenGL/include
+        ${LEON_ENGINE_ROOT}/Engine/Plugins/Physics/Jolt/include
+        ${LEON_ENGINE_ROOT}/Engine/Plugins/Networking/ENet/include
+        ${LEON_ENGINE_ROOT}/Engine/ThirdParty/glad/include
+        ${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb
+        ${LEON_ENGINE_ROOT}/Engine/ThirdParty/doctest
+        ${LEON_ENGINE_ROOT}/Engine/ThirdParty
     )
     target_link_libraries(${TargetName} PRIVATE
         LeonEngineCore
