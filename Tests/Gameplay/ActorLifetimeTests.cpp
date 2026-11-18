@@ -1,6 +1,10 @@
+#include "AI/UAIPerceptionComponent.hpp"
 #include "Engine/UWorld.hpp"
+#include "Gameplay/AAIController.hpp"
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/ACharacter.hpp"
 #include "Gameplay/AGameModeBase.hpp"
+#include "Gameplay/TWeakObjectPtr.hpp"
 #include "Gameplay/UActorComponent.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
 #include "Gameplay/UHealthComponent.hpp"
@@ -313,6 +317,110 @@ namespace Leon {
             a->AttachToActor(a);
             CHECK(a->GetAttachParentActor() == nullptr);
             CHECK(c->GetAttachParentActor() == b);
+        }
+
+        TEST_CASE("weak object pointer resolves to null once the actor is gone") {
+            FLifetimeWorld f;
+            AActor* actor = f.World->SpawnActor<AActor>("Tracked");
+            FActorHandle handle(actor);
+            CHECK(handle.Get() == actor);
+            CHECK(handle.IsValid());
+            CHECK_FALSE(handle.IsStale());
+
+            SUBCASE("pending-kill counts as gone even while the object still exists") {
+                UWorld::FActorIterationScope scope(*f.World);
+                f.World->DestroyActor(actor);
+                CHECK(CountActorsNamed(*f.World, "Tracked") == 1); // deferred: still in the world
+                CHECK(handle.Get() == nullptr);
+                CHECK(handle.IsStale());
+            }
+
+            SUBCASE("released object") {
+                f.World->DestroyActor(actor); // immediate: the object is freed
+                CHECK(handle.Get() == nullptr);
+                CHECK_FALSE(handle.IsValid());
+                CHECK(handle.IsStale());
+                CHECK(handle.Pin() == nullptr);
+            }
+
+            SUBCASE("pin keeps the target alive across a destroy") {
+                TRef<AActor> pinned = handle.Pin();
+                REQUIRE(pinned);
+                f.World->DestroyActor(actor);
+                CHECK(pinned->IsPendingKill()); // still readable through the pinned reference
+                CHECK(handle.Get() == nullptr);
+            }
+
+            SUBCASE("reset and null assignment") {
+                handle = nullptr;
+                CHECK(handle.Get() == nullptr);
+                CHECK_FALSE(handle.IsStale());
+            }
+        }
+
+        TEST_CASE("weak object pointer to an object not owned by a shared pointer is null") {
+            UCountingComponent onStack("Stack");
+            TWeakObjectPtr<UCountingComponent> ref(&onStack);
+            CHECK(ref.Get() == nullptr);
+        }
+
+        TEST_CASE("overlap partner destroyed between frames ends the overlap without touching it") {
+            FLifetimeWorld f;
+            AActor* sensor = f.World->SpawnActor<AActor>("Sensor");
+            AActor* visitor = f.World->SpawnActor<AActor>("Visitor");
+            auto sensorBox = AddOverlapBox(sensor, true);
+            AddOverlapBox(visitor, false);
+
+            int begins = 0;
+            int ends = 0;
+            AActor* endOther = sensor; // sentinel: must be overwritten with null
+            sensorBox->OnComponentBeginOverlap.push_back(
+                [&](UPrimitiveComponent*, AActor*, UPrimitiveComponent*, const FHitResult&) { ++begins; });
+            sensorBox->OnComponentEndOverlap.push_back(
+                [&](UPrimitiveComponent*, AActor* InOther, UPrimitiveComponent* InOtherComp, const FHitResult&) {
+                    ++ends;
+                    endOther = InOther;
+                    CHECK(InOtherComp == nullptr);
+                });
+
+            sensor->SetActorLocation({0.0f, 0.0f, 0.0f});
+            visitor->SetActorLocation({0.2f, 0.0f, 0.0f});
+            f.World->Tick(FTimestep(1.0f / 60.0f));
+            REQUIRE(begins == 1);
+            CHECK(sensorBox->GetOverlappingComponents().size() == 1);
+
+            // Destroyed outside a tick: the visitor and its component are freed right here.
+            f.World->DestroyActor(visitor);
+            CHECK(sensorBox->GetOverlappingComponents().empty());
+
+            f.World->Tick(FTimestep(1.0f / 60.0f));
+            CHECK(ends == 1);
+            CHECK(endOther == nullptr);
+            CHECK(begins == 1);
+        }
+
+        TEST_CASE("perception drops a target that is destroyed between updates") {
+            auto world = UWorld::Create("PerceptionLifetime");
+            auto* self = world->SpawnActor<ACharacter>("Self");
+            auto* other = world->SpawnActor<ACharacter>("Other");
+            auto* ai = world->SpawnActor<AAIController>("AI");
+            self->SetActorLocation({0.0f, 1.7f, 0.0f});
+            other->SetActorLocation({0.0f, 1.7f, -8.0f});
+            world->AddAIController(ai);
+            ai->Possess(self);
+
+            auto perception = ai->GetPerceptionComponent();
+            REQUIRE(perception);
+            perception->UpdatePerception();
+            REQUIRE(perception->GetCurrentTarget() == other);
+            REQUIRE(perception->GetPerceivedActors().size() == 1);
+
+            world->DestroyActor(other); // freed immediately; no perception update in between
+
+            CHECK(perception->GetCurrentTarget() == nullptr);
+            CHECK(perception->GetPerceivedActors().empty());
+            perception->UpdatePerception(); // used to dereference the stale pointer
+            CHECK(perception->GetCurrentTarget() == nullptr);
         }
 
         TEST_CASE("components survive EndPlay and begin play again on the next BeginPlay") {

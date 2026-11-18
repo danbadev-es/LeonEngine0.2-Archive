@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gameplay/UActorComponent.hpp"
+#include "Gameplay/TWeakObjectPtr.hpp"
 #include "Engine/ECollisionChannel.hpp"
 
 #include <functional>
@@ -50,8 +51,10 @@ namespace Leon {
         bool HasLineOfSight(AActor& InTarget) const;
         bool IsInSightCone(AActor& InTarget) const;
 
-        const std::vector<AActor*>& GetPerceivedActors() const { return PerceivedActors; }
-        AActor* GetCurrentTarget() const { return CurrentTarget; }
+        /** Actors perceived by the last update that are still alive. */
+        const std::vector<AActor*>& GetPerceivedActors() const;
+        /** Null once the target is destroyed, even between perception updates. */
+        AActor* GetCurrentTarget() const { return CurrentTarget.Get(); }
 
         void RememberActor(AActor* InActor);
         void ForgetLastKnown();
@@ -73,8 +76,9 @@ namespace Leon {
         FAISightConfig SightConfig;
         FSensePredicate SensePredicate;
         UBlackboardComponent* Blackboard = nullptr;
-        std::vector<AActor*> PerceivedActors;
-        AActor* CurrentTarget = nullptr;
+        std::vector<FActorHandle> PerceivedHandles;
+        mutable std::vector<AActor*> PerceivedActorsCache; // rebuilt by GetPerceivedActors()
+        FActorHandle CurrentTarget;
         glm::vec3 LastKnownLocation{0.0f};
         float LastKnownAge = 1.0e6f;
         float UpdateAccumulator = 0.0f;

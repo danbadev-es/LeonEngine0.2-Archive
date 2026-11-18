@@ -159,23 +159,32 @@ namespace Leon {
         LastKnownLocation = glm::vec3(0.0f);
         LastKnownAge = SightConfig.MemoryMaxAge;
         CurrentTarget = nullptr;
-        PerceivedActors.clear();
+        PerceivedHandles.clear();
         WriteToBlackboard();
+    }
+
+    const std::vector<AActor*>& UAIPerceptionComponent::GetPerceivedActors() const {
+        PerceivedActorsCache.clear();
+        for (const FActorHandle& handle : PerceivedHandles) {
+            if (AActor* actor = handle.Get())
+                PerceivedActorsCache.push_back(actor);
+        }
+        return PerceivedActorsCache;
     }
 
     void UAIPerceptionComponent::WriteToBlackboard() {
         if (!Blackboard)
             return;
-        Blackboard->SetValueAsObject("TargetActor", CurrentTarget);
-        Blackboard->SetValueAsBool("HasTarget", CurrentTarget != nullptr);
-        if (CurrentTarget) {
-            Blackboard->SetValueAsVector("TargetLocation", CurrentTarget->GetActorLocation());
-            const bool bLos = HasLineOfSight(*CurrentTarget);
+        AActor* target = CurrentTarget.Get();
+        Blackboard->SetValueAsObject("TargetActor", target);
+        Blackboard->SetValueAsBool("HasTarget", target != nullptr);
+        if (target) {
+            Blackboard->SetValueAsVector("TargetLocation", target->GetActorLocation());
+            const bool bLos = HasLineOfSight(*target);
             Blackboard->SetValueAsBool("HasLineOfSight", bLos);
             APawn* self = GetSensePawn();
             Blackboard->SetValueAsFloat(
-                "DistanceToTarget",
-                self ? PlanarDistance(self->GetActorLocation(), CurrentTarget->GetActorLocation()) : 0.0f);
+                "DistanceToTarget", self ? PlanarDistance(self->GetActorLocation(), target->GetActorLocation()) : 0.0f);
         } else {
             Blackboard->SetValueAsBool("HasLineOfSight", false);
             Blackboard->SetValueAsFloat("DistanceToTarget", 0.0f);
@@ -186,7 +195,7 @@ namespace Leon {
     }
 
     void UAIPerceptionComponent::UpdatePerception() {
-        PerceivedActors.clear();
+        PerceivedHandles.clear();
         APawn* self = GetSensePawn();
         UWorld* world = self ? self->GetWorld() : (GetOwner() ? GetOwner()->GetWorld() : nullptr);
         if (!self || !world) {
@@ -195,8 +204,9 @@ namespace Leon {
             return;
         }
 
-        AActor* previous = CurrentTarget;
-        if (previous && (previous->IsPendingKill() || IsActorDead(previous) || !PassesPredicate(previous)))
+        // Get() is already null if the previous target was destroyed since the last update.
+        AActor* previous = CurrentTarget.Get();
+        if (previous && (IsActorDead(previous) || !PassesPredicate(previous)))
             previous = nullptr;
 
         struct FCandidate {
@@ -223,7 +233,7 @@ namespace Leon {
             AActor* other = actor.get();
             if (!PassesPredicate(other) || !IsInSightCone(*other))
                 continue;
-            PerceivedActors.push_back(other);
+            PerceivedHandles.emplace_back(other);
             consider(other, ScoreCandidate(*other, previous));
         }
 
@@ -240,8 +250,8 @@ namespace Leon {
         }
 
         CurrentTarget = best;
-        if (CurrentTarget && HasLineOfSight(*CurrentTarget)) {
-            LastKnownLocation = CurrentTarget->GetActorLocation();
+        if (best && HasLineOfSight(*best)) {
+            LastKnownLocation = best->GetActorLocation();
             LastKnownAge = 0.0f;
         }
         WriteToBlackboard();

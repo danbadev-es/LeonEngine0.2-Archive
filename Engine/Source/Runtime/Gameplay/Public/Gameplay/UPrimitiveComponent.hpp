@@ -8,7 +8,9 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <string>
-#include <unordered_set>
+#include "Gameplay/TWeakObjectPtr.hpp"
+
+#include <unordered_map>
 #include <vector>
 
 namespace Leon {
@@ -60,9 +62,8 @@ namespace Leon {
         /** Called by UWorld after physics; diffs query results vs last frame. */
         void UpdateOverlaps(const std::vector<UPrimitiveComponent*>& InCandidates);
 
-        const std::unordered_set<UPrimitiveComponent*>& GetOverlappingComponents() const {
-            return OverlappingComponents;
-        }
+        /** Components overlapping as of the last overlap update that are still alive. */
+        std::vector<UPrimitiveComponent*> GetOverlappingComponents() const;
 
         void SetSimulatePhysics(bool bSimulate);
         bool IsSimulatingPhysics() const { return bSimulatePhysics; }
@@ -101,7 +102,9 @@ namespace Leon {
         FCollisionResponseContainer Responses;
         std::string CollisionProfile = "BlockAll";
         bool bGenerateOverlapEvents = false;
-        std::unordered_set<UPrimitiveComponent*> OverlappingComponents;
+        // Keyed by address for lookup only; the address is never dereferenced. The weak reference tells
+        // whether the partner still exists (and guards against a new component reusing a freed address).
+        std::unordered_map<UPrimitiveComponent*, TWeakObjectPtr<UPrimitiveComponent>> OverlappingComponents;
         bool bSimulatePhysics = false;
         bool bEnableGravity = true;
         float Mass = 1.0f;

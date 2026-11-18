@@ -43,7 +43,7 @@ namespace Leon {
         const glm::vec3 myMin = myPos - myHalf;
         const glm::vec3 myMax = myPos + myHalf;
 
-        std::unordered_set<UPrimitiveComponent*> now;
+        std::unordered_map<UPrimitiveComponent*, TWeakObjectPtr<UPrimitiveComponent>> now;
         now.reserve(InCandidates.size());
 
         std::vector<FOverlapEvent> beginQueue;
@@ -74,8 +74,10 @@ namespace Leon {
             if (!overlaps)
                 continue;
 
-            now.insert(other);
-            if (OverlappingComponents.find(other) == OverlappingComponents.end()) {
+            now.emplace(other, TWeakObjectPtr<UPrimitiveComponent>(other));
+            // A stale entry at the same address belonged to a component that no longer exists.
+            const auto known = OverlappingComponents.find(other);
+            if (known == OverlappingComponents.end() || !known->second.IsValid()) {
                 FHitResult hit;
                 hit.Actor = other->GetOwner();
                 hit.Component = other;
@@ -86,11 +88,14 @@ namespace Leon {
             }
         }
 
-        for (UPrimitiveComponent* prev : OverlappingComponents) {
-            if (!prev || now.find(prev) != now.end())
+        for (const auto& [prevKey, prevRef] : OverlappingComponents) {
+            if (now.find(prevKey) != now.end())
                 continue;
+            // The partner may have been destroyed since the last update: report the end of the overlap
+            // with null actor and component instead of touching freed memory.
+            UPrimitiveComponent* prev = prevRef.Get();
             FHitResult hit;
-            hit.Actor = prev->GetOwner();
+            hit.Actor = prev ? prev->GetOwner() : nullptr;
             hit.Component = prev;
             hit.Location = GetComponentLocation();
             hit.ImpactPoint = hit.Location;
@@ -129,6 +134,16 @@ namespace Leon {
                     return;
             }
         }
+    }
+
+    std::vector<UPrimitiveComponent*> UPrimitiveComponent::GetOverlappingComponents() const {
+        std::vector<UPrimitiveComponent*> alive;
+        alive.reserve(OverlappingComponents.size());
+        for (const auto& [key, ref] : OverlappingComponents) {
+            if (UPrimitiveComponent* comp = ref.Get())
+                alive.push_back(comp);
+        }
+        return alive;
     }
 
     FPhysicsBodyCreateInfo UPrimitiveComponent::MakeBodyCreateInfo() const {
