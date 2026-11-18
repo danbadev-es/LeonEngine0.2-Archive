@@ -13,12 +13,7 @@
 #include <windows.h>
 #endif
 
-#if defined(LEON_EDITOR_HAS_TOURNAMENT_MODULE)
-extern "C" void LE_RegisterGameModule(Leon::UClassRegistry& InRegistry, Leon::FGameModuleHooks& OutHooks);
-#endif
-#if defined(LEON_EDITOR_HAS_HORROR_MODULE)
-#include "LeonHorror/LeonHorrorModule.hpp"
-#endif
+#include "Editor/Play/FGameModuleTable.hpp"
 
 namespace fs = std::filesystem;
 
@@ -42,10 +37,11 @@ namespace Leon::Editor {
     }
 
     bool FGameModuleLoader::TryLoadInProcess(const std::string& InProjectName) {
-#if defined(LEON_EDITOR_HAS_TOURNAMENT_MODULE)
-        if (InProjectName == "LeonTournament") {
+        for (const FEditorGameModule& game : GetLinkedGameModules()) {
+            if (!game.Register || InProjectName != game.Name)
+                continue;
             Hooks = {};
-            LE_RegisterGameModule(UClassRegistry::Get(), Hooks);
+            game.Register(UClassRegistry::Get(), Hooks);
             if (Hooks.TransportFactorySetup)
                 Hooks.TransportFactorySetup();
             if (Hooks.GameInstanceFactory)
@@ -54,19 +50,6 @@ namespace Leon::Editor {
             LE_CORE_INFO("FGameModuleLoader: Registered in-process game module '{}'", InProjectName);
             return true;
         }
-#endif
-#if defined(LEON_EDITOR_HAS_HORROR_MODULE)
-        if (InProjectName == "LeonHorror") {
-            Hooks = {};
-            RegisterLeonHorrorModule(UClassRegistry::Get(), Hooks);
-            if (Hooks.GameInstanceFactory)
-                UEngine::SetGameInstanceFactory(Hooks.GameInstanceFactory);
-            bLoaded = true;
-            LE_CORE_INFO("FGameModuleLoader: Registered in-process game module '{}'", InProjectName);
-            return true;
-        }
-#endif
-        (void)InProjectName;
         return false;
     }
 

@@ -17,4 +17,7 @@ target_link_libraries(Sandbox PRIVATE
     Leon::Pipeline
     Leon::OpenGL
     Leon::Jolt
+    Leon::Launch
 )
+
+leon_register_game(NAME Sandbox PROJECT_FILE "Samples/Sandbox/Sandbox.lproject")

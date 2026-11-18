@@ -41,11 +41,7 @@ set(LEON_STACK_WITH_ENET ON)
 set(LEON_STACK_WITH_TOOLS ${LEON_BUILD_TOOLS})
 set(LEON_STACK_WITH_TESTS ${LEON_BUILD_TESTS})
 include("${LEON_ENGINE_ROOT}/cmake/LeonEngineStack.cmake")
-
-if(LEON_BUILD_EDITOR)
-    include("${LEON_ENGINE_ROOT}/cmake/EditorDependencies.cmake")
-    add_subdirectory("${LEON_ENGINE_ROOT}/Engine/Source/Editor" "${CMAKE_BINARY_DIR}/_editor")
-endif()
+include("${LEON_ENGINE_ROOT}/cmake/LeonGames.cmake")
 
 foreach(_game IN LISTS LEON_GAMES)
     if(EXISTS "${LEON_ENGINE_ROOT}/Games/${_game}/CMakeLists.txt")
@@ -65,3 +61,9 @@ foreach(_dir IN LISTS LEON_EXTERNAL_GAME_DIRS)
         message(WARNING "LEON_EXTERNAL_GAME_DIRS lists '${_dir}' but it has no CMakeLists.txt")
     endif()
 endforeach()
+
+# After the games: the editor links every game that registered itself.
+if(LEON_BUILD_EDITOR)
+    include("${LEON_ENGINE_ROOT}/cmake/EditorDependencies.cmake")
+    add_subdirectory("${LEON_ENGINE_ROOT}/Engine/Source/Editor" "${CMAKE_BINARY_DIR}/_editor")
+endif()

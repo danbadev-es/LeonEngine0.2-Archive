@@ -1,4 +1,5 @@
 #include "Editor/Panels/FProjectHubPanel.hpp"
+#include "Editor/Play/FGameModuleTable.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectDescriptor.hpp"
 #include "Core/FProjectPaths.hpp"
@@ -232,9 +233,8 @@ namespace Leon::Editor {
             }
         };
 
-        addIfMissing("Samples/Sandbox/Sandbox.lproject");
-        addIfMissing("Games/LeonTournament/LeonTournament.lproject");
-        addIfMissing("Games/LeonHorror/LeonHorror.lproject");
+        for (const FEditorGameModule& game : GetLinkedGameModules())
+            addIfMissing(game.ProjectFile);
     }
 
     void FProjectHubPanel::SaveRecentProjects(const std::string& InSavedDir) {

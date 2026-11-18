@@ -1,7 +1,7 @@
-# Optional in-process game module for Editor PIE (static link — shared engine CRT).
-# Keeps UClassRegistry singleton consistent with LeonEditor.
+# Single definition of the LeonTournament game sources, shared by the game executable, its tests
+# and the editor (which links the game in-process for Play In Editor). Add new files here only.
 
-set(LEON_TOURNAMENT_ROOT "${LEON_ENGINE_ROOT}/Games/LeonTournament")
+set(LEON_TOURNAMENT_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 set(LEON_TOURNAMENT_PUBLIC "${LEON_TOURNAMENT_ROOT}/Source/LeonTournament/Public")
 
 set(LEON_TOURNAMENT_GAME_SOURCES
@@ -43,25 +43,27 @@ set(LEON_TOURNAMENT_GAME_SOURCES
     "${LEON_TOURNAMENT_ROOT}/Source/LeonTournament/Private/UI/ALeonTournamentTransitionHUD.cpp"
 )
 
-add_library(LeonTournamentGame STATIC ${LEON_TOURNAMENT_GAME_SOURCES})
-target_include_directories(LeonTournamentGame PUBLIC
-    "${LEON_TOURNAMENT_PUBLIC}"
-    "${LEON_TOURNAMENT_PUBLIC}/Types"
-    "${LEON_TOURNAMENT_PUBLIC}/UI"
-    "${LEON_TOURNAMENT_PUBLIC}/Game"
-    "${LEON_TOURNAMENT_PUBLIC}/Characters"
-    "${LEON_TOURNAMENT_PUBLIC}/Combat"
-)
-target_include_directories(LeonTournamentGame PRIVATE
-    "${LEON_ENGINE_ROOT}/Engine/Plugins/Physics/Jolt/include"
-    "${LEON_ENGINE_ROOT}/Engine/Plugins/Networking/ENet/include"
-)
-target_link_libraries(LeonTournamentGame PUBLIC
-    LeonEngineCore
-    Leon::Pipeline
-    Leon::OpenGL
-    Leon::Jolt
-    Leon::ENet
-)
-target_compile_definitions(LeonTournamentGame PUBLIC LEON_EDITOR_HAS_TOURNAMENT_MODULE=1)
-leon_apply_compile_options(LeonTournamentGame)
+function(leontournament_add_game_library)
+    if(TARGET LeonTournamentGame)
+        return()
+    endif()
+    add_library(LeonTournamentGame STATIC ${LEON_TOURNAMENT_GAME_SOURCES})
+    target_include_directories(LeonTournamentGame PUBLIC
+        "${LEON_TOURNAMENT_PUBLIC}"
+        "${LEON_TOURNAMENT_PUBLIC}/Types"
+        "${LEON_TOURNAMENT_PUBLIC}/UI"
+        "${LEON_TOURNAMENT_PUBLIC}/Game"
+        "${LEON_TOURNAMENT_PUBLIC}/Characters"
+        "${LEON_TOURNAMENT_PUBLIC}/Combat"
+    )
+    target_link_libraries(LeonTournamentGame PUBLIC
+        LeonEngineCore
+        Leon::Pipeline
+        Leon::OpenGL
+        Leon::Jolt
+        Leon::ENet
+    )
+    if(COMMAND leon_apply_compile_options)
+        leon_apply_compile_options(LeonTournamentGame)
+    endif()
+endfunction()

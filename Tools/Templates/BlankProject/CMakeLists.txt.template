@@ -6,7 +6,6 @@ target_include_directories({{PROJECT_NAME}} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/{{PROJECT_NAME}}/Public"
 )
 
-target_link_libraries({{PROJECT_NAME}} PRIVATE
-    LeonEngineCore
-    Leon::OpenGL
-)
+target_link_libraries({{PROJECT_NAME}} PRIVATE Leon::Launch)
+
+leon_register_game(NAME {{PROJECT_NAME}} PROJECT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/{{PROJECT_NAME}}.lproject")
