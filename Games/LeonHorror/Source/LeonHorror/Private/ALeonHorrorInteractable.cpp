@@ -5,7 +5,7 @@
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "AI/UNavigationSystem.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 
 #include <algorithm>

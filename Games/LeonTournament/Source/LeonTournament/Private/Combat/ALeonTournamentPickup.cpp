@@ -6,7 +6,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Application/FApplication.hpp"
 
 namespace Leon {

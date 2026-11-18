@@ -3,7 +3,7 @@
 #include "Gameplay/UHealthComponent.hpp"
 #include "Gameplay/FDamageInfo.hpp"
 #include "Engine/UWorld.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/AGameModeBase.hpp"
 

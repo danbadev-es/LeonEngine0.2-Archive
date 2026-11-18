@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/EMobility.hpp"
+#include "Scene/EMobility.hpp"
 
 #include <cstdint>
 #include <string>

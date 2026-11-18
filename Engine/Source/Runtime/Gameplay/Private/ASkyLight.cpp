@@ -1,5 +1,5 @@
 #include "Gameplay/ASkyLight.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 namespace Leon {
 

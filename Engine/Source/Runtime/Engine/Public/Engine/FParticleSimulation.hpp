@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/FParticleTypes.hpp"
+#include "Scene/FParticleTypes.hpp"
 
 #include <cstdint>
 #include <vector>

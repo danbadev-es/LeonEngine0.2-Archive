@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Gameplay/UActorComponent.hpp"
-#include "Engine/FParticleTypes.hpp"
+#include "Scene/FParticleTypes.hpp"
 
 namespace Leon {
 

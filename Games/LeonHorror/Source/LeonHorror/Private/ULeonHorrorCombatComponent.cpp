@@ -6,7 +6,7 @@
 
 #include "AI/UAIPerceptionComponent.hpp"
 #include "Application/FApplication.hpp"
-#include "Engine/FParticleTypes.hpp"
+#include "Scene/FParticleTypes.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/FDamageInfo.hpp"
 #include "Gameplay/UGameplayStatics.hpp"

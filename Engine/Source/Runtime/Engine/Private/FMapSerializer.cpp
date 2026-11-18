@@ -18,7 +18,7 @@
 #include "Gameplay/UClassRegistry.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "RHI/IRenderDriver.hpp"
 
 #include <algorithm>

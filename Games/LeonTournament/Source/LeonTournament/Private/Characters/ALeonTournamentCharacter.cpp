@@ -5,7 +5,7 @@
 #include "ULeonTournamentGameInstance.hpp"
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UEngine.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
 #include "Gameplay/APlayerController.hpp"

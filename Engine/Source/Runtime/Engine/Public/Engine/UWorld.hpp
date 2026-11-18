@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scene/IRenderScene.hpp"
 #include "Core/Base.hpp"
 #include "Core/FTimestep.hpp"
 #include "Core/UObject.hpp"
@@ -7,8 +8,8 @@
 #include "RenderCore/FPerspectiveCamera.hpp"
 #include "RenderCore/FPlanarReflectionTypes.hpp"
 #include "RenderCore/FShadowTypes.hpp"
-#include "Engine/Components.hpp"
-#include "Engine/FParticleTypes.hpp"
+#include "Scene/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
 #include "Engine/ENetTypes.hpp"
 #include "Engine/FTimerManager.hpp"
 #include "Physics/FHitResult.hpp"
@@ -36,7 +37,7 @@ namespace Leon {
      *
      * Owns the actor list, ECS registry, GameMode, GameState, PlayerControllers, and lazy-initialized FWorldRenderer.
      */
-    class UWorld : public UObject {
+    class UWorld : public UObject, public IRenderScene {
     public:
         static TRef<UWorld> Create(const std::string& InName = "World");
 
@@ -121,7 +122,7 @@ namespace Leon {
         bool IsDeferringSpawnedActorBeginPlay() const { return bDeferSpawnedActorBeginPlay; }
 
         // --- ECS Internal Access ---
-        entt::registry& GetRegistry() { return Registry; }
+        entt::registry& GetRegistry() override { return Registry; }
         const entt::registry& GetRegistry() const { return Registry; }
 
         // --- Gameplay Framework Accessors ---
@@ -165,7 +166,12 @@ namespace Leon {
         /** Returns null until the renderer has been created (avoids lazy init in headless / asset reload paths). */
         FWorldRenderer* GetWorldRendererIfInitialized() { return Renderer.get(); }
 
-        bool AreLightmapsTrusted() const { return bLightmapsTrusted; }
+        bool AreLightmapsTrusted() const override { return bLightmapsTrusted; }
+
+        // The rest of IRenderScene.
+        glm::mat4 GetEntityWorldMatrix(entt::entity InEntity, const FTransformComponent& InTransform) const override;
+        bool WantsDebugDraw() const override;
+        void DrawDebug() override;
         void SetLightmapsTrusted(bool bTrusted) { bLightmapsTrusted = bTrusted; }
 
         /** Persistent World Outliner folders (including empty ones). Paths use '/' separators. */

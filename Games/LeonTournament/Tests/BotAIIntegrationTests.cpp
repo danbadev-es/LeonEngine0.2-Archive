@@ -20,7 +20,7 @@
 #include "ALeonTournamentBotController.hpp"
 #include "ALeonTournamentWeapon.hpp"
 #include "LeonTournamentTestSetup.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 #include <algorithm>
 #include <cmath>

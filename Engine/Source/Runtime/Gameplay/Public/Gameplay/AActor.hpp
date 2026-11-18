@@ -5,7 +5,7 @@
 #include "Assets/FAssetTypes.hpp"
 #include "Gameplay/UActorComponent.hpp"
 #include "Core/UObject.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/ENetTypes.hpp"
 

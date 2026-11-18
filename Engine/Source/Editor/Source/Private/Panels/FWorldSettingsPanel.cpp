@@ -2,7 +2,7 @@
 #include "Core/FLog.hpp"
 #include "Editor/UI/FEditorWidgets.hpp"
 #include "Editor/UI/FLucideIcons.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Gameplay/AWorldSettings.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 #include <imgui.h>

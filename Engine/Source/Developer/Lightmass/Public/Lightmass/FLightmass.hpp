@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Assets/FLightmapAsset.hpp"
-#include "Engine/EMobility.hpp"
+#include "Scene/EMobility.hpp"
 #include "RenderCore/FLight.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/FLightmapBakeInputs.hpp"
 
 #include <glm/glm.hpp>

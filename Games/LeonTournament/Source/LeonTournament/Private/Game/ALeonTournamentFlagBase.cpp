@@ -1,7 +1,7 @@
 #include "ALeonTournamentFlagBase.hpp"
 #include "ALeonTournamentCharacter.hpp"
 #include "FLeonTournamentArenaBuilder.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 #include <cmath>
 

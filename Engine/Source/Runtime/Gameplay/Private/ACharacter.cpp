@@ -9,7 +9,7 @@
 #include "Renderer/FDebugRenderer.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
 #include "Engine/UWorld.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Core/FWorldUnits.hpp"
 
 #include <algorithm>

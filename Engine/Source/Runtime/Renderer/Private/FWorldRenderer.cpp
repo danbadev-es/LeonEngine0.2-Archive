@@ -4,8 +4,8 @@
 
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/UStaticMesh.hpp"
-#include "Engine/Components.hpp"
-#include "Engine/UWorld.hpp"
+#include "Scene/Components.hpp"
+#include "Scene/IRenderScene.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "RHI/FRHIFrame.hpp"
 #include "RHI/FRenderer.hpp"
@@ -17,28 +17,7 @@
 
 namespace Leon {
 
-    FWorldRenderer::FWorldRenderer(UWorld* InWorld) : World(InWorld) {
-        if (!InWorld)
-            return;
-        if (InWorld->HasPendingRendererDefaults()) {
-            ShadowSettings.CascadeResolution = InWorld->GetPendingShadowMapResolution();
-            ShadowSettings.CascadeCount = InWorld->GetPendingCascadeCount();
-            ShadowSettings.ShadowDistance = InWorld->GetPendingShadowDistance();
-            ShadowSettings.SpotResolution = InWorld->GetPendingSpotResolution();
-            ShadowSettings.PointShadowResolution = InWorld->GetPendingPointShadowResolution();
-            ShadowSettings.MaxShadowedPointLights = InWorld->GetPendingMaxShadowedPointLights();
-            bEnablePlanarReflection = InWorld->GetPendingPlanarReflectionEnabled();
-            PlanarQuality = InWorld->GetPendingPlanarReflectionQuality();
-            PlanarResolutionScale = InWorld->GetPendingPlanarReflectionResolutionScale();
-        }
-        PostProcessSettings.bSSAOEnabled = InWorld->GetPendingSSAOEnabled();
-        PostProcessSettings.SSAORadius = InWorld->GetPendingSSAORadius();
-        PostProcessSettings.SSAOIntensity = InWorld->GetPendingSSAOIntensity();
-        PostProcessSettings.SSAOBias = InWorld->GetPendingSSAOBias();
-        PostProcessSettings.bBloomEnabled = InWorld->GetPendingBloomEnabled();
-        PostProcessSettings.bFXAAEnabled = InWorld->GetPendingFXAAEnabled();
-        ShadowSettings.FilterMode = InWorld->GetPendingShadowFilter();
-    }
+    FWorldRenderer::FWorldRenderer(IRenderScene* InScene) : World(InScene) {}
 
     void FWorldRenderer::ApplyProjectRendererDefaults(uint32_t InShadowMapResolution, bool bInEnablePlanarReflection,
                                                       EPlanarReflectionQuality InPlanarQuality,

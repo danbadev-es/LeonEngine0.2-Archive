@@ -4,7 +4,7 @@
 #include "Editor/Panels/FPlaceActorsPanel.hpp"
 #include "Editor/UI/FEditorWidgets.hpp"
 #include "Editor/UI/FLucideIcons.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Gameplay/ACharacter.hpp"
 #include "Gameplay/APawn.hpp"
 #include "Gameplay/APlayerStart.hpp"

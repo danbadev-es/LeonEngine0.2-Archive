@@ -3,7 +3,7 @@
 #include "Gameplay/ACharacter.hpp"
 #include "Assets/FAnimRuntime.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/ENetTypes.hpp"
 #include "Engine/UWorld.hpp"
 #include "Physics/IPhysicsScene.hpp"

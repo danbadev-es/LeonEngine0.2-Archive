@@ -4,7 +4,7 @@
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
-#include "Engine/EMobility.hpp"
+#include "Scene/EMobility.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "RenderCore/FIBLMath.hpp"

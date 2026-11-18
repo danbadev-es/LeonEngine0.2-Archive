@@ -14,14 +14,16 @@
 #include "Gameplay/UPrimitiveComponent.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 #include "Engine/FParticleSimulation.hpp"
-#include "Engine/FParticleTypes.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UNetDriver.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Gameplay/USkeletalMeshComponent.hpp"
 #include "Engine/FSimplePhysicsScene.hpp"
+#include "Engine/FCollisionQuery.hpp"
+#include "Gameplay/FGameplayDebugger.hpp"
 #include "Physics/IPhysicsScene.hpp"
 #include "AI/UNavigationSystem.hpp"
 #include <algorithm>
@@ -527,8 +529,44 @@ namespace Leon {
     FWorldRenderer* UWorld::GetWorldRenderer() {
         if (!Renderer) {
             Renderer = CreateScope<FWorldRenderer>(this);
+            // What the project's settings asked for before there was a renderer to give it to.
+            FShadowSettings& shadows = Renderer->GetShadowSettings();
+            if (HasPendingRendererDefaults()) {
+                Renderer->ApplyProjectRendererDefaults(GetPendingShadowMapResolution(), GetPendingPlanarReflectionEnabled(),
+                                                       GetPendingPlanarReflectionQuality(),
+                                                       GetPendingPlanarReflectionResolutionScale());
+                shadows.CascadeResolution = GetPendingShadowMapResolution();
+                shadows.CascadeCount = GetPendingCascadeCount();
+                shadows.ShadowDistance = GetPendingShadowDistance();
+                shadows.SpotResolution = GetPendingSpotResolution();
+                shadows.PointShadowResolution = GetPendingPointShadowResolution();
+                shadows.MaxShadowedPointLights = GetPendingMaxShadowedPointLights();
+            }
+            shadows.FilterMode = GetPendingShadowFilter();
+            FPostProcessSettings& post = Renderer->GetPostProcessSettings();
+            post.bSSAOEnabled = GetPendingSSAOEnabled();
+            post.SSAORadius = GetPendingSSAORadius();
+            post.SSAOIntensity = GetPendingSSAOIntensity();
+            post.SSAOBias = GetPendingSSAOBias();
+            post.bBloomEnabled = GetPendingBloomEnabled();
+            post.bFXAAEnabled = GetPendingFXAAEnabled();
         }
         return Renderer.get();
+    }
+
+    glm::mat4 UWorld::GetEntityWorldMatrix(entt::entity InEntity, const FTransformComponent& InTransform) const {
+        if (AActor* actor = FindActorByEntity(InEntity))
+            return actor->GetActorWorldMatrix();
+        return InTransform.GetTransform();
+    }
+
+    bool UWorld::WantsDebugDraw() const {
+        return FGameplayDebugger::IsEnabled();
+    }
+
+    void UWorld::DrawDebug() {
+        if (FGameplayDebugger::ShowPhysics())
+            DrawDebugWorldColliders(*this);
     }
 
     void UWorld::SetProjectRendererDefaults(uint32_t InShadowMapResolution, bool bInEnablePlanarReflection,

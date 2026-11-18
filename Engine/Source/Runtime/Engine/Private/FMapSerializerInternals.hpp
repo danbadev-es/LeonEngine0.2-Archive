@@ -13,7 +13,7 @@
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/APlayerState.hpp"
 #include "Gameplay/AWorldSettings.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 #include <charconv>
 #include <cstdlib>

@@ -2,7 +2,7 @@
 #include "Gameplay/FProceduralPrimitiveSpawner.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Application/FApplication.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Renderer/FWorldRenderer.hpp"

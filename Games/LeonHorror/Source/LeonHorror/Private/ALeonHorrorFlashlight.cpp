@@ -1,6 +1,6 @@
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
 
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "RenderCore/FLight.hpp"
 
 namespace Leon {

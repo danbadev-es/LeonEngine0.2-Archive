@@ -21,10 +21,8 @@
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
-#include "Engine/Components.hpp"
-#include "Engine/UWorld.hpp"
-#include "Gameplay/FGameplayDebugger.hpp"
-#include "Engine/FCollisionQuery.hpp"
+#include "Scene/Components.hpp"
+#include "Scene/IRenderScene.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FRenderer.hpp"
@@ -164,7 +162,7 @@ namespace Leon {
             std::vector<bool> SpotCastsShadows;
         };
 
-        FSceneLighting GatherLighting(UWorld& InWorld) {
+        FSceneLighting GatherLighting(IRenderScene& InWorld) {
             FSceneLighting lighting;
             FLitPassConstants& constants = lighting.Constants;
             auto& registry = InWorld.GetRegistry();
@@ -315,10 +313,9 @@ namespace Leon {
             FFrameProfiler::FScope particleTimer(&FFrameProfiler::Working().ParticlesMs);
             FParticleRenderer::Render(World, InCamera);
         }
-        if (FGameplayDebugger::IsEnabled()) {
+        if (World->WantsDebugDraw()) {
             FDebugRenderer::BeginScene(InCamera);
-            if (FGameplayDebugger::ShowPhysics())
-                DrawDebugWorldColliders(*World);
+            World->DrawDebug();
             FDebugRenderer::DrawQueuedTraces();
             FDebugRenderer::EndScene(true);
             FDebugRenderer::ClearQueuedTraces();

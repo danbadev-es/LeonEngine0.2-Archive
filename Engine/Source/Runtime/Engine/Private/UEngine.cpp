@@ -25,7 +25,7 @@
 #include "Renderer/FWorldRenderer.hpp"
 #include "UMG/FUIRenderer.hpp"
 #include "Audio/FAudioDevice.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/FLightmapBakeInputs.hpp"
 

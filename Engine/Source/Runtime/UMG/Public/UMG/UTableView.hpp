@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "UMG/UWidget.hpp"
 
 #include <string>

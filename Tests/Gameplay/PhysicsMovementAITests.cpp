@@ -1,4 +1,4 @@
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include <doctest/doctest.h>
 
 #include "Engine/UWorld.hpp"

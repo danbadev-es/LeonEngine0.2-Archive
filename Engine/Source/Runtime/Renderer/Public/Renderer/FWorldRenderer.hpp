@@ -17,21 +17,21 @@
 
 namespace Leon {
 
-    class UWorld;
+    class IRenderScene;
     class IRHICommandList;
     class IRHITexture;
     struct FSkyboxComponent;
     struct FWorldRendererRHIState;
 
     /**
-     * Draws a UWorld: shadow maps, reflection captures, the lit scene and post-processing.
+     * Draws a world, seen through IRenderScene: shadow maps, reflection captures, the lit scene and post-processing.
      *
      * The drawing itself lives in FWorldRendererRHI.cpp; this class holds the settings and the state
      * that outlives a frame.
      */
     class FWorldRenderer {
     public:
-        explicit FWorldRenderer(UWorld* InWorld);
+        explicit FWorldRenderer(IRenderScene* InScene);
         ~FWorldRenderer() = default;
 
         FWorldRenderer(const FWorldRenderer&) = delete;
@@ -48,8 +48,8 @@ namespace Leon {
         void RenderRHI(const FPerspectiveCamera& InCamera, IRHICommandList& InCommands, IRHITexture& InTarget);
         void RenderScene(const FPerspectiveCamera& InCamera) { Render(InCamera); }
 
-        void SetWorld(UWorld* InWorld) { World = InWorld; }
-        UWorld* GetWorld() const { return World; }
+        void SetWorld(IRenderScene* InScene) { World = InScene; }
+        IRenderScene* GetWorld() const { return World; }
 
         /** The size of the view; reflection captures are sized as a fraction of it. */
         void OnViewportResize(uint32_t InWidth, uint32_t InHeight);
@@ -138,7 +138,7 @@ namespace Leon {
         uint32_t PlanarCaptureWidth() const;
         uint32_t PlanarCaptureHeight() const;
 
-        UWorld* World = nullptr;
+        IRenderScene* World = nullptr;
         /** Device objects: targets, shadow maps, pipelines. Created on the first frame drawn. */
         std::shared_ptr<FWorldRendererRHIState> RHIState;
 

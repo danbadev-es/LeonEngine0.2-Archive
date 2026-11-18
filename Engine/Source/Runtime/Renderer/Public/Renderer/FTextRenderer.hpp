@@ -5,7 +5,7 @@
 #include "RenderCore/FPerspectiveCamera.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FVertexArray.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 #include <glm/glm.hpp>
 #include <string>

@@ -8,7 +8,7 @@
 #include "Gameplay/ACharacter.hpp"
 #include "Gameplay/USkeletalMeshComponent.hpp"
 #include "Engine/UWorld.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 #include <algorithm>
 #include <cmath>

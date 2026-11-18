@@ -1,5 +1,5 @@
 #include "Editor/Commands/FTransformActorsCommand.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 namespace Leon::Editor {
 

@@ -3,7 +3,7 @@
 #include "Editor/Commands/FActorRef.hpp"
 #include "Editor/Commands/IEditorCommand.hpp"
 #include "Assets/FAssetTypes.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 

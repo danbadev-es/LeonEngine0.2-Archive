@@ -17,7 +17,7 @@
 #include "Gameplay/ACharacter.hpp"
 #include "AI/UNavigationSystem.hpp"
 #include "Renderer/FWorldRenderer.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Engine/UEngine.hpp"
 #include "Engine/UWorld.hpp"

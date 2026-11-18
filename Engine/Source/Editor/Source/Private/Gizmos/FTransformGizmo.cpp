@@ -1,6 +1,6 @@
 #include "Editor/Gizmos/FTransformGizmo.hpp"
 #include "Editor/Context/FEditorHistory.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 #include <algorithm>
 #include <cmath>

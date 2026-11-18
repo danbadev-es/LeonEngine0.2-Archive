@@ -3,7 +3,7 @@
 #include "Physics/UPhysicsAsset.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Core/FTimestep.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "FJoltPhysicsDriver.hpp"
 #include "Gameplay/ABlockingVolume.hpp"

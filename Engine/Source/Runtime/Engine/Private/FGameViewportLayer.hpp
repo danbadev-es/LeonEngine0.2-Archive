@@ -19,7 +19,7 @@
 #include "Renderer/FRenderDebugHotkeys.hpp"
 #include "UMG/FUIRenderer.hpp"
 #include "Audio/FAudioDevice.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 namespace Leon {
 

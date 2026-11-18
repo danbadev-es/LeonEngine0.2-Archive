@@ -1,5 +1,5 @@
 #include "Gameplay/ATriggerVolume.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 namespace Leon {
 

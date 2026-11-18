@@ -8,7 +8,7 @@
 #include "Gameplay/UParticleComponent.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Application/FApplication.hpp"
 #include "RenderCore/FRenderingMath.hpp"

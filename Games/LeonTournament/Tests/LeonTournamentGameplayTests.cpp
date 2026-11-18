@@ -30,7 +30,7 @@
 #include "Assets/USkeleton.hpp"
 #include "Core/FWorldUnits.hpp"
 #include "Physics/ECollisionChannel.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UEngine.hpp"
 #include "LeonTournamentTestSetup.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"

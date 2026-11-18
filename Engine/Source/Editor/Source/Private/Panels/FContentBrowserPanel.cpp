@@ -7,7 +7,7 @@
 #include "Editor/UI/FLucideIcons.hpp"
 #include "Editor/Utils/FEditorFileDialog.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Assets/FMaterialSerializer.hpp"
 #include "Engine/UWorld.hpp"

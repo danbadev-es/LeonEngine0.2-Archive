@@ -1,6 +1,6 @@
 #include "Engine/FGameplaySession.hpp"
 #include "Core/FLog.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Gameplay/AGameModeBase.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/AWorldSettings.hpp"

@@ -2,9 +2,9 @@
 #include "RHI/IRenderDriver.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
-#include "Engine/Components.hpp"
-#include "Engine/FParticleTypes.hpp"
-#include "Engine/UWorld.hpp"
+#include "Scene/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
+#include "Scene/IRenderScene.hpp"
 #include "RHI/FBuffer.hpp"
 #include "RHI/FFrameProfiler.hpp"
 
@@ -33,7 +33,7 @@ namespace Leon {
         VertexArray.reset();
     }
 
-    void FParticleRenderer::Render(UWorld* InWorld, const FPerspectiveCamera& InCamera) {
+    void FParticleRenderer::Render(IRenderScene* InWorld, const FPerspectiveCamera& InCamera) {
         if (!InWorld || !bReady)
             return;
 

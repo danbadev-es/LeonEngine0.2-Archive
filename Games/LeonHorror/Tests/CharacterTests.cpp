@@ -6,7 +6,7 @@
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/UCharacterMovementComponent.hpp"
 #include "Gameplay/USpringArmComponent.hpp"

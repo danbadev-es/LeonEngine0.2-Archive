@@ -13,7 +13,7 @@
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/FLODSettings.hpp"
 #include "Assets/USkeletalMesh.hpp"
-#include "Engine/EMobility.hpp"
+#include "Scene/EMobility.hpp"
 #include "Physics/ECollisionChannel.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FVertexArray.hpp"

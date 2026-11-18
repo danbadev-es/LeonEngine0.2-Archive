@@ -24,7 +24,7 @@
 #include "ULeonTournamentWidgets.hpp"
 #include "FENetTransport.hpp"
 #include "Lightmass/FLightBuildSettings.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "UMG/UCanvasPanel.hpp"
 #include "UMG/UImage.hpp"
 #include "LeonTournamentTestSetup.hpp"

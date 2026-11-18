@@ -3,7 +3,7 @@
 #include "Core/Base.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FTextureCube.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 
 namespace Leon {
 

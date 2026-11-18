@@ -15,7 +15,7 @@
 #include "Gameplay/AGameStateBase.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/UNetDriver.hpp"
 #include "Application/FApplication.hpp"

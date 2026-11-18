@@ -11,7 +11,7 @@
 #include "Editor/UI/FEditorWidgets.hpp"
 #include "Editor/UI/FEditorTheme.hpp"
 #include "Editor/UI/FLucideIcons.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Physics/ECollisionChannel.hpp"
 #include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/APlayerCameraManager.hpp"

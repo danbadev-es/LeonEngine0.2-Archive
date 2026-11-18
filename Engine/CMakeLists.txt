@@ -149,11 +149,18 @@ leon_add_module(Physics
     DEPENDS Core Assets
 )
 
-# --- Everything above them still builds as one library. These modules include each other in
-# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
-set(LEON_ENGINE_SOURCES
-    Source/Runtime/Application/Private/FApplication.cpp
-    Source/Runtime/Application/Private/FLayerStack.cpp
+# What a world and its renderer share: the components entities are drawn from, and the small view of
+# a world the renderer draws through (IRenderScene). Headers only.
+add_library(LeonModule_Scene INTERFACE)
+add_library(Leon::Module::Scene ALIAS LeonModule_Scene)
+target_include_directories(LeonModule_Scene INTERFACE "${LEON_RUNTIME_ROOT}/Scene/Public")
+target_link_libraries(LeonModule_Scene INTERFACE
+    LeonModule_Core LeonModule_RHI LeonModule_RenderCore LeonModule_Assets LeonModule_Physics EnTT::EnTT)
+
+# The world renderer, post-processing, text, particles and debug drawing. It draws an IRenderScene:
+# it does not know about worlds, actors or gameplay.
+leon_add_module(Renderer
+    SOURCES
     Source/Runtime/Renderer/Private/FWorldRenderer.cpp
     Source/Runtime/Renderer/Private/FWorldRendererRHI.cpp
     Source/Runtime/Renderer/Private/FPostProcessRHI.cpp
@@ -164,6 +171,16 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Renderer/Private/FDebugRenderer.cpp
     Source/Runtime/Renderer/Private/FParticleRenderer.cpp
     Source/Runtime/Renderer/Private/FTextRenderer.cpp
+    DEPENDS Core Platform RHI RenderCore Assets Scene
+    PRIVATE_LIBRARIES stb_image
+)
+target_include_directories(LeonModule_Renderer PRIVATE "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb")
+
+# --- Everything above them still builds as one library. These modules include each other in
+# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
+set(LEON_ENGINE_SOURCES
+    Source/Runtime/Application/Private/FApplication.cpp
+    Source/Runtime/Application/Private/FLayerStack.cpp
     Source/Runtime/UMG/Private/UWidget.cpp
     Source/Runtime/UMG/Private/UPanelWidget.cpp
     Source/Runtime/UMG/Private/UCanvasPanel.cpp
@@ -269,7 +286,6 @@ add_library(Leon::Gameplay ALIAS LeonEngineCore)
 target_include_directories(LeonEngineCore
     PUBLIC
         "${LEON_RUNTIME_ROOT}/Application/Public"
-        "${LEON_RUNTIME_ROOT}/Renderer/Public"
         "${LEON_RUNTIME_ROOT}/UMG/Public"
         "${LEON_RUNTIME_ROOT}/Engine/Public"
         "${LEON_RUNTIME_ROOT}/Gameplay/Public"
@@ -289,6 +305,8 @@ target_link_libraries(LeonEngineCore
         LeonModule_Assets
         LeonModule_Audio
         LeonModule_Physics
+        LeonModule_Scene
+        LeonModule_Renderer
         glfw
         glm::glm
         EnTT::EnTT

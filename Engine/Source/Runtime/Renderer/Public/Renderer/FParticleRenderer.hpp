@@ -8,7 +8,7 @@
 
 namespace Leon {
 
-    class UWorld;
+    class IRenderScene;
 
     /**
      * Camera-facing additive quads and thin beams for UParticleComponent instances.
@@ -17,7 +17,7 @@ namespace Leon {
     public:
         static void Init();
         static void Shutdown();
-        static void Render(UWorld* InWorld, const FPerspectiveCamera& InCamera);
+        static void Render(IRenderScene* InWorld, const FPerspectiveCamera& InCamera);
 
     private:
         struct FVertex {

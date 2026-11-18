@@ -1,7 +1,7 @@
 #include "ALeonTournamentFlag.hpp"
 #include "ALeonTournamentCharacter.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
 #include "Application/FApplication.hpp"

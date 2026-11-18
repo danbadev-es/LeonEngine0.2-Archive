@@ -7,7 +7,7 @@
 #include "FLeonTournamentArenaBuilder.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Application/FApplication.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerStart.hpp"

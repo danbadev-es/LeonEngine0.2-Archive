@@ -14,7 +14,7 @@
 #include "Gameplay/APlayerState.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 #include "Core/UObject.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UEngine.hpp"
 #include "Gameplay/APlayerStart.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Engine/FParticleTypes.hpp"
+#include "Scene/FParticleTypes.hpp"
 #include "Gameplay/FDamageInfo.hpp"
 #include "Physics/FHitResult.hpp"
 #include <glm/glm.hpp>

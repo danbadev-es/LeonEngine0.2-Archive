@@ -1,7 +1,7 @@
 #include "ASandboxDemoPickup.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Application/FApplication.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
 

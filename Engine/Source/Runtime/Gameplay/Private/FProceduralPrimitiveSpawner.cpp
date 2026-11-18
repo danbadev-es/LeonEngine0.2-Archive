@@ -3,7 +3,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Application/FApplication.hpp"
 #include "Core/FLog.hpp"
-#include "Engine/Components.hpp"
+#include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"

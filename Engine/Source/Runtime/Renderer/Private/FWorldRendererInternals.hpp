@@ -2,9 +2,8 @@
 
 #include "Assets/FAnimTypes.hpp"
 #include "Assets/FLODSettings.hpp"
-#include "Engine/Components.hpp"
-#include "Engine/UWorld.hpp"
-#include "Gameplay/AActor.hpp"
+#include "Scene/Components.hpp"
+#include "Scene/IRenderScene.hpp"
 #include "RHI/FRenderer.hpp"
 #include "RenderCore/FFrustumCull.hpp"
 #include "Assets/FMaterialInstance.hpp"
@@ -62,13 +61,9 @@ namespace Leon {
         stats.StaticMeshSubmittedTriangles += InSubmittedTris;
     }
 
-    inline glm::mat4 ResolveActorWorldMatrix(UWorld* InWorld, entt::entity InEntity,
+    inline glm::mat4 ResolveActorWorldMatrix(const IRenderScene* InScene, entt::entity InEntity,
                                              const FTransformComponent& InTransform) {
-        if (InWorld) {
-            if (AActor* actor = InWorld->FindActorByEntity(InEntity))
-                return actor->GetActorWorldMatrix();
-        }
-        return InTransform.GetTransform();
+        return InScene ? InScene->GetEntityWorldMatrix(InEntity, InTransform) : InTransform.GetTransform();
     }
 
     inline ECullMode FlipCullForNegativeScale(ECullMode InMode, const glm::mat4& InModel) {
