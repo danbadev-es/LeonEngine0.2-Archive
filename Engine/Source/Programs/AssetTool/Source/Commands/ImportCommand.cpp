@@ -32,12 +32,14 @@ namespace Leon::Tools {
         std::cout << "  --raw <dir>        Source raw assets directory (e.g. Assets/Raw)\n";
         std::cout << "  --content <dir>    Output native assets directory (e.g. Assets/Content)\n";
         std::cout << "  --force            Force re-importing all assets regardless of content hash\n";
+        std::cout << "  --overwrite-materials  Rewrite .lmat files that already exist from the FBX materials\n";
     }
 
     int FImportCommand::Execute(const FCommandArgs& InArgs) {
         std::string rawDir = InArgs.GetOption("raw");
         std::string contentDir = InArgs.GetOption("content");
         bool bForce = InArgs.HasFlag("force");
+        const bool bOverwriteMaterials = InArgs.HasFlag("overwrite-materials");
 
         if (rawDir.empty() || contentDir.empty()) {
             std::cerr << "[ERROR] --raw <dir> and --content <dir> are required for import.\n\n";
@@ -312,8 +314,9 @@ namespace Leon::Tools {
                             formattedName = "M_" + formattedName;
                         std::string matRelPath = "Materials/" + formattedName + ".lmat";
                         fs::path matFilePath = contentPath / matRelPath;
-                        bool bMatNeedsImport =
-                            bForce || manifest.NeedsReimport(matFilePath.string()) || !fs::exists(matFilePath);
+                        // A material that exists is somebody's work, written by hand or by the art
+                        // build: importing a mesh that uses it never replaces it, not even with --force.
+                        const bool bMatNeedsImport = bOverwriteMaterials || !fs::exists(matFilePath);
                         if (bMatNeedsImport) {
                             auto builtMat = FMaterialImporter::BuildMaterial(extMat, allAvailableTexturePaths);
                             if (builtMat && FMaterialImporter::SaveMaterialToFile(builtMat, matFilePath.string())) {

@@ -108,6 +108,10 @@ namespace Leon {
         EAlphaMode GetAlphaMode() const { return AlphaMode; }
         void SetAlphaMode(EAlphaMode InMode);
 
+        /** How solid the surface is, 0 to 1. Multiplies the alpha of the albedo texture; glass needs no texture. */
+        float GetOpacity() const { return Opacity; }
+        void SetOpacity(float InOpacity) { Opacity = InOpacity; }
+
         float GetAlphaCutoff() const { return AlphaCutoff; }
         void SetAlphaCutoff(float InCutoff) { AlphaCutoff = InCutoff; }
 
@@ -223,6 +227,7 @@ namespace Leon {
         glm::vec3 EmissiveColor{0.0f, 0.0f, 0.0f};
         float EmissiveIntensity{0.0f};
         float AlphaCutoff{0.5f};
+        float Opacity{1.0f};
         EAlphaMode AlphaMode{EAlphaMode::Opaque};
         bool bDoubleSided{false};
 

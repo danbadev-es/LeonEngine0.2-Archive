@@ -81,4 +81,62 @@ TEST_SUITE("Shader GPU - PBR_Lit.hlsl Alpha Modes & Cutoff") {
 
         gl.DestroyTexture(lowAlphaTex);
     }
+
+    TEST_CASE("PBR_Lit.hlsl: a material's opacity is alpha without a texture, and multiplies one") {
+        Leon::TestGPU::FHeadlessDevice gl;
+        REQUIRE(gl.IsValid());
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
+        shader->Bind();
+        gl.BindDefaultTextures();
+        gl.BindFramebuffer(1, 1);
+
+        Leon::TestGPU::FCameraBufferData camData;
+        camData.ViewProjection = glm::mat4(1.0f);
+        camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+        camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+        gl.UpdateCameraUBO(camData);
+        Leon::TestGPU::FLightingBufferData lightData;
+        lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+        lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        lightData.LightCounts = glm::ivec4(0);
+        gl.UpdateLightingUBO(lightData);
+
+        Leon::TestGPU::SetMat4(shader, "u_Model", glm::mat4(1.0f));
+        Leon::TestGPU::SetMat3(shader, "u_NormalMatrix", glm::mat3(1.0f));
+        for (const char* off : {"u_UseIBL", "u_UseShadows", "u_UseNormalMap", "u_UseAlbedoMap", "u_UseMetallicMap",
+                                "u_UseRoughnessMap", "u_UseAOMap", "u_UseEmissiveMap", "u_UsePlanarReflection"})
+            shader->SetInt(off, 0);
+        Leon::TestGPU::SetFloat2(shader, "u_UVTiling", glm::vec2(1.0f));
+        Leon::TestGPU::SetFloat2(shader, "u_UVOffset", glm::vec2(0.0f));
+        Leon::TestGPU::SetFloat3(shader, "u_AlbedoColor", glm::vec3(1.0f));
+        shader->SetFloat("u_Roughness", 0.5f);
+        shader->SetFloat("u_AO", 1.0f);
+        shader->SetInt("u_DebugMode", 14); // base colour
+
+        // The mask cutoff shows what alpha the shader computed: below it the pixel is not drawn.
+        shader->SetInt("u_AlphaMode", 1);
+        shader->SetFloat("u_AlphaCutoff", 0.5f);
+        auto drawn = [&]() {
+            gl.BindFramebuffer(1, 1);
+            gl.DrawQuad();
+            return gl.ReadPixel().r > 0.5f;
+        };
+
+        // No texture: the opacity alone is the alpha.
+        shader->SetFloat("u_Opacity", 0.3f);
+        CHECK_FALSE(drawn());
+        shader->SetFloat("u_Opacity", 0.8f);
+        CHECK(drawn());
+
+        // With a texture the two multiply: 0.8 of the texture, then 0.8 x 0.5 = 0.4.
+        auto texture = gl.Create1x1Texture(255, 255, 255, 204);
+        gl.BindTexture(0, texture);
+        shader->SetInt("u_UseAlbedoMap", 1);
+        shader->SetFloat("u_Opacity", 1.0f);
+        CHECK(drawn());
+        shader->SetFloat("u_Opacity", 0.5f);
+        CHECK_FALSE(drawn());
+
+        gl.DestroyTexture(texture);
+    }
 }

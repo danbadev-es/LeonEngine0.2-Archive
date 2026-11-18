@@ -835,7 +835,7 @@ namespace Leon::TestGPU {
                 if (InShader.Int(textureFlags[i], 0) == 1)
                     textureBits |= 1 << i;
             }
-            material.AlbedoColor = glm::vec4(InShader.Vec3("u_AlbedoColor", glm::vec3(0.0f)), 1.0f);
+            material.AlbedoColor = glm::vec4(InShader.Vec3("u_AlbedoColor", glm::vec3(0.0f)), InShader.Float("u_Opacity", 1.0f));
             material.EmissiveColor = glm::vec4(InShader.Vec3("u_EmissiveColor", glm::vec3(0.0f)),
                                                InShader.Float("u_EmissiveIntensity", 0.0f));
             material.SurfaceParams = glm::vec4(InShader.Float("u_Metallic", 0.0f), InShader.Float("u_Roughness", 0.0f),

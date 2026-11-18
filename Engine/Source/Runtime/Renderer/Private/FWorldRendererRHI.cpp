@@ -740,7 +740,7 @@ namespace Leon {
                 if (binding.Textures[slot])
                     textureBits |= 1 << slot;
             }
-            binding.Constants.AlbedoColor = glm::vec4(InMaterial.GetAlbedoColor(), 1.0f);
+            binding.Constants.AlbedoColor = glm::vec4(InMaterial.GetAlbedoColor(), InMaterial.GetOpacity());
             binding.Constants.EmissiveColor = glm::vec4(InMaterial.GetEmissiveColor(), InMaterial.GetEmissiveIntensity());
             binding.Constants.SurfaceParams = glm::vec4(InMaterial.GetMetallic(), InMaterial.GetRoughness(),
                                                         InMaterial.GetAO(), InMaterial.GetNormalScale());

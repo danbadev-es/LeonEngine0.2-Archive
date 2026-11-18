@@ -166,7 +166,7 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
     float4 albedoSample = float4(1.0, 1.0, 1.0, 1.0);
     if (textureBits & MATERIAL_HAS_ALBEDO)
         albedoSample = t_Albedo.Sample(s_LinearWrap, uv);
-    const float alpha = albedoSample.a;
+    const float alpha = albedoSample.a * u_AlbedoColor.a; // the colour's alpha is the material's opacity
     if (u_MaterialFlags.y == 1 && alpha < u_SurfaceParams2.y)
         discard;
     const float3 albedo = u_AlbedoColor.rgb * albedoSample.rgb;
