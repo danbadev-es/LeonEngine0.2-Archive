@@ -54,7 +54,7 @@ Every module is `Engine/Source/Runtime/<Module>/{Public/<Module>,Private}`:
 
 ```text
 Core  Platform  RHI  RHINull  RHID3D12  RenderCore  Assets  Audio  Physics
-Renderer  Engine  Gameplay  AI  UMG  Application  Launch
+Scene  Renderer  Engine  Gameplay  AI  UMG  Application  Launch
 ```
 
 Development-only modules are under `Engine/Source/Developer` (`ShaderCompiler`, `AssetPipeline`, `Lightmass`). What each module
@@ -78,7 +78,7 @@ Includes:
 #include "Renderer/FWorldRenderer.hpp"
 ```
 
-ECS POD components (EnTT): `F*Component` / `FTag`.
+ECS POD components (EnTT): `F*Component` / `FTag`, in `Scene/Components.hpp`.
 `U*Component` only when the type inherits `UActorComponent` / `UObject`.
 
 ### Editor product layout

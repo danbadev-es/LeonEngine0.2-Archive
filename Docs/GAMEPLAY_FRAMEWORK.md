@@ -122,4 +122,4 @@ Include roots are those Public subfolders (flat `#include "ALeonTournamentGameMo
 
 ## File naming
 
-One public type per canonical file (`ACharacter.hpp`, `ALeonTournamentGameMode.hpp`). Aggregation exceptions: `Engine/Components.hpp` (EnTT POD registry) and `ULeonTournamentWidgets.hpp` (project UI pack).
+One public type per canonical file (`ACharacter.hpp`, `ALeonTournamentGameMode.hpp`). Aggregation exceptions: `Scene/Components.hpp` (EnTT POD registry) and `ULeonTournamentWidgets.hpp` (project UI pack).

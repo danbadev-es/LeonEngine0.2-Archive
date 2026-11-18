@@ -14,9 +14,9 @@ coding standard ([NAMING.md](NAMING.md)). The decisions behind the current shape
  Games (LeonHorror, LeonTournament), Samples (Sandbox), Editor
                       │ use
                       ▼
- Launch ──► LeonEngineCore (Renderer, Engine, Gameplay, AI, UMG, Application)
-                      │
-                      ▼
+ Launch ──► LeonEngineCore (Engine, Gameplay, AI) ──► UMG ──► Application ──► Renderer ──► Scene
+                                                                                         │
+                                                                                         ▼
         Assets · Audio · Physics ──► RenderCore ──► RHI ──► Core
                                                      ▲
                                   RHID3D12, RHINull ─┘        Platform ──► Core
@@ -40,13 +40,17 @@ not compile.
 | `Assets` | Core, RHI, RenderCore | Asset types and `UAssetManager`: meshes, skeletons, animation, textures, materials |
 | `Audio` | Core | Audio device and sound data |
 | `Physics` | Core, Assets | Physics interface for backends, collision vocabulary, physics assets |
-| `LeonEngineCore` (one library) | all of the above | `Renderer` (the world renderer), `Engine` (world, maps, net), `Gameplay`, `AI`, `UMG`, `Application` |
+| `Scene` (headers) | Core, RHI, RenderCore, Assets, Physics | The components entities are drawn from, and `IRenderScene`: the view the renderer has of a world |
+| `Renderer` | Core, Platform, RHI, RenderCore, Assets, Scene | World renderer, post-processing, text, particles, debug drawing. Draws an `IRenderScene` |
+| `Application` | Core, Platform, RHI, RenderCore, Assets, Physics, Renderer | Window, main loop, layers |
+| `UMG` | Core, Platform, RHI, Assets, Scene, Renderer, Application | Widgets and layout. Reaches the screen through `IWidgetViewport`, which the HUD implements |
+| `LeonEngineCore` (one library) | all of the above | `Engine` (world, maps, net), `Gameplay` (actors, components, controllers) and `AI` |
 | `Launch` | LeonEngineCore, RHID3D12, Jolt | The `main()` every game shares |
 | `LeonEnginePipeline` (Developer: `AssetPipeline`, `Lightmass`) | LeonEngineCore, ufbx | Importers (FBX meshes, skeletons, materials), lightmap UVs and the light baker. Linked by the tools, the editor and tests; games do not link it |
 
-The modules inside `LeonEngineCore` keep their own folders but still compile together, because they
-include each other in cycles around `UWorld` and `AActor`. What separating them needs is recorded in
-[ADR 0007](adr/0007-one-build-tree-and-enforced-modules.md).
+`Engine`, `Gameplay` and `AI` keep their own folders but compile together: the world owns its actors,
+ticks its AI controllers and its navigation, and the actors reach back into the world. They are one
+design; the reasons are in [ADR 0007](adr/0007-one-build-tree-and-enforced-modules.md).
 
 ### Rules
 

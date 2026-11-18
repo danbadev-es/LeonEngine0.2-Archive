@@ -14,6 +14,7 @@ LeonEngine2/
 │   ├── Assets/        UAssetManager, meshes, skeleton, animation, materials, HDR
 │   ├── Audio/         FAudioDevice, USoundWave
 │   ├── Physics/       IPhysicsScene (Jolt behind a plugin), collision types
+│   ├── Scene/         components entities are drawn from, IRenderScene
 │   ├── Renderer/      FWorldRenderer, post-processing, particles, debug drawing
 │   ├── Engine/        UEngine, UWorld, UGameInstance, serializers, ECS PODs
 │   ├── Gameplay/      AActor … ACharacter, components, UGameplayStatics
@@ -70,7 +71,7 @@ LeonEngine2 keeps **two** component layers on purpose (see [NAMING.md](NAMING.md
 
 | Layer | Prefix | Lives in | Used by |
 | :--- | :--- | :--- | :--- |
-| EnTT POD (map / render ECS) | `F*Component` | `Engine/Components.hpp` | `FMapSerializer`, `FWorldRenderer`, Lightmass |
+| EnTT POD (map / render ECS) | `F*Component` | `Scene/Components.hpp` | `FMapSerializer`, `FWorldRenderer`, Lightmass |
 | Gameplay (`UActorComponent`) | `U*Component` | `Gameplay/` | `AActor` spawn hierarchy, combat, movement |
 
 ```text
@@ -83,7 +84,7 @@ FWorldRenderer reads both (EnTT for map meshes/lights; gameplay for skinned pawn
 
 **Roadmap (not in this pass):** migrate map actors to spawned `AActor` instances so EnTT PODs become an implementation detail behind gameplay components.
 
-EnTT render mirrors (`FTransformComponent`, `FStaticMeshComponent`, `FDirectionalLightComponent`, …) live in `Engine/Components.hpp`. They are not `UActorComponent` subclasses.
+EnTT render mirrors (`FTransformComponent`, `FStaticMeshComponent`, `FDirectionalLightComponent`, …) live in `Scene/Components.hpp`. They are not `UActorComponent` subclasses.
 
 ## Startup lifecycle
 
