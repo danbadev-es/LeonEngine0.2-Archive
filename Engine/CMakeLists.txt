@@ -176,11 +176,18 @@ leon_add_module(Renderer
 )
 target_include_directories(LeonModule_Renderer PRIVATE "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb")
 
-# --- Everything above them still builds as one library. These modules include each other in
-# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
-set(LEON_ENGINE_SOURCES
+# The application: window, main loop, layers, and the start and stop of the engine's subsystems.
+leon_add_module(Application
+    SOURCES
     Source/Runtime/Application/Private/FApplication.cpp
     Source/Runtime/Application/Private/FLayerStack.cpp
+    DEPENDS Core Platform RHI RenderCore Assets Physics Renderer
+)
+
+# The UI library: widgets, layout and their drawing. It reaches the screen through IWidgetViewport,
+# which the HUD implements.
+leon_add_module(UMG
+    SOURCES
     Source/Runtime/UMG/Private/UWidget.cpp
     Source/Runtime/UMG/Private/UPanelWidget.cpp
     Source/Runtime/UMG/Private/UCanvasPanel.cpp
@@ -200,6 +207,14 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/UMG/Private/UScrollBox.cpp
     Source/Runtime/UMG/Private/UTableView.cpp
     Source/Runtime/UMG/Private/ULoadingSpinner.cpp
+    DEPENDS Core Platform RHI RenderCore Assets Scene Renderer Application
+    PRIVATE_LIBRARIES stb_image
+)
+target_include_directories(LeonModule_UMG PRIVATE "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb")
+
+# --- Everything above them still builds as one library. These modules include each other in
+# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
+set(LEON_ENGINE_SOURCES
     Source/Runtime/Gameplay/Private/UAudioComponent.cpp
     Source/Runtime/Engine/Private/UEngine.cpp
     Source/Runtime/Engine/Private/UEngineTravel.cpp
@@ -285,8 +300,6 @@ add_library(Leon::Gameplay ALIAS LeonEngineCore)
 
 target_include_directories(LeonEngineCore
     PUBLIC
-        "${LEON_RUNTIME_ROOT}/Application/Public"
-        "${LEON_RUNTIME_ROOT}/UMG/Public"
         "${LEON_RUNTIME_ROOT}/Engine/Public"
         "${LEON_RUNTIME_ROOT}/Gameplay/Public"
         "${LEON_RUNTIME_ROOT}/AI/Public"
@@ -307,6 +320,8 @@ target_link_libraries(LeonEngineCore
         LeonModule_Physics
         LeonModule_Scene
         LeonModule_Renderer
+        LeonModule_Application
+        LeonModule_UMG
         glfw
         glm::glm
         EnTT::EnTT

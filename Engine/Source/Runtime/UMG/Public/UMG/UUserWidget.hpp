@@ -6,7 +6,7 @@
 namespace Leon {
 
     class APlayerController;
-    class AHUD;
+    class IWidgetViewport;
 
     /**
      * @brief Unreal Engine aligned gameplay-authored UI User Widget.
@@ -27,6 +27,13 @@ namespace Leon {
 
         void SetOwningPlayer(APlayerController* InPC) { OwningPlayer = InPC; }
         APlayerController* GetOwningPlayer() const;
+
+        /**
+         * How a widget finds the viewport of the player that owns it. Installed by gameplay (the HUD);
+         * until then AddToViewport does nothing.
+         */
+        using FViewportResolver = IWidgetViewport* (*)(APlayerController* InOwningPlayer);
+        static void SetViewportResolver(FViewportResolver InResolver) { ViewportResolver = InResolver; }
 
         void Paint(const FGeometry& InAllottedGeometry) override;
         void Tick(float InDeltaTime) override;
@@ -52,6 +59,12 @@ namespace Leon {
         APlayerController* OwningPlayer = nullptr;
         int32_t ZOrder = 0;
         bool bConstructed = false;
+
+    private:
+        IWidgetViewport* GetViewport() const {
+            return ViewportResolver && OwningPlayer ? ViewportResolver(OwningPlayer) : nullptr;
+        }
+        static inline FViewportResolver ViewportResolver = nullptr;
     };
 
 } // namespace Leon

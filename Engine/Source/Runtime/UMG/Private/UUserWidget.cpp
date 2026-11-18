@@ -1,8 +1,6 @@
 #include "UMG/UUserWidget.hpp"
 #include "UMG/UCanvasPanel.hpp"
-#include "Gameplay/APlayerController.hpp"
-#include "Gameplay/AHUD.hpp"
-#include "Engine/UWorld.hpp"
+#include "UMG/IWidgetViewport.hpp"
 
 namespace Leon {
 
@@ -18,26 +16,18 @@ namespace Leon {
 
     void UUserWidget::AddToViewport(int32_t InZOrder) {
         ZOrder = InZOrder;
-        if (!OwningPlayer)
-            return;
-
-        AHUD* hud = OwningPlayer->GetHUD();
-        if (!hud)
+        IWidgetViewport* viewport = GetViewport();
+        if (!viewport)
             return;
 
         auto selfPtr = std::static_pointer_cast<UUserWidget>(shared_from_this());
-        hud->AddWidgetToViewport(selfPtr, ZOrder);
+        viewport->AddWidgetToViewport(selfPtr, ZOrder);
     }
 
     void UUserWidget::RemoveFromParent() {
-        if (OwningPlayer) {
-            AHUD* hud = OwningPlayer->GetHUD();
-            if (hud) {
-                auto selfPtr = std::static_pointer_cast<UUserWidget>(shared_from_this());
-                hud->RemoveWidgetFromViewport(selfPtr);
-                UWidget::RemoveFromParent();
-                return;
-            }
+        if (IWidgetViewport* viewport = GetViewport()) {
+            auto selfPtr = std::static_pointer_cast<UUserWidget>(shared_from_this());
+            viewport->RemoveWidgetFromViewport(selfPtr);
         }
         UWidget::RemoveFromParent();
     }

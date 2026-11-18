@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gameplay/AActor.hpp"
+#include "UMG/IWidgetViewport.hpp"
 #include "UMG/UUserWidget.hpp"
 #include <vector>
 
@@ -12,7 +13,7 @@ namespace Leon {
      * @brief Unreal Engine aligned HUD base actor owned by APlayerController.
      * Manages viewport widgets, custom 2D canvas drawing, and UI input dispatch.
      */
-    class AHUD : public AActor {
+    class AHUD : public AActor, public IWidgetViewport {
     public:
         AHUD() = default;
         AHUD(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "HUD");
@@ -23,8 +24,8 @@ namespace Leon {
         void Tick(float DeltaSeconds) override;
         void EndPlay() override;
 
-        void AddWidgetToViewport(const TRef<UUserWidget>& InWidget, int32_t InZOrder = 0);
-        void RemoveWidgetFromViewport(const TRef<UUserWidget>& InWidget);
+        void AddWidgetToViewport(const TRef<UUserWidget>& InWidget, int32_t InZOrder = 0) override;
+        void RemoveWidgetFromViewport(const TRef<UUserWidget>& InWidget) override;
         void RemoveAllWidgets();
 
         const std::vector<TRef<UUserWidget>>& GetViewportWidgets() const { return ViewportWidgets; }

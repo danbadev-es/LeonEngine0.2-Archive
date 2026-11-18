@@ -9,6 +9,10 @@ namespace Leon {
 
     AHUD::AHUD(entt::entity InHandle, UWorld* InWorld, const std::string& InName) : AActor(InHandle, InWorld, InName) {
         SetClass("AHUD");
+        // Widgets show themselves through their owning player's HUD.
+        UUserWidget::SetViewportResolver([](APlayerController* InOwningPlayer) -> IWidgetViewport* {
+            return InOwningPlayer ? InOwningPlayer->GetHUD() : nullptr;
+        });
         SetCanEverTick(true);
         SetTickWhenPaused(true); // pause and inventory screens live here
     }
