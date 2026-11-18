@@ -5,6 +5,7 @@
 #include "Core/FTimestep.hpp"
 #include "Platform/FWindow.hpp"
 #include "RHI/IGraphicsContext.hpp"
+#include "RHI/IRHIDevice.hpp"
 #include "Core/events/FApplicationEvent.hpp"
 
 #include <chrono>
@@ -45,7 +46,17 @@ namespace Leon {
         virtual void OnEvent(FEvent& InEvent);
         virtual void OnShutdown() {}
 
+        /**
+         * Called by whoever draws the final image, before drawing into the back buffer, so the
+         * application knows it does not need to clear it.
+         */
+        void NotifyBackBufferDrawn() { bBackBufferUntouched = false; }
+
         FWindow& GetWindow() { return *AppWindow; }
+        /** The window's swapchain; null when the application runs without a GPU backend. */
+        IRHISwapchain* GetSwapchain() const { return Swapchain.get(); }
+        /** The command list of the frame being recorded; null outside a frame or without a GPU backend. */
+        IRHICommandList* GetFrameCommands() const { return FrameCommands; }
         bool IsHUDEnabled() const { return bShowHUD; }
         bool IsLightGizmosEnabled() const { return bShowLightGizmos; }
         bool IsGameplayDebugEnabled() const { return bShowGameplayDebug; }
@@ -77,6 +88,10 @@ namespace Leon {
     private:
         TScope<FWindow> AppWindow;
         TScope<IGraphicsContext> GraphicsContext;
+        TScope<IRHISwapchain> Swapchain;
+        IRHICommandList* FrameCommands = nullptr;
+        /** True until something has drawn into the back buffer this frame. */
+        bool bBackBufferUntouched = true;
         std::chrono::high_resolution_clock::time_point WindowCreationTime;
         bool bRunning = true;
         bool bMinimized = false;

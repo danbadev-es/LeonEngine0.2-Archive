@@ -39,6 +39,28 @@ namespace Leon {
         } else {
             LE_CORE_ERROR("Failed to create IGraphicsContext! No active RenderDriver is registered.");
         }
+        // The GPU device, when a backend was registered by the executable (the launcher does).
+        if (!FRHI::IsInitialized() && FRHI::IsBackendRegistered(ERHIBackend::D3D12)) {
+            FRHIInitDesc rhiDesc;
+#ifndef NDEBUG
+            rhiDesc.bEnableDebugLayer = true;
+#endif
+            for (int i = 1; i < InProps.CommandLineArgs.Count; ++i) {
+                const std::string argument = InProps.CommandLineArgs[i] ? InProps.CommandLineArgs[i] : "";
+                if (argument == "--warp")
+                    rhiDesc.bUseSoftwareAdapter = true;
+                else if (argument == "--gpu-validation")
+                    rhiDesc.bEnableDebugLayer = true;
+                else if (argument == "--no-gpu-validation")
+                    rhiDesc.bEnableDebugLayer = false;
+            }
+            FRHI::Init(ERHIBackend::D3D12, rhiDesc);
+        }
+        if (IRHIDevice* device = FRHI::GetDevice()) {
+            Swapchain = device->CreateSwapchain(AppWindow->GetOSHandle(), AppWindow->GetWidth(), AppWindow->GetHeight());
+            if (!Swapchain)
+                LE_CORE_ERROR("FApplication: could not create the swapchain; the window will stay empty");
+        }
         WindowCreationTime = std::chrono::high_resolution_clock::now();
         AppWindow->SetEventCallback(LE_BIND_EVENT_FN(FApplication::OnEvent));
 
@@ -57,6 +79,11 @@ namespace Leon {
         FDebugRenderer::Shutdown();
         UAssetManager::Shutdown();
         FRenderer::Shutdown();
+        // The swapchain's images must be gone before the device.
+        if (IRHIDevice* device = FRHI::GetDevice())
+            device->WaitIdle();
+        Swapchain.reset();
+        FRHI::Shutdown();
         Instance = nullptr;
     }
 
@@ -97,6 +124,8 @@ namespace Leon {
         }
 
         bMinimized = false;
+        if (Swapchain)
+            Swapchain->Resize(InEvent.GetWidth(), InEvent.GetHeight());
         FRenderer::OnWindowResize(InEvent.GetWidth(), InEvent.GetHeight());
         return false;
     }
@@ -157,6 +186,13 @@ namespace Leon {
             LastFrameTime = time;
             FTimestep timestep = std::min(rawDt, kPhysicsMaxFrameDeltaSeconds);
 
+            IRHIDevice* device = FRHI::GetDevice();
+            const bool bRenderFrame = device && Swapchain && !bMinimized;
+            if (bRenderFrame) {
+                FrameCommands = &device->BeginFrame();
+                bBackBufferUntouched = true;
+            }
+
             if (!bMinimized) {
                 OnUpdate(timestep);
 
@@ -173,7 +209,24 @@ namespace Leon {
 
             {
                 const auto presentStart = std::chrono::high_resolution_clock::now();
+                if (bRenderFrame) {
+                    // Nothing drew the final image (no world, or the renderer is not on this RHI yet):
+                    // show a cleared frame rather than whatever the back buffer held.
+                    if (bBackBufferUntouched) {
+                        FRHIRenderPassDesc pass;
+                        pass.NumColorTargets = 1;
+                        pass.Color[0].Texture = Swapchain->GetBackBuffer();
+                        pass.Color[0].ClearColor = {0.02f, 0.03f, 0.05f, 1.0f};
+                        pass.Name = "ClearBackBuffer";
+                        FrameCommands->BeginRenderPass(pass);
+                        FrameCommands->EndRenderPass();
+                    }
+                    FrameCommands = nullptr;
+                    device->EndFrame();
+                }
                 AppWindow->OnUpdate();
+                if (bRenderFrame)
+                    Swapchain->Present(AppWindow->IsVSync());
                 if (GraphicsContext)
                     GraphicsContext->SwapBuffers();
                 const auto presentEnd = std::chrono::high_resolution_clock::now();

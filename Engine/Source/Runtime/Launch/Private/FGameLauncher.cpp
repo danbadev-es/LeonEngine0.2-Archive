@@ -6,6 +6,7 @@
 // The backends this build of the engine ships with. Games never name them.
 #include "FJoltPhysicsDriver.hpp"
 #include "RHI/FNullRenderDriver.hpp"
+#include "RHID3D12/FD3D12RHI.hpp"
 
 #include <cstdlib>
 #include <filesystem>
@@ -50,8 +51,10 @@ namespace Leon {
     }
 
     int LaunchGame(int InArgc, char** InArgv, const FGameLaunchDesc& InDesc) {
-        // No GPU backend yet (the Direct3D 12 one is being written): the game runs without an image.
+        // The renderer still talks to the old interface, served by a driver that draws nothing; it is
+        // being ported pass by pass to the new RHI, which runs on Direct3D 12.
         FNullRenderDriver::Register();
+        FD3D12RHI::Register();
         FJoltPhysicsDriver::Register();
 
         FGameModuleHooks hooks;

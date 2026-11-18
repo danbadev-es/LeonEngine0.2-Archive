@@ -5,7 +5,7 @@ add_library(Leon::Launch ALIAS LeonLaunch)
 target_include_directories(LeonLaunch PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_link_libraries(LeonLaunch
     PUBLIC LeonEngineCore
-    PRIVATE Leon::Jolt
+    PRIVATE Leon::Jolt LeonModule_RHID3D12
 )
 if(COMMAND leon_apply_compile_options)
     leon_apply_compile_options(LeonLaunch)
