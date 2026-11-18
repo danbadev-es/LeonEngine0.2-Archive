@@ -73,7 +73,10 @@ namespace Leon {
         glm::vec4 EnvSkyColor{0.18f, 0.44f, 0.88f, 1.2f}; // xyz = sky, w = envIntensity
         glm::vec4 EnvHorizonColor{0.78f, 0.84f, 0.95f, 0.0f};
         glm::vec4 EnvGroundColor{0.22f, 0.24f, 0.28f, 0.0f};
-    }; // Total: ~1344 bytes
+        // Appended fields: keep them at the end so existing offsets stay valid.
+        glm::vec4 FogColorDensity{0.0f};              // xyz = colour, w = density per metre (0 = fog off)  (offset 1392)
+        glm::vec4 FogParams{0.0f, 0.0f, 0.0f, 1.0f};  // x = start, y = height falloff, z = base height, w = max opacity
+    }; // Total: 1424 bytes
 
     // =========================================================================
 

@@ -520,3 +520,18 @@ vec3 SamplePlanarReflectionLi(vec3 worldPos, vec3 N, float roughness, out float 
     weight = max(w0, w1);
     return w1 > w0 ? li1 : li0;
 }
+
+// Distance + height fog. `fogColorDensity.a` is the extinction per metre; 0 disables the effect and
+// returns the colour untouched, so scenes without fog render exactly as before.
+vec3 ApplyDistanceFog(vec3 color, vec3 worldPos, vec3 viewPos, vec4 fogColorDensity, vec4 fogParams) {
+    float density = fogColorDensity.a;
+    if (density <= 0.0)
+        return color;
+    float dist = max(length(worldPos - viewPos) - fogParams.x, 0.0);
+    float heightFactor = 1.0;
+    if (fogParams.y > 0.0)
+        heightFactor = exp(-max(worldPos.y - fogParams.z, 0.0) * fogParams.y);
+    float fog = 1.0 - exp(-dist * density * heightFactor);
+    fog = min(fog, fogParams.w);
+    return mix(color, fogColorDensity.rgb, fog);
+}

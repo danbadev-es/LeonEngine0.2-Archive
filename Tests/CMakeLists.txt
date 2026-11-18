@@ -41,6 +41,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Shader/PBRShaderNormalMappingTests.cpp
     Shader/PBRShaderMaterialTextureTests.cpp
     Shader/PBRShaderEmissiveTests.cpp
+    Shader/PBRShaderFogTests.cpp
     Shader/PBRShaderAlphaTests.cpp
     Shader/PBRShaderUVTransformTests.cpp
     Shader/PBRShaderColorSpaceTests.cpp

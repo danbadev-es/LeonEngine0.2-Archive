@@ -175,6 +175,22 @@ namespace Leon {
                << "]\n";
             Indent(ss, 2);
             ss << "SunColor: [" << sky.SunColor.r << ", " << sky.SunColor.g << ", " << sky.SunColor.b << "]\n";
+            if (sky.bFogEnabled) {
+                Indent(ss, 2);
+                ss << "FogEnabled: true\n";
+                Indent(ss, 2);
+                ss << "FogColor: [" << sky.FogColor.r << ", " << sky.FogColor.g << ", " << sky.FogColor.b << "]\n";
+                Indent(ss, 2);
+                ss << "FogDensity: " << sky.FogDensity << "\n";
+                Indent(ss, 2);
+                ss << "FogStartDistance: " << sky.FogStartDistance << "\n";
+                Indent(ss, 2);
+                ss << "FogHeightFalloff: " << sky.FogHeightFalloff << "\n";
+                Indent(ss, 2);
+                ss << "FogBaseHeight: " << sky.FogBaseHeight << "\n";
+                Indent(ss, 2);
+                ss << "FogMaxOpacity: " << sky.FogMaxOpacity << "\n";
+            }
         } else {
             Indent(ss, 1);
             ss << "Skybox:\n";

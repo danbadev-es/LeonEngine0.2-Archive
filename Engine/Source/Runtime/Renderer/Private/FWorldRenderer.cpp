@@ -423,6 +423,10 @@ namespace Leon {
         lightingData.EnvSkyColor = glm::vec4(skybox.SkyZenithColor, skybox.EnvironmentIntensity);
         lightingData.EnvHorizonColor = glm::vec4(skybox.HorizonColor, 0.0f);
         lightingData.EnvGroundColor = glm::vec4(skybox.GroundColor, 0.0f);
+        const bool bFog = bHasSkybox && skybox.bFogEnabled && skybox.FogDensity > 0.0f;
+        lightingData.FogColorDensity = glm::vec4(skybox.FogColor, bFog ? skybox.FogDensity : 0.0f);
+        lightingData.FogParams = glm::vec4(std::max(skybox.FogStartDistance, 0.0f), std::max(skybox.FogHeightFalloff, 0.0f),
+                                           skybox.FogBaseHeight, glm::clamp(skybox.FogMaxOpacity, 0.0f, 1.0f));
 
         if (LightingUBO)
             LightingUBO->SetData(&lightingData, sizeof(FLightingBufferData), 0);
@@ -434,6 +438,10 @@ namespace Leon {
         mainCamData.ViewProjection = InCamera.GetViewProjectionMatrix();
         mainCamData.CameraPosition = glm::vec4(InCamera.GetPosition(), 1.0f);
         mainCamData.CameraForward = glm::vec4(InCamera.GetForwardDirection(), 0.0f);
+        // Bias settings used to be written only by the cascaded (sun) pass, so a scene lit just by a spot
+        // or point light, e.g. a flashlight indoors, ignored the configured values.
+        mainCamData.ShadowParams = glm::vec4(ShadowSettings.ConstantBias, ShadowSettings.SlopeBias,
+                                             ShadowSettings.NormalBias, ShadowSettings.CascadeBlendWidth);
 
         // ------------------------------------------------------------------
         // PASS 1: Cascaded Shadow Pass

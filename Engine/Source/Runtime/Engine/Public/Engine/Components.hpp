@@ -254,6 +254,20 @@ namespace Leon {
         glm::vec3 GroundColor{0.22f, 0.24f, 0.28f};
         glm::vec3 SunColor{1.0f, 0.98f, 0.92f};
 
+        // Distance + height fog applied to lit geometry (not to the sky, particles or world text).
+        // Lives with the environment because it is authored per map, like the sky colours.
+        bool bFogEnabled = false;
+        glm::vec3 FogColor{0.045f, 0.05f, 0.055f};
+        /** Extinction per metre: 0.05 is thin haze, 0.3 hides everything past ~10 m. */
+        float FogDensity = 0.08f;
+        /** Metres from the camera before fog starts to build up. */
+        float FogStartDistance = 0.0f;
+        /** 0 = uniform. Higher values thin the fog above FogBaseHeight (ground fog). */
+        float FogHeightFalloff = 0.0f;
+        float FogBaseHeight = 0.0f;
+        /** Upper bound of the fog amount (0..1), so distant lights never vanish completely. */
+        float FogMaxOpacity = 1.0f;
+
         FSkyboxComponent() = default;
         FSkyboxComponent(const FSkyboxComponent&) = default;
     };

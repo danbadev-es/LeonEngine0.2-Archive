@@ -122,6 +122,8 @@ layout(std140) uniform LightingData {
     vec4 u_EnvSkyColor;         // xyz = skyZenithColor, w = envIntensity
     vec4 u_EnvHorizonColor;     // xyz = horizonColor
     vec4 u_EnvGroundColor;      // xyz = groundColor
+    vec4 u_FogColorDensity;     // xyz = fog colour, w = density per metre (0 = off)
+    vec4 u_FogParams;           // x = start distance, y = height falloff, z = base height, w = max opacity
 };
 
 // PBR Material Properties
@@ -590,5 +592,6 @@ void main() {
         return;
     }
 
+    hdrColor = ApplyDistanceFog(hdrColor, v_FragPos, u_ViewPos.xyz, u_FogColorDensity, u_FogParams);
     FragColor = vec4(hdrColor, alpha);
 }

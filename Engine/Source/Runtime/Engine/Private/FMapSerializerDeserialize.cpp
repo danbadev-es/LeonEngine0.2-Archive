@@ -355,6 +355,22 @@ namespace Leon {
                             auto v = ParseFloatArray(val);
                             if (v.size() >= 3)
                                 skybox.SunColor = {v[0], v[1], v[2]};
+                        } else if (key == "FogEnabled") {
+                            skybox.bFogEnabled = (val == "true");
+                        } else if (key == "FogColor") {
+                            auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                skybox.FogColor = {v[0], v[1], v[2]};
+                        } else if (key == "FogDensity") {
+                            skybox.FogDensity = std::stof(val);
+                        } else if (key == "FogStartDistance") {
+                            skybox.FogStartDistance = std::stof(val);
+                        } else if (key == "FogHeightFalloff") {
+                            skybox.FogHeightFalloff = std::stof(val);
+                        } else if (key == "FogBaseHeight") {
+                            skybox.FogBaseHeight = std::stof(val);
+                        } else if (key == "FogMaxOpacity") {
+                            skybox.FogMaxOpacity = std::stof(val);
                         } else if (applyBakeKey(worldSettings, key, val)) {
                             bLegacyBakeOnSkybox = true;
                         }

@@ -439,6 +439,43 @@ Actors:
             (void)startOn;
         }
 
+        TEST_CASE("fog settings are persisted with the environment only when fog is enabled") {
+            auto src = UWorld::Create("Foggy");
+            AActor* env = src->SpawnActor<AActor>("Environment");
+            auto& sky = env->AddComponent<FSkyboxComponent>();
+
+            std::string withoutFog;
+            REQUIRE(FMapSerializer(src).SerializeText(withoutFog));
+            CHECK(withoutFog.find("FogEnabled") == std::string::npos); // existing maps are not rewritten
+
+            sky.bFogEnabled = true;
+            sky.FogColor = {0.2f, 0.25f, 0.3f};
+            sky.FogDensity = 0.125f;
+            sky.FogStartDistance = 1.5f;
+            sky.FogHeightFalloff = 0.75f;
+            sky.FogBaseHeight = -3.0f;
+            sky.FogMaxOpacity = 0.9f;
+
+            std::string yaml;
+            REQUIRE(FMapSerializer(src).SerializeText(yaml));
+            auto dst = UWorld::Create("FoggyDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(yaml));
+
+            const FSkyboxComponent* restored = nullptr;
+            for (const auto& actor : dst->GetAllActors()) {
+                if (actor && actor->HasComponent<FSkyboxComponent>())
+                    restored = &actor->GetComponent<FSkyboxComponent>();
+            }
+            REQUIRE(restored);
+            CHECK(restored->bFogEnabled);
+            CHECK(restored->FogColor.g == 0.25f);
+            CHECK(restored->FogDensity == 0.125f);
+            CHECK(restored->FogStartDistance == 1.5f);
+            CHECK(restored->FogHeightFalloff == 0.75f);
+            CHECK(restored->FogBaseHeight == -3.0f);
+            CHECK(restored->FogMaxOpacity == 0.9f);
+        }
+
         TEST_CASE("saving to disk is atomic and keeps a backup of the previous file") {
             namespace fs = std::filesystem;
             const std::string path = "build/atomic_save_test.lmap";

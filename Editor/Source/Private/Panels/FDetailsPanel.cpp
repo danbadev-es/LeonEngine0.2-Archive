@@ -395,6 +395,17 @@ namespace Leon::Editor {
                 if (Context)
                     Context->MarkMapDirty();
             }
+            // Fog (edits are flagged dirty by the panel-wide detection in DrawSingleActorDetails).
+            FEditorWidgets::DrawPropertyCheckbox("Fog", "##FogEnabled", &sky.bFogEnabled);
+            FEditorWidgets::DrawPropertyColorEdit3("Fog Color", "##FogColor", &sky.FogColor.x);
+            FEditorWidgets::DrawPropertyDragFloat("Fog Density", "##FogDensity", &sky.FogDensity, 0.002f, 0.0f, 2.0f,
+                                                  "%.3f");
+            FEditorWidgets::DrawPropertyDragFloat("Fog Start", "##FogStart", &sky.FogStartDistance, 0.1f, 0.0f, 200.0f);
+            FEditorWidgets::DrawPropertyDragFloat("Fog Height Falloff", "##FogFalloff", &sky.FogHeightFalloff, 0.01f,
+                                                  0.0f, 5.0f);
+            FEditorWidgets::DrawPropertyDragFloat("Fog Base Height", "##FogBase", &sky.FogBaseHeight, 0.1f, -100.0f,
+                                                  100.0f);
+            FEditorWidgets::DrawPropertyDragFloat("Fog Max Opacity", "##FogMax", &sky.FogMaxOpacity, 0.01f, 0.0f, 1.0f);
             FEditorWidgets::EndPropertyGrid();
         }
     }
