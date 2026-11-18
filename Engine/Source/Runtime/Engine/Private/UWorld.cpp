@@ -57,6 +57,7 @@ namespace Leon {
         NavigationSystem.reset();
         TimerManager.Clear();
         ActorIterationDepth = 0;
+        bPaused = false;
         bLightmapsTrusted = true;
         EditorFolders.clear();
         TransientParticleEntity = entt::null;
@@ -210,12 +211,15 @@ namespace Leon {
             NetDriver->ConsumeIncomingRPCs();
         }
 
-        TimerManager.Tick(deltaSeconds);
+        if (!bPaused)
+            TimerManager.Tick(deltaSeconds);
 
         if (bBegunPlay) {
             FFrameProfiler::Working().ActorCount = static_cast<int32_t>(Actors.size());
             auto tickOnce = [&](AActor* actor) {
                 if (!actor || actor->IsPendingKill() || !actor->HasBegunPlay() || !actor->CanEverTick())
+                    return;
+                if (bPaused && !actor->ShouldTickWhenPaused())
                     return;
                 actor->ExecuteTick(deltaSeconds);
             };
@@ -269,17 +273,17 @@ namespace Leon {
             }
         }
 
-        if (bBegunPlay)
+        if (bBegunPlay && !bPaused)
             TickTransientParticles(deltaSeconds);
 
-        if (PhysicsScene) {
+        if (PhysicsScene && !bPaused) {
             FFrameProfiler::FScope physics(&FFrameProfiler::Working().PhysicsMs);
             PhysicsScene->SyncKinematicTransforms();
             PhysicsScene->Tick(deltaSeconds);
             PhysicsScene->SyncDynamicTransforms();
         }
 
-        if (bBegunPlay) {
+        if (bBegunPlay && !bPaused) {
             for (size_t i = 0; i < Actors.size(); ++i) {
                 AActor* actor = Actors[i].get();
                 if (!actor || actor->IsPendingKill())
@@ -295,10 +299,10 @@ namespace Leon {
             }
         }
 
-        if (PhysicsScene)
+        if (PhysicsScene && !bPaused)
             PhysicsScene->DrainContacts();
 
-        if (bBegunPlay) {
+        if (bBegunPlay && !bPaused) {
             FFrameProfiler::FScope overlaps(&FFrameProfiler::Working().OverlapsMs);
             UpdateComponentOverlaps();
         }

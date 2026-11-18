@@ -51,6 +51,14 @@ namespace Leon {
         void EndPlay();
         bool HasBegunPlay() const { return bBegunPlay; }
 
+        /**
+         * Pauses gameplay: while paused, Tick skips timers, physics, overlaps, particles and every actor
+         * except those with SetTickWhenPaused(true) (player controllers and HUDs by default), so pause
+         * and inventory screens keep working while the world stands still.
+         */
+        void SetPaused(bool bInPaused) { bPaused = bInPaused; }
+        bool IsPaused() const { return bPaused; }
+
         // --- Actor Management ---
         AActor* SpawnActor(const std::string& InName = "Actor");
 
@@ -252,6 +260,7 @@ namespace Leon {
         bool bBegunPlay = false;
         bool bDeferSpawnedActorBeginPlay = false;
         int32_t ActorIterationDepth = 0;
+        bool bPaused = false;
         bool bLightmapsTrusted = true;
         std::vector<std::string> EditorFolders;
 

@@ -70,6 +70,10 @@ namespace Leon {
         bool CanEverTick() const { return bCanEverTick; }
         void SetCanEverTick(bool InbCanTick) { bCanEverTick = InbCanTick; }
 
+        /** Actors that keep ticking while UWorld is paused (input, HUD, menus). Default false. */
+        bool ShouldTickWhenPaused() const { return bTickWhenPaused; }
+        void SetTickWhenPaused(bool bInTick) { bTickWhenPaused = bInTick; }
+
         ENetRole GetLocalRole() const { return LocalRole; }
         void SetLocalRole(ENetRole InRole) { LocalRole = InRole; }
         bool HasAuthority() const { return LocalRole == ENetRole::Authority; }
@@ -274,6 +278,7 @@ namespace Leon {
         std::string ClassName = "AActor";
         bool bHasBegunPlay = false;
         bool bCanEverTick = true;
+        bool bTickWhenPaused = false;
         bool bPendingKill = false;
         bool bReplicates = false;
         bool bAlwaysRelevant = false;

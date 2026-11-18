@@ -12,6 +12,7 @@ namespace Leon {
     APlayerController::APlayerController(entt::entity InHandle, UWorld* InWorld, const std::string& InName)
         : AController(InHandle, InWorld, InName) {
         SetClass("APlayerController");
+        SetTickWhenPaused(true); // input must still be read to leave the pause screen
     }
 
     void APlayerController::PostInitializeComponents() {

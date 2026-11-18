@@ -75,6 +75,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Gameplay/InventoryTests.cpp
     Gameplay/ActorLifetimeTests.cpp
     Gameplay/MapSerializerTests.cpp
+    Gameplay/WorldPauseTests.cpp
     Gameplay/ControlSchemaTests.cpp
     Gameplay/OverlapAndDamageTests.cpp
     Gameplay/PhysicsMovementAITests.cpp
