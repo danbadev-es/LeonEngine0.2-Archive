@@ -4,6 +4,7 @@
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
+#include "LeonHorror/ULeonHorrorCombatComponent.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "Assets/USkeletalMesh.hpp"
@@ -39,6 +40,8 @@ namespace Leon {
 
         if (!Inventory)
             Inventory = AddActorComponent<ULeonHorrorInventoryComponent>("Inventory");
+        if (!Combat)
+            Combat = AddActorComponent<ULeonHorrorCombatComponent>("Combat");
 
         if (auto movement = GetCharacterMovement()) {
             movement->SetMaxWalkSpeed(Tuning.WalkSpeed);
@@ -146,6 +149,17 @@ namespace Leon {
         }
 
         bAiming = InState.bAimHeld;
+
+        if (Combat) {
+            if (InState.bSelectMeleePressed)
+                Combat->Equip(ELeonHorrorWeapon::Pipe);
+            if (InState.bSelectPistolPressed)
+                Combat->Equip(ELeonHorrorWeapon::Pistol);
+            if (InState.bReloadPressed)
+                Combat->StartReload();
+            if (InState.bAttackPressed)
+                Combat->StartAttack(bAiming);
+        }
 
         glm::vec2 move = InState.Move;
         const float moveLength = glm::length(move);

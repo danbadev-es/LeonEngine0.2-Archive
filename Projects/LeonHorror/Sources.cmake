@@ -13,6 +13,7 @@ set(LEONHORROR_GAME_SOURCES
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorInventoryComponent.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorInputState.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorAnimInstance.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorCombatComponent.cpp"
 )
 
 # Explicit list: a GLOB would silently skip new test files until the next configure.
@@ -23,6 +24,7 @@ set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/CharacterTests.cpp"
     "${LEONHORROR_ROOT}/Tests/InteractionTests.cpp"
     "${LEONHORROR_ROOT}/Tests/ScreenTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/CombatTests.cpp"
 )
 
 function(leonhorror_add_game_library)

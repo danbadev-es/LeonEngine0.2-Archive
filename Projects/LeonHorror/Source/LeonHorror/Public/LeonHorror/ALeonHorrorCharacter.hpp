@@ -13,6 +13,7 @@ namespace Leon {
     class ALeonHorrorFlashlight;
     class ALeonHorrorInteractable;
     class ULeonHorrorAnimInstance;
+    class ULeonHorrorCombatComponent;
     class ULeonHorrorInventoryComponent;
 
     /** Movement and camera numbers for the player, in metres and seconds. */
@@ -75,6 +76,7 @@ namespace Leon {
         ULeonHorrorAnimInstance* GetHorrorAnim() const { return Anim.get(); }
 
         ULeonHorrorInventoryComponent* GetInventory() const { return Inventory.get(); }
+        ULeonHorrorCombatComponent* GetCombat() const { return Combat.get(); }
 
         /** The thing the interact key would act on right now, or null. Refreshed every tick. */
         ALeonHorrorInteractable* GetFocusedInteractable() const { return Focused.Get(); }
@@ -100,6 +102,7 @@ namespace Leon {
         TRef<UHealthComponent> Health;
         TRef<ULeonHorrorAnimInstance> Anim;
         TRef<ULeonHorrorInventoryComponent> Inventory;
+        TRef<ULeonHorrorCombatComponent> Combat;
         TWeakObjectPtr<ALeonHorrorInteractable> Focused;
         TWeakObjectPtr<ALeonHorrorFlashlight> Flashlight;
         FLeonHorrorInputSampler Sampler;
