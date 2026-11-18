@@ -1,9 +1,15 @@
 // Physically based surface shading: material textures, direct lights, baked lightmaps,
 // image-based lighting and fog. Writes linear HDR colour; tone mapping happens afterwards.
 //
+// Compiled twice: as is for static geometry, and with SKINNED defined for meshes that follow a
+// skeleton (two more vertex inputs and the bone palette).
+//
 // Not brought over from the OpenGL renderer yet: shadows, planar reflections, instancing.
 
 #include "PBR_Common.hlsli"
+#ifdef SKINNED
+#include "Skinning.hlsli"
+#endif
 
 // Mirrors FMaterialConstants in FWorldRendererRHI.cpp.
 cbuffer MaterialConstants : register(b2) {
@@ -48,6 +54,10 @@ struct FVertexInput {
     float4 Tangent : ATTRIBUTE3; // xyz + handedness
     float3 Color : ATTRIBUTE4;
     float2 LightmapUV : ATTRIBUTE5;
+#ifdef SKINNED
+    int4 BoneIndices : ATTRIBUTE6;
+    float4 BoneWeights : ATTRIBUTE7;
+#endif
 };
 
 struct FVertexOutput {
@@ -62,11 +72,22 @@ struct FVertexOutput {
 
 FVertexOutput VSMain(FVertexInput InVertex) {
     FVertexOutput output;
-    const float4 worldPosition = mul(u_Model, float4(InVertex.Position, 1.0));
+#ifdef SKINNED
+    const float4x4 skin = SkinMatrix(InVertex.BoneIndices, InVertex.BoneWeights);
+    const float3x3 skinNormal = NormalTransform((float3x3)skin);
+    const float4 localPosition = mul(skin, float4(InVertex.Position, 1.0));
+    const float3 localNormal = mul(skinNormal, InVertex.Normal);
+    const float3 localTangent = mul(skinNormal, InVertex.Tangent.xyz);
+#else
+    const float4 localPosition = float4(InVertex.Position, 1.0);
+    const float3 localNormal = InVertex.Normal;
+    const float3 localTangent = InVertex.Tangent.xyz;
+#endif
+    const float4 worldPosition = mul(u_Model, localPosition);
     const float3x3 normalMatrix = (float3x3)u_NormalMatrix;
 
-    const float3 N = normalize(mul(normalMatrix, InVertex.Normal));
-    float3 T = SafeNormalize(mul(normalMatrix, InVertex.Tangent.xyz), float3(1.0, 0.0, 0.0));
+    const float3 N = SafeNormalize(mul(normalMatrix, localNormal), float3(0.0, 1.0, 0.0));
+    float3 T = SafeNormalize(mul(normalMatrix, localTangent), float3(1.0, 0.0, 0.0));
     T = SafeNormalize(T - N * dot(N, T), float3(1.0, 0.0, 0.0));
     // A mirrored transform flips the handedness of the tangent frame.
     const float mirror = determinant(normalMatrix) < 0.0 ? -1.0 : 1.0;

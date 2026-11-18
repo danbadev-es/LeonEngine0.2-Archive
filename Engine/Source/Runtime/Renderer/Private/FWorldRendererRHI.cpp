@@ -1,9 +1,10 @@
 // The world renderer on the new RHI. Passes are moved here one at a time from the files written
 // against the old interfaces (FWorldRendererGeometry.cpp, FWorldRendererLighting.cpp, ...).
 //
-// Drawn today: static geometry (opaque, masked and blended) with materials, direct lights, lightmaps,
-// image-based lighting and fog, into an HDR target that is then tone mapped to the output.
-// Still to come: skinned meshes, sky, shadows, bloom/SSAO/FXAA, UI and debug drawing, reflections.
+// Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
+// lightmaps, image-based lighting and fog, plus skinned outlines, into an HDR target that is then
+// tone mapped to the output.
+// Still to come: sky, shadows, bloom/SSAO/FXAA, UI and debug drawing, reflections.
 //
 // The old Render() still runs first each frame; this code relies on it for work that is not drawing:
 // the image-based lighting environment, level-of-detail selection and light/transform syncing.
@@ -12,8 +13,10 @@
 
 #include "FWorldRendererInternals.hpp"
 
+#include "Assets/FAnimTypes.hpp"
 #include "Assets/FLightmapAsset.hpp"
 #include "Assets/UAssetManager.hpp"
+#include "Assets/USkeletalMesh.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
 #include "Engine/Components.hpp"
@@ -107,6 +110,10 @@ namespace Leon {
             glm::ivec4 DrawFlags;
         };
 
+        struct FOutlineConstants { // Outline_Skinned.hlsl
+            glm::vec4 ColorWidth;
+        };
+
         struct FToneMappingConstants { // ToneMapping.hlsl
             glm::vec4 ToneParams;
             glm::ivec4 ToneFlags;
@@ -170,6 +177,8 @@ namespace Leon {
             IRHIBuffer* Indices = nullptr;
             const FMaterialInstance* Material = nullptr;
             IRHITexture* Lightmap = nullptr;
+            /** Bone matrices of a skinned mesh; null for static geometry. */
+            const std::vector<glm::mat4>* Bones = nullptr;
             glm::mat4 Model{1.0f};
             glm::vec2 LightmapScale{1.0f};
             glm::vec2 LightmapBias{0.0f};
@@ -177,6 +186,25 @@ namespace Leon {
             uint32_t FirstIndex = 0;
             float DistanceSq = 0.0f;
         };
+
+        /** One section of a skinned mesh to outline. */
+        struct FOutlineDraw {
+            IRHIBuffer* Vertices = nullptr;
+            IRHIBuffer* Indices = nullptr;
+            const std::vector<glm::mat4>* Bones = nullptr;
+            glm::mat4 Model{1.0f};
+            glm::vec4 ColorWidth{0.0f};
+            uint32_t IndexCount = 0;
+            uint32_t FirstIndex = 0;
+        };
+
+        void SetBonePalette(IRHICommandList& InCommands, const std::vector<glm::mat4>& InPalette) {
+            static std::vector<glm::mat4> padded(kMaxBones);
+            for (uint32_t i = 0; i < kMaxBones; ++i)
+                padded[i] = i < InPalette.size() ? InPalette[i] : glm::mat4(1.0f);
+            InCommands.SetConstants(ERHIConstantSlot::Extra, padded.data(),
+                                    static_cast<uint32_t>(padded.size() * sizeof(glm::mat4)));
+        }
 
         /** What the lights and the environment of the world add up to this frame. */
         struct FSceneLighting {
@@ -264,6 +292,7 @@ namespace Leon {
         TRef<IRHITexture> BlackCube;
         /** Surface pipelines by vertex format and render state. Null: the pipeline failed to build. */
         std::map<std::string, TRef<IRHIPipeline>> SurfacePipelines;
+        TRef<IRHIPipeline> OutlinePipeline;
         TRef<IRHIPipeline> ToneMappingPipeline;
         ERHIFormat ToneMappingTargetFormat = ERHIFormat::Unknown;
     };
@@ -314,12 +343,18 @@ namespace Leon {
         // --- Shaders and pipelines ---
         TRef<IRHIShader> surfaceVS = FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> surfacePS = FShaderLibrary::Get("PBR_Lit.hlsl", "PSMain", ERHIShaderStage::Pixel);
+        TRef<IRHIShader> skinnedVS =
+            FShaderLibrary::Get("PBR_Lit.hlsl", "VSMain", ERHIShaderStage::Vertex, {{"SKINNED", "1"}});
+        TRef<IRHIShader> outlineVS = FShaderLibrary::Get("Outline_Skinned.hlsl", "VSMain", ERHIShaderStage::Vertex);
+        TRef<IRHIShader> outlinePS = FShaderLibrary::Get("Outline_Skinned.hlsl", "PSMain", ERHIShaderStage::Pixel);
         TRef<IRHIShader> toneVS = FShaderLibrary::Get("ToneMapping.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> tonePS = FShaderLibrary::Get("ToneMapping.hlsl", "PSMain", ERHIShaderStage::Pixel);
 
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
-                                         const glm::mat4& InModel, bool bInTransparent) -> IRHIPipeline* {
-            if (!surfaceVS || !surfacePS)
+                                         const glm::mat4& InModel, bool bInTransparent,
+                                         bool bInSkinned) -> IRHIPipeline* {
+            IRHIShader* vertexShader = bInSkinned ? skinnedVS.get() : surfaceVS.get();
+            if (!vertexShader || !surfacePS)
                 return nullptr;
             const FMaterialPipelineState& materialState = InMaterial.GetPipelineState();
             ECullMode cull = InMaterial.GetDoubleSided() ? ECullMode::None : materialState.CullMode;
@@ -338,7 +373,7 @@ namespace Leon {
             std::string key = std::to_string(desc.VertexLayout.Stride);
             for (const FRHIVertexAttribute& attribute : desc.VertexLayout.Attributes)
                 key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
-            key += "|c" + std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
+            key += std::string(bInSkinned ? "|skinned" : "") + "|c" + std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
                    std::to_string(static_cast<int>(desc.Depth.Compare)) + (bInTransparent ? "t" : "o") +
                    std::to_string(static_cast<int>(desc.Blend.SrcColor)) + "," +
                    std::to_string(static_cast<int>(desc.Blend.DstColor));
@@ -346,11 +381,11 @@ namespace Leon {
             const auto found = state.SurfacePipelines.find(key);
             if (found != state.SurfacePipelines.end())
                 return found->second.get();
-            desc.VertexShader = surfaceVS.get();
+            desc.VertexShader = vertexShader;
             desc.PixelShader = surfacePS.get();
             desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
             desc.DepthFormat = ERHIFormat::D32_Float;
-            desc.DebugName = "Surface";
+            desc.DebugName = bInSkinned ? "SkinnedSurface" : "Surface";
             TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
             state.SurfacePipelines[key] = pipeline;
             return pipeline.get();
@@ -375,6 +410,7 @@ namespace Leon {
         // texture uploads data, which must not happen in the middle of a render pass.
         std::vector<FSceneDraw> opaque;
         std::vector<FSceneDraw> transparent;
+        std::vector<FOutlineDraw> outlines;
         auto& registry = World->GetRegistry();
         const FFrustumPlanes frustum = ExtractFrustumPlanes(InCamera.GetViewProjectionMatrix());
         const glm::vec3 cameraPosition = InCamera.GetPosition();
@@ -394,12 +430,13 @@ namespace Leon {
                                 const glm::mat4& InModel, uint32_t InIndexCount, uint32_t InFirstIndex,
                                 IRHITexture* InLightmap, const glm::vec2& InLightmapScale,
                                 const glm::vec2& InLightmapBias, const glm::vec3& InLocalMin,
-                                const glm::vec3& InLocalMax) {
+                                const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones) {
             if (!InMaterial || InIndexCount == 0)
                 return;
             const bool bTransparent = InMaterial->GetAlphaMode() == EAlphaMode::Blend;
             FSceneDraw draw;
-            draw.Pipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent);
+            draw.Pipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent, InBones != nullptr);
+            draw.Bones = InBones;
             draw.Vertices = GetRHIVertexBuffer(InVertexArray);
             draw.Indices = GetRHIIndexBuffer(InVertexArray);
             if (!draw.Pipeline || !draw.Vertices || !draw.Indices)
@@ -436,7 +473,7 @@ namespace Leon {
             const glm::vec3 extent = ProceduralMeshLocalExtent(mesh);
             submit(*mesh.VertexArray, material.get(), model, GetRHIIndexCount(*mesh.VertexArray), 0,
                    lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
-                   mesh.LightmapBias, -extent, extent);
+                   mesh.LightmapBias, -extent, extent, nullptr);
         }
 
         // Imported static meshes.
@@ -459,7 +496,58 @@ namespace Leon {
                 submit(*vertexArray, material ? material.get() : defaultMaterial.get(), world * submesh.LocalTransform,
                        submesh.IndexCount, submesh.IndexOffset, lightmap, component.LightmapScale,
                        component.LightmapBias, component.StaticMesh->GetBoundsMin(),
-                       component.StaticMesh->GetBoundsMax());
+                       component.StaticMesh->GetBoundsMax(), nullptr);
+            }
+        }
+
+        // Skinned meshes (characters).
+        auto skinnedView = registry.view<FTransformComponent, FSkinnedMeshRenderState>();
+        for (auto entity : skinnedView) {
+            auto [transform, skinned] = skinnedView.get<FTransformComponent, FSkinnedMeshRenderState>(entity);
+            if (!skinned.bVisible || !skinned.SkeletalMesh)
+                continue;
+            const TRef<FVertexArray> vertexArray = skinned.SkeletalMesh->GetVertexArray();
+            if (!vertexArray)
+                continue;
+            const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+            if (IsSkeletalMeshOutsideLightFrustum(world, skinned, frustum))
+                continue;
+            for (const auto& submesh : skinned.SkeletalMesh->GetSubmeshes()) {
+                if (submesh.IndexCount == 0)
+                    continue;
+                const TRef<FMaterialInstance> material =
+                    ResolveSkeletalSubmeshMaterial(*skinned.SkeletalMesh, submesh, skinned.MaterialOverrides);
+                const glm::mat4 model = SkeletalModelMatrix(world, skinned, submesh.LocalTransform);
+                submit(*vertexArray, material ? material.get() : defaultMaterial.get(), model, submesh.IndexCount,
+                       submesh.IndexOffset, nullptr, glm::vec2(1.0f), glm::vec2(0.0f),
+                       skinned.SkeletalMesh->GetBoundsMin(), skinned.SkeletalMesh->GetBoundsMax(),
+                       &skinned.BonePalette);
+                if (skinned.bDrawOutline) {
+                    FOutlineDraw outline;
+                    outline.Vertices = GetRHIVertexBuffer(*vertexArray);
+                    outline.Indices = GetRHIIndexBuffer(*vertexArray);
+                    outline.Bones = &skinned.BonePalette;
+                    outline.Model = model;
+                    outline.ColorWidth = glm::vec4(skinned.OutlineColor, skinned.OutlineWidth);
+                    outline.IndexCount = submesh.IndexCount;
+                    outline.FirstIndex = submesh.IndexOffset;
+                    if (outline.Vertices && outline.Indices)
+                        outlines.push_back(outline);
+                }
+            }
+            if (!outlines.empty() && !state.OutlinePipeline && outlineVS && outlinePS) {
+                // The mesh pushed out along its normals, back faces only, behind what is already drawn.
+                FRHIGraphicsPipelineDesc desc;
+                desc.VertexShader = outlineVS.get();
+                desc.PixelShader = outlinePS.get();
+                desc.VertexLayout = GetRHIVertexLayout(*vertexArray);
+                desc.Raster.Cull = ERHICull::Front;
+                desc.Depth.bWrite = false;
+                desc.Depth.Compare = ERHICompare::LessEqual;
+                desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
+                desc.DepthFormat = ERHIFormat::D32_Float;
+                desc.DebugName = "SkinnedOutline";
+                state.OutlinePipeline = device->CreateGraphicsPipeline(desc);
             }
         }
 
@@ -551,6 +639,7 @@ namespace Leon {
             IRHIBuffer* boundVertices = nullptr;
             IRHIBuffer* boundIndices = nullptr;
             IRHITexture* boundLightmap = nullptr;
+            const std::vector<glm::mat4>* boundBones = nullptr;
             bool bLightmapBound = false;
             for (const FSceneDraw& draw : InDraws) {
                 if (draw.Pipeline != boundPipeline) {
@@ -581,6 +670,10 @@ namespace Leon {
                     boundLightmap = draw.Lightmap;
                     bLightmapBound = true;
                 }
+                if (draw.Bones && draw.Bones != boundBones) {
+                    SetBonePalette(InCommands, *draw.Bones);
+                    boundBones = draw.Bones;
+                }
                 FDrawConstants constants;
                 constants.Model = draw.Model;
                 constants.NormalMatrix = glm::mat4(SafeNormalMatrix(draw.Model));
@@ -592,6 +685,26 @@ namespace Leon {
             InCommands.PopMarker();
         };
         drawAll(opaque, "Opaque");
+        if (!outlines.empty() && state.OutlinePipeline) {
+            InCommands.PushMarker("Outlines");
+            InCommands.SetPipeline(state.OutlinePipeline.get());
+            for (const FOutlineDraw& outline : outlines) {
+                FOutlineConstants outlineConstants;
+                outlineConstants.ColorWidth = outline.ColorWidth;
+                FDrawConstants constants;
+                constants.Model = outline.Model;
+                constants.NormalMatrix = glm::mat4(SafeNormalMatrix(outline.Model));
+                constants.LightmapScaleBias = glm::vec4(0.0f);
+                constants.DrawFlags = glm::ivec4(0);
+                SetBonePalette(InCommands, *outline.Bones);
+                InCommands.SetConstants(ERHIConstantSlot::Material, &outlineConstants, sizeof(outlineConstants));
+                InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
+                InCommands.SetVertexBuffer(outline.Vertices);
+                InCommands.SetIndexBuffer(outline.Indices);
+                InCommands.DrawIndexed(outline.IndexCount, outline.FirstIndex);
+            }
+            InCommands.PopMarker();
+        }
         drawAll(transparent, "Transparent");
         InCommands.EndRenderPass();
 
