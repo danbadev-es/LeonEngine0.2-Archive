@@ -17,13 +17,9 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        GLuint hdrTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
-        glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
-        glTextureParameteri(hdrTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTextureParameteri(hdrTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        auto hdrTex = gl.CreateEmpty2D(1, 1, Leon::ERHIFormat::RGBA32_Float);
         gl.BindTexture(0, hdrTex);
-        gl.BindTexture(1, 0);
+        gl.BindTexture(1, nullptr);
         shader->SetInt("u_HDRSceneTexture", 0);
         shader->SetInt("u_BloomTexture", 1);
         shader->SetInt("u_UseBloom", 0);
@@ -35,14 +31,14 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
 
         // 1. Black FInput (0.0) -> Output strictly 0.0
         float val0[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, val0);
+        gl.Upload(hdrTex, val0);
         gl.DrawQuad();
         glm::vec4 pixel0 = gl.ReadPixel(0, 0);
         CHECK(pixel0.r == doctest::Approx(0.0f).epsilon(1e-5f));
 
         // 2. Middle Gray (0.18) -> Exact ACES value 0.266876 -> sRGB gamma = 0.54807
         float valMid[4] = {0.18f, 0.18f, 0.18f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, valMid);
+        gl.Upload(hdrTex, valMid);
         gl.DrawQuad();
         glm::vec4 pixelMid = gl.ReadPixel(0, 0);
         CHECK(pixelMid.r == doctest::Approx(Leon::LinearToSRGB(0.266876f)).epsilon(0.015f));
@@ -51,14 +47,14 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
 
         // 3. Unit White (1.0) -> Exact ACES value 0.803797 -> sRGB gamma = 0.90561
         float val1[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, val1);
+        gl.Upload(hdrTex, val1);
         gl.DrawQuad();
         glm::vec4 pixel1 = gl.ReadPixel(0, 0);
         CHECK(pixel1.r == doctest::Approx(Leon::LinearToSRGB(0.803797f)).epsilon(0.015f));
 
         // 4. Extreme HDR Brightness (1000.0) -> Bounded strictly <= 1.0
         float val1000[4] = {1000.0f, 1000.0f, 1000.0f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, val1000);
+        gl.Upload(hdrTex, val1000);
         gl.DrawQuad();
         glm::vec4 pixel1000 = gl.ReadPixel(0, 0);
         CHECK(!std::isnan(pixel1000.r));
@@ -71,7 +67,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         CHECK(pixelMid.r < pixel1.r);
         CHECK(pixel1.r < pixel1000.r);
 
-        glDeleteTextures(1, &hdrTex);
+        gl.DestroyTexture(hdrTex);
     }
 
     TEST_CASE("Tone Mapping Exposure Scaling & Multi-Operator Support") {
@@ -85,9 +81,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        GLuint hdrTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
-        glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
+        auto hdrTex = gl.CreateEmpty2D(1, 1, Leon::ERHIFormat::RGBA32_Float);
         gl.BindTexture(0, hdrTex);
         shader->SetInt("u_HDRSceneTexture", 0);
         shader->SetInt("u_UseBloom", 0);
@@ -95,7 +89,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         shader->SetInt("u_DebugMode", 0);
 
         float val[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, val);
+        gl.Upload(hdrTex, val);
 
         // 1. Exposure 1.0 vs Exposure 2.0 (Double exposure must increase output)
         shader->SetInt("u_ToneMapper", 0);
@@ -126,6 +120,6 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         glm::vec4 pixelNeutral = gl.ReadPixel(0, 0);
         CHECK(pixelNeutral.r == doctest::Approx(0.72974f).epsilon(0.015f));
 
-        glDeleteTextures(1, &hdrTex);
+        gl.DestroyTexture(hdrTex);
     }
 }

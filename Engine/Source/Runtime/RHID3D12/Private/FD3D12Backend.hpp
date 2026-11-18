@@ -65,6 +65,8 @@ namespace Leon {
         ComPtr<ID3D12Resource> Resource;
         /** Non-null for dynamic buffers: they live in an upload heap and stay mapped. */
         uint8_t* Mapped = nullptr;
+        /** Bytes reported to the render statistics; given back on destruction. */
+        uint64_t TrackedBytes = 0;
     };
 
     class FD3D12Texture final : public IRHITexture {
@@ -85,6 +87,8 @@ namespace Leon {
         std::unordered_map<uint32_t, uint32_t> DsvIndices;
         /** Views of one mip level each, by level; created when mips are generated. */
         std::unordered_map<uint32_t, uint32_t> MipSrvIndices;
+        /** Bytes reported to the render statistics; given back on destruction. */
+        uint64_t TrackedBytes = 0;
     };
 
     class FD3D12Shader final : public IRHIShader {

@@ -1,12 +1,8 @@
 #include <doctest/doctest.h>
 #include "GPU/HeadlessDevice.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
-#include "RHI/FFramebuffer.hpp"
-#include "RHI/FRenderCommand.hpp"
-#include "RHI/FShader.hpp"
 
 #include <algorithm>
-#include <glad/glad.h>
+#include <utility>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
@@ -19,17 +15,8 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
 
         const uint32_t width = 64;
         const uint32_t height = 64;
-        Leon::FFramebufferSpecification spec;
-        spec.Width = width;
-        spec.Height = height;
-        spec.Attachments = {Leon::EFramebufferTextureFormat::RGBA16F, Leon::EFramebufferTextureFormat::DEPTH24STENCIL8};
-        auto fbo = Leon::FFramebuffer::Create(spec);
-        REQUIRE(fbo != nullptr);
-
         auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/Skybox.glsl");
         REQUIRE(shader != nullptr);
-        auto cube = Leon::FMeshPrimitives::CreateCube(2.0f);
-        REQUIRE(cube != nullptr);
 
         const int hdrW = 256;
         const int hdrH = 128;
@@ -45,27 +32,42 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
             }
         }
 
-        GLuint hdrTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
-        const int levels = 9;
-        glTextureStorage2D(hdrTex, levels, GL_RGBA32F, hdrW, hdrH);
-        glTextureParameteri(hdrTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(hdrTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(hdrTex, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(hdrTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTextureSubImage2D(hdrTex, 0, 0, 0, hdrW, hdrH, GL_RGBA, GL_FLOAT, hdr.data());
-        glGenerateTextureMipmap(hdrTex);
+        // The whole mip chain, box filtered: the last level is the average of the panorama, sun
+        // included, which is what a seam would show.
+        const uint32_t levels = 9;
+        auto hdrTex = gl.CreateEmpty2D(hdrW, hdrH, Leon::ERHIFormat::RGBA32_Float, levels);
+        REQUIRE(hdrTex != nullptr);
+        gl.Upload(hdrTex, hdr.data());
+        std::vector<float> previous = hdr;
+        int previousW = hdrW;
+        int previousH = hdrH;
+        for (uint32_t level = 1; level < levels; ++level) {
+            const int levelW = std::max(previousW / 2, 1);
+            const int levelH = std::max(previousH / 2, 1);
+            std::vector<float> mip(static_cast<size_t>(levelW) * levelH * 4, 0.0f);
+            for (int y = 0; y < levelH; ++y) {
+                for (int x = 0; x < levelW; ++x) {
+                    for (int tap = 0; tap < 4; ++tap) {
+                        const int sourceX = std::min(x * 2 + (tap & 1), previousW - 1);
+                        const int sourceY = std::min(y * 2 + (tap >> 1), previousH - 1);
+                        for (int channel = 0; channel < 4; ++channel)
+                            mip[(static_cast<size_t>(y) * levelW + x) * 4 + channel] +=
+                                0.25f * previous[(static_cast<size_t>(sourceY) * previousW + sourceX) * 4 + channel];
+                    }
+                }
+            }
+            gl.Upload(hdrTex, mip.data(), level);
+            previous = std::move(mip);
+            previousW = levelW;
+            previousH = levelH;
+        }
 
-        glm::mat4 view = glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        // Toward -X, where the panorama wraps, turned by about one pixel: looking straight at it the
+        // wrap falls between two 2x2 pixel blocks, where screen derivatives never see it.
+        glm::mat4 view = glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.019f), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 proj = glm::perspective(glm::radians(70.0f), 1.0f, 0.1f, 1000.0f);
 
-        fbo->Bind();
-        glViewport(0, 0, width, height);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
-        glDisable(GL_BLEND);
-        glClear(GL_COLOR_BUFFER_BIT);
+        gl.BindFramebuffer(static_cast<int>(width), static_cast<int>(height));
 
         shader->Bind();
         shader->SetMat4("u_View", glm::value_ptr(view));
@@ -75,14 +77,11 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
         shader->SetInt("u_HDREnvironmentMap", 0);
         gl.BindTexture(0, hdrTex);
 
-        cube->Bind();
-        Leon::FRenderCommand::DrawIndexed(cube);
+        gl.DrawQuad();
 
-        std::vector<float> pixels(static_cast<size_t>(width) * height * 4);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo->GetRendererID());
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height), GL_RGBA, GL_FLOAT, pixels.data());
-        fbo->Unbind();
+        const std::vector<float> pixels = gl.ReadPixels();
+        REQUIRE(pixels.size() == static_cast<size_t>(width) * height * 4);
+        CHECK(gl.ValidationErrors() == 0);
 
         std::vector<float> colLum(width, 0.0f);
         for (uint32_t x = 0; x < width; ++x) {
@@ -101,8 +100,6 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
         REQUIRE(median > 0.02f);
         CHECK(maxLum < median * 2.5f);
 
-        glDeleteTextures(1, &hdrTex);
-        Leon::FRenderCommand::SetDepthMask(true);
-        Leon::FRenderCommand::SetDepthFunc(Leon::EDepthFunc::Less);
+        gl.DestroyTexture(hdrTex);
     }
 }

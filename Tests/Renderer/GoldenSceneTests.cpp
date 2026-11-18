@@ -1,25 +1,25 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <cmath>
 
 TEST_SUITE("Renderer golden constraints (no pixel goldens from a broken pipeline)") {
 
     TEST_CASE("Diagnostic PBR frame is finite and IBL diffuse energy holds") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         lightData.EnvSkyColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -31,14 +31,10 @@ TEST_SUITE("Renderer golden constraints (no pixel goldens from a broken pipeline
         shader->SetInt("u_UseIBL", 1);
         Leon::TestGPU::SetFloat3(shader, "u_AlbedoColor", glm::vec3(1.0f));
 
-        GLuint irrad = 0;
-        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &irrad);
-        glTextureStorage2D(irrad, 1, GL_RGBA16F, 1, 1);
-        float piFace[4] = {3.14159265f, 3.14159265f, 3.14159265f, 1.0f};
-        for (int f = 0; f < 6; ++f)
-            glTextureSubImage3D(irrad, 0, 0, 0, f, 1, 1, 1, GL_RGBA, GL_FLOAT, piFace);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, irrad);
+        // Irradiance of pi from every direction: a white diffuse surface must reflect exactly 1.
+        auto irrad = gl.CreateFloatCube(3.14159265f, 3.14159265f, 3.14159265f, 1.0f);
+        REQUIRE(irrad != nullptr);
+        gl.BindTexture(Leon::kSlotIrradiance, irrad);
 
         shader->SetInt("u_DebugMode", 35);
         gl.DrawQuad();
@@ -62,6 +58,7 @@ TEST_SUITE("Renderer golden constraints (no pixel goldens from a broken pipeline
         glm::vec4 spec = gl.ReadPixel();
         CHECK(!std::isnan(spec.r));
 
-        glDeleteTextures(1, &irrad);
+        CHECK(gl.ValidationErrors() == 0);
+        gl.DestroyTexture(irrad);
     }
 }

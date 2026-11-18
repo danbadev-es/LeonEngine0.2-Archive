@@ -1,11 +1,8 @@
 #include <doctest/doctest.h>
 #include "GPU/HeadlessDevice.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
-#include "RHI/FFramebuffer.hpp"
-#include "RHI/FRenderCommand.hpp"
-#include "RHI/FShader.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
@@ -26,6 +23,40 @@ namespace {
         }
     }
 
+    /**
+     * The depth buffer (0 near, 1 far, first row at the top) of a camera looking at a square floor
+     * on the plane y = 0, worked out per pixel instead of rasterised.
+     */
+    std::vector<float> FloorDepth(const glm::mat4& InView, const glm::mat4& InProjection, float InHalfSize,
+                                  uint32_t InWidth, uint32_t InHeight) {
+        const glm::mat4 viewProjection = InProjection * InView;
+        const glm::mat4 toWorld = glm::inverse(viewProjection);
+        const glm::mat4 toDepth = Leon::ClipDepthZeroToOne() * viewProjection;
+        std::vector<float> depth(static_cast<size_t>(InWidth) * InHeight, 1.0f);
+        for (uint32_t y = 0; y < InHeight; ++y) {
+            for (uint32_t x = 0; x < InWidth; ++x) {
+                const float ndcX = 2.0f * (static_cast<float>(x) + 0.5f) / static_cast<float>(InWidth) - 1.0f;
+                const float ndcY = 1.0f - 2.0f * (static_cast<float>(y) + 0.5f) / static_cast<float>(InHeight);
+                glm::vec4 nearPoint = toWorld * glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
+                glm::vec4 farPoint = toWorld * glm::vec4(ndcX, ndcY, 1.0f, 1.0f);
+                nearPoint /= nearPoint.w;
+                farPoint /= farPoint.w;
+                const glm::vec3 direction = glm::vec3(farPoint) - glm::vec3(nearPoint);
+                if (direction.y >= 0.0f)
+                    continue; // looking at the sky
+                const float t = -nearPoint.y / direction.y;
+                if (t < 0.0f || t > 1.0f)
+                    continue;
+                const glm::vec3 hit = glm::vec3(nearPoint) + direction * t;
+                if (std::abs(hit.x) > InHalfSize || std::abs(hit.z) > InHalfSize)
+                    continue;
+                const glm::vec4 clip = toDepth * glm::vec4(hit, 1.0f);
+                depth[static_cast<size_t>(y) * InWidth + x] = clip.z / clip.w;
+            }
+        }
+        return depth;
+    }
+
 } // namespace
 
 TEST_SUITE("Shader GPU - SSAO") {
@@ -37,68 +68,32 @@ TEST_SUITE("Shader GPU - SSAO") {
         const uint32_t width = 64;
         const uint32_t height = 64;
 
-        Leon::FFramebufferSpecification sceneSpec;
-        sceneSpec.Width = width;
-        sceneSpec.Height = height;
-        sceneSpec.Attachments = {Leon::EFramebufferTextureFormat::RGBA16F, Leon::EFramebufferTextureFormat::DEPTH32F};
-        auto sceneFBO = Leon::FFramebuffer::Create(sceneSpec);
-        REQUIRE(sceneFBO != nullptr);
-
-        auto depthShader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ShadowDepth.glsl");
-        REQUIRE(depthShader != nullptr);
-        auto plane = Leon::FMeshPrimitives::CreatePlane(80.0f, 80.0f, 8, 8);
-        REQUIRE(plane != nullptr);
-
         glm::mat4 view =
             glm::lookAt(glm::vec3(0.0f, 4.0f, 8.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 proj = glm::perspective(glm::radians(70.0f), 1.0f, 0.1f, 100.0f);
-        glm::mat4 vp = proj * view;
 
-        sceneFBO->Bind();
-        Leon::FRenderCommand::SetViewport(0, 0, width, height);
-        Leon::FRenderCommand::SetClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        Leon::FRenderCommand::SetDepthTesting(true);
-        Leon::FRenderCommand::SetDepthMask(true);
-        Leon::FRenderCommand::SetCulling(false);
-        Leon::FRenderCommand::SetBlendState(false);
-        Leon::FRenderCommand::Clear();
-        depthShader->Bind();
-        depthShader->SetMat4("u_LightSpaceMatrix", glm::value_ptr(vp));
-        depthShader->SetMat4("u_Model", glm::value_ptr(glm::mat4(1.0f)));
-        plane->Bind();
-        Leon::FRenderCommand::DrawIndexed(plane);
-        sceneFBO->Unbind();
-
-        Leon::FFramebufferSpecification aoSpec;
-        aoSpec.Width = width;
-        aoSpec.Height = height;
-        aoSpec.Attachments = {Leon::EFramebufferTextureFormat::RGBA8};
-        auto aoFBO = Leon::FFramebuffer::Create(aoSpec);
-        REQUIRE(aoFBO != nullptr);
+        // An 80 m floor seen at a grazing angle: the case where comparing depths alone self-occludes.
+        const std::vector<float> depth = FloorDepth(view, proj, 40.0f, width, height);
+        auto depthTex = gl.Create2D(width, height, Leon::ERHIFormat::R32_Float, depth.data());
+        REQUIRE(depthTex != nullptr);
 
         auto ssao = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/SSAO.glsl");
         REQUIRE(ssao != nullptr);
 
-        aoFBO->Bind();
-        Leon::FRenderCommand::SetViewport(0, 0, width, height);
-        Leon::FRenderCommand::SetDepthTesting(false);
-        Leon::FRenderCommand::SetDepthMask(false);
-        Leon::FRenderCommand::SetClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        Leon::FRenderCommand::Clear();
+        gl.BindFramebuffer(static_cast<int>(width), static_cast<int>(height));
         ssao->Bind();
-        sceneFBO->BindDepthTexture(0);
+        gl.BindTexture(0, depthTex);
         ssao->SetInt("u_DepthTexture", 0);
         ssao->SetMat4("u_Projection", glm::value_ptr(proj));
-        ssao->SetMat4("u_InverseProjection", glm::value_ptr(glm::inverse(proj)));
         ssao->SetFloat("u_Radius", 0.45f);
         ssao->SetFloat("u_Bias", 0.025f);
         ssao->SetInt("u_KernelSize", 16);
         UploadHemisphereKernel(ssao);
         gl.DrawQuad();
 
-        std::vector<float> pixels(width * height * 4, 0.0f);
-        glReadPixels(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height), GL_RGBA, GL_FLOAT, pixels.data());
-        aoFBO->Unbind();
+        const std::vector<float> pixels = gl.ReadPixels();
+        REQUIRE(pixels.size() == static_cast<size_t>(width) * height * 4);
+        CHECK(gl.ValidationErrors() == 0);
 
         float minAO = 1.0f;
         float sumAO = 0.0f;
@@ -126,16 +121,8 @@ TEST_SUITE("Shader GPU - SSAO") {
 
         gl.BindFramebuffer(1, 1);
 
-        GLuint hdrTex = 0;
-        GLuint aoTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
-        glCreateTextures(GL_TEXTURE_2D, 1, &aoTex);
-        glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
-        glTextureStorage2D(aoTex, 1, GL_RGBA8, 1, 1);
-        float hdr[4] = {3.0f, 3.0f, 3.0f, 1.0f};
-        unsigned char ao[4] = {25, 25, 25, 255};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, hdr);
-        glTextureSubImage2D(aoTex, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, ao);
+        auto hdrTex = gl.Create1x1FloatTexture(3.0f, 3.0f, 3.0f, 1.0f);
+        auto aoTex = gl.Create1x1Texture(25, 25, 25, 255);
         gl.BindTexture(0, hdrTex);
         gl.BindTexture(1, aoTex);
         shader->SetInt("u_HDRSceneTexture", 0);
@@ -148,7 +135,7 @@ TEST_SUITE("Shader GPU - SSAO") {
         CHECK(pixel.g > 2.4f);
         CHECK(pixel.b > 2.4f);
 
-        glDeleteTextures(1, &hdrTex);
-        glDeleteTextures(1, &aoTex);
+        gl.DestroyTexture(hdrTex);
+        gl.DestroyTexture(aoTex);
     }
 }

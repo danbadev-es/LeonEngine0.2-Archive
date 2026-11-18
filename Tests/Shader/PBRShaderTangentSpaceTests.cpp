@@ -125,44 +125,12 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Tangent Space & TBN Orthonormality") {
              glm::vec4(1.0f, 0.0f, 1.0f, 1.0f)},
             {glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f),
              glm::vec4(1.0f, 0.0f, 1.0f, 1.0f)}};
-        std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0};
-
-        GLuint vao = 0, vbo = 0, ebo = 0;
-        glCreateVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
-        glCreateBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, skewedVertices.size() * sizeof(Leon::TestGPU::FTestVertex), skewedVertices.data(),
-                     GL_STATIC_DRAW);
-
-        glCreateBuffers(1, &ebo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Leon::TestGPU::FTestVertex),
-                              (void*)offsetof(Leon::TestGPU::FTestVertex, Position));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Leon::TestGPU::FTestVertex),
-                              (void*)offsetof(Leon::TestGPU::FTestVertex, Normal));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Leon::TestGPU::FTestVertex),
-                              (void*)offsetof(Leon::TestGPU::FTestVertex, TexCoord));
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Leon::TestGPU::FTestVertex),
-                              (void*)offsetof(Leon::TestGPU::FTestVertex, Tangent));
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Leon::TestGPU::FTestVertex),
-                              (void*)offsetof(Leon::TestGPU::FTestVertex, Color));
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, sizeof(Leon::TestGPU::FTestVertex),
-                              (void*)offsetof(Leon::TestGPU::FTestVertex, LightmapUV));
+        // The quad the device draws, with these vertices instead of its own.
+        gl.SetQuadVertices(skewedVertices.data());
 
         // 1. Tangent test: Skewed (1, 0, 1) MUST be reconstructed to pure +X (1, 0, 0) -> (1.0, 0.5, 0.5)
         shader->SetInt("u_DebugMode", 20);
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        gl.DrawQuad();
         glm::vec4 tangPix = gl.ReadPixel();
         CHECK(tangPix.r == doctest::Approx(1.0f).epsilon(0.02f));
         CHECK(tangPix.g == doctest::Approx(0.5f).epsilon(0.02f));
@@ -170,16 +138,10 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Tangent Space & TBN Orthonormality") {
 
         // 2. Bitangent test: Skewed (1, 1, 0) MUST be reconstructed to pure +Y (0, 1, 0) -> (0.5, 1.0, 0.5)
         shader->SetInt("u_DebugMode", 21);
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        gl.DrawQuad();
         glm::vec4 bitangPix = gl.ReadPixel();
         CHECK(bitangPix.r == doctest::Approx(0.5f).epsilon(0.02f));
         CHECK(bitangPix.g == doctest::Approx(1.0f).epsilon(0.02f));
         CHECK(bitangPix.b == doctest::Approx(0.5f).epsilon(0.02f));
-
-        glBindVertexArray(0);
-        glDeleteBuffers(1, &ebo);
-        glDeleteBuffers(1, &vbo);
-        glDeleteVertexArrays(1, &vao);
     }
 }

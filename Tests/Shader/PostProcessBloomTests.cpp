@@ -1,6 +1,5 @@
 #include <doctest/doctest.h>
 #include "GPU/HeadlessDevice.hpp"
-#include "Renderer/FPostProcessPipeline.hpp"
 #include <vector>
 #include <cmath>
 
@@ -18,9 +17,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         gl.BindFramebuffer(1, 1);
 
         // 1. Create a 1x1 HDR FInput Texture
-        GLuint hdrTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
-        glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
+        auto hdrTex = gl.CreateEmpty2D(1, 1, Leon::ERHIFormat::RGBA32_Float);
         gl.BindTexture(0, hdrTex);
         shader->SetInt("u_HDRTexture", 0);
 
@@ -29,7 +26,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
 
         // Case A: Below Threshold and below knee (L = 0.2 < 0.5) -> Output must be strictly 0.0
         float valBelow[4] = {0.2f, 0.2f, 0.2f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, valBelow);
+        gl.Upload(hdrTex, valBelow);
         gl.DrawQuad();
         glm::vec4 pixelBelow = gl.ReadPixel(0, 0);
 
@@ -41,7 +38,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
 
         // Case B: In Soft-Knee Transition (L = 0.9, in [0.5, 1.5]) -> Exact quadratic knee output = 0.08
         float valMid[4] = {0.9f, 0.9f, 0.9f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, valMid);
+        gl.Upload(hdrTex, valMid);
         gl.DrawQuad();
         glm::vec4 pixelMid = gl.ReadPixel(0, 0);
 
@@ -52,7 +49,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
 
         // Case C: High Luminance HDR Value (L = 5.0) -> Output strongly positive
         float valHigh[4] = {5.0f, 5.0f, 5.0f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, valHigh);
+        gl.Upload(hdrTex, valHigh);
         gl.DrawQuad();
         glm::vec4 pixelHigh = gl.ReadPixel(0, 0);
 
@@ -63,7 +60,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
 
         // Case D: Pure Black (L = 0.0) -> Output strictly 0.0
         float valBlack[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, valBlack);
+        gl.Upload(hdrTex, valBlack);
         gl.DrawQuad();
         glm::vec4 pixelBlack = gl.ReadPixel(0, 0);
 
@@ -71,7 +68,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         CHECK(pixelBlack.g == doctest::Approx(0.0f).epsilon(1e-5f));
         CHECK(pixelBlack.b == doctest::Approx(0.0f).epsilon(1e-5f));
 
-        glDeleteTextures(1, &hdrTex);
+        gl.DestroyTexture(hdrTex);
     }
 
     TEST_CASE("Bloom Downsampling & Upsampling Filter Mathematical Energy Bounds") {
@@ -87,11 +84,9 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         gl.BindFramebuffer(1, 1);
 
         // 4x4 Constant FInput Texture of value 2.0f
-        GLuint srcTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &srcTex);
-        glTextureStorage2D(srcTex, 1, GL_RGBA16F, 4, 4);
+        auto srcTex = gl.CreateEmpty2D(4, 4, Leon::ERHIFormat::RGBA32_Float);
         std::vector<float> constData(4 * 4 * 4, 2.0f);
-        glTextureSubImage2D(srcTex, 0, 0, 0, 4, 4, GL_RGBA, GL_FLOAT, constData.data());
+        gl.Upload(srcTex, constData.data());
 
         gl.BindTexture(0, srcTex);
 
@@ -119,6 +114,6 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         CHECK(!std::isnan(upPixel.r));
         CHECK(upPixel.r == doctest::Approx(2.0f).epsilon(0.02f));
 
-        glDeleteTextures(1, &srcTex);
+        gl.DestroyTexture(srcTex);
     }
 }

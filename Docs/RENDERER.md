@@ -120,4 +120,3 @@ shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture 
   with the default settings objects about a metre tall cast no visible sun shadow.
 - Materials and maps still name shaders by the path of the old `.glsl` files, which are kept under
   `Engine/Resources/Shaders` only for that. `FShader` objects are names; the renderer picks the HLSL.
-- 34 GPU test files written against OpenGL are listed in `Tests/GPU/PENDING.md`, not built.

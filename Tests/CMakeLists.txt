@@ -56,6 +56,18 @@ set(LEON_ENGINE_TEST_SOURCES
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
+    Shader/PostProcessPipelineTests.cpp
+    Asset/MeshImportTests.cpp
+    Asset/StaticMeshLODTests.cpp
+    GPU/TextureUploadTests.cpp
+    Renderer/GoldenSceneTests.cpp
+    Renderer/ViewportResizeTests.cpp
+    Shader/PBRShaderTangentSpaceTests.cpp
+    Shader/PostProcessSSAOTests.cpp
+    Shader/SkyboxEquirectSeamTests.cpp
+    Shader/PostProcessFXAATests.cpp
+    Shader/PostProcessBloomTests.cpp
+    Shader/PostProcessToneMappingTests.cpp
     Shader/PBRShaderIBLTests.cpp
     Shader/PBRShaderPlanarReflectionTests.cpp
     Shader/PBRShaderPlanarHDRTests.cpp

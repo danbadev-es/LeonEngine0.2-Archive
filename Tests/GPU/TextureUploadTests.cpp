@@ -1,42 +1,49 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
-#include <vector>
+#include "GPU/HeadlessDevice.hpp"
+
+#include <glm/gtc/packing.hpp>
+
 #include <cmath>
+#include <vector>
 
-TEST_SUITE("GPU - Texture Upload, Half-Float & Seamless Cubemap Integration") {
+TEST_SUITE("GPU - Texture Upload & Half-Float Cubemap Integration") {
 
-    TEST_CASE("Headless OpenGL Context - Float Texture Upload & Readback Invariants") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+    TEST_CASE("Half-float cube faces come back as they were uploaded") {
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
+        Leon::IRHIDevice& device = *gl.GetDevice();
 
-        // 1. Test Seamless Cubemap OpenGL Flag Enablement
-        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-        GLboolean seamlessEnabled = glIsEnabled(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-        CHECK(seamlessEnabled == GL_TRUE);
+        const uint32_t cubeSize = 16;
+        Leon::FRHITextureDesc desc;
+        desc.Width = cubeSize;
+        desc.Height = cubeSize;
+        desc.Format = Leon::ERHIFormat::RGBA16_Float;
+        desc.Dimension = Leon::ERHITextureDimension::TextureCube;
+        desc.DebugName = "TestHalfCube";
+        auto cube = device.CreateTexture(desc);
+        REQUIRE(cube != nullptr);
 
-        // 2. Test GL_RGBA16F Cubemap Creation, Upload and Readback
-        const int cubeSize = 16;
-        GLuint cubeTex = 0;
-        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubeTex);
-        glTextureStorage2D(cubeTex, 1, GL_RGBA16F, cubeSize, cubeSize);
-
-        std::vector<float> uploadFaceData(cubeSize * cubeSize * 4, 3.1415f);
-        for (int face = 0; face < 6; ++face) {
-            glTextureSubImage3D(cubeTex, 0, 0, 0, face, cubeSize, cubeSize, 1, GL_RGBA, GL_FLOAT,
-                                uploadFaceData.data());
+        // A different value per face, so a face landing in the wrong slice shows.
+        const auto faceValue = [](uint32_t InFace) { return 3.1415f + static_cast<float>(InFace); };
+        for (uint32_t face = 0; face < 6; ++face) {
+            const std::vector<uint16_t> texels(cubeSize * cubeSize * 4, glm::packHalf1x16(faceValue(face)));
+            device.UploadTexture(*cube, 0, face, texels.data(), cubeSize * 8);
         }
+        device.WaitIdle();
 
-        std::vector<float> readbackData(cubeSize * cubeSize * 4 * 6, 0.0f);
-        glGetTextureImage(cubeTex, 0, GL_RGBA, GL_FLOAT, static_cast<GLsizei>(readbackData.size() * sizeof(float)),
-                          readbackData.data());
-
-        for (size_t i = 0; i < readbackData.size(); ++i) {
-            CHECK(!std::isnan(readbackData[i]));
-            CHECK(!std::isinf(readbackData[i]));
-            // Half-float precision has ~11 bits of mantissa (eps ~ 0.005)
-            CHECK(readbackData[i] == doctest::Approx(3.1415f).epsilon(0.005f));
+        for (uint32_t face = 0; face < 6; ++face) {
+            std::vector<uint8_t> bytes;
+            REQUIRE(device.ReadTexture(*cube, 0, face, bytes));
+            REQUIRE(bytes.size() == static_cast<size_t>(cubeSize) * cubeSize * 8);
+            const auto* halves = reinterpret_cast<const uint16_t*>(bytes.data());
+            for (size_t i = 0; i < static_cast<size_t>(cubeSize) * cubeSize * 4; ++i) {
+                const float value = glm::unpackHalf1x16(halves[i]);
+                CHECK(!std::isnan(value));
+                CHECK(!std::isinf(value));
+                // Half floats carry 11 bits of mantissa.
+                CHECK(value == doctest::Approx(faceValue(face)).epsilon(0.005f));
+            }
         }
-
-        glDeleteTextures(1, &cubeTex);
+        CHECK(gl.ValidationErrors() == 0);
     }
 }

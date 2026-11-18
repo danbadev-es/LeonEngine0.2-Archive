@@ -14,25 +14,12 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         shader->Bind();
 
         gl.BindDefaultTextures();
-        // 16x16 Output FBO
-        Leon::FFramebufferSpecification fboSpec;
-        fboSpec.Width = 16;
-        fboSpec.Height = 16;
-        fboSpec.Attachments = {Leon::EFramebufferTextureFormat::RGBA8};
-        auto testFBO = Leon::FFramebuffer::Create(fboSpec);
-        REQUIRE(testFBO != nullptr);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, testFBO->GetRendererID());
-        glViewport(0, 0, 16, 16);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        gl.BindFramebuffer(16, 16);
 
         // 16x16 Uniform Color Texture (R=0.6, G=0.6, B=0.6, A=0.6)
-        GLuint ldrTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &ldrTex);
-        glTextureStorage2D(ldrTex, 1, GL_RGBA8, 16, 16);
+        auto ldrTex = gl.CreateEmpty2D(16, 16, Leon::ERHIFormat::RGBA8_UNorm);
         std::vector<uint8_t> uniformData(16 * 16 * 4, static_cast<uint8_t>(0.6f * 255.0f));
-        glTextureSubImage2D(ldrTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, uniformData.data());
+        gl.Upload(ldrTex, uniformData.data());
 
         gl.BindTexture(0, ldrTex);
         shader->SetInt("u_LDRTexture", 0);
@@ -41,10 +28,8 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
 
         gl.DrawQuad();
 
-        std::vector<uint8_t> readback(16 * 16 * 4, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, testFBO->GetRendererID());
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, readback.data());
+        const std::vector<uint8_t> readback = gl.ReadPixelsRGBA8();
+        REQUIRE(readback.size() == 16 * 16 * 4);
 
         // Check across multiple sample coordinates (center, corners)
         for (int y = 0; y < 16; y += 4) {
@@ -74,17 +59,15 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
                 subThresholdData[idx + 3] = val;
             }
         }
-        glTextureSubImage2D(ldrTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, subThresholdData.data());
+        gl.Upload(ldrTex, subThresholdData.data());
         gl.DrawQuad();
 
-        std::vector<uint8_t> readSub(16 * 16 * 4, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, testFBO->GetRendererID());
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, readSub.data());
+        const std::vector<uint8_t> readSub = gl.ReadPixelsRGBA8();
+        REQUIRE(readSub.size() == 16 * 16 * 4);
         CHECK(readSub[(8 * 16 + 7) * 4] == 100); // Must not blur sub-threshold differences
         CHECK(readSub[(8 * 16 + 8) * 4] == 108);
 
-        glDeleteTextures(1, &ldrTex);
+        gl.DestroyTexture(ldrTex);
     }
 
     TEST_CASE("FXAA High-Contrast Edge Anti-Aliasing Response") {
@@ -97,24 +80,10 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
 
         gl.BindDefaultTextures();
 
-        Leon::FFramebufferSpecification fboSpec;
-        fboSpec.Width = 16;
-        fboSpec.Height = 16;
-        fboSpec.Attachments = {Leon::EFramebufferTextureFormat::RGBA8};
-        auto testFBO = Leon::FFramebuffer::Create(fboSpec);
-        REQUIRE(testFBO != nullptr);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, testFBO->GetRendererID());
-        glViewport(0, 0, 16, 16);
+        gl.BindFramebuffer(16, 16);
 
         // 16x16 Texture with horizontal bar (row 8 = 255, other rows = 0)
-        GLuint edgeTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &edgeTex);
-        glTextureStorage2D(edgeTex, 1, GL_RGBA8, 16, 16);
-        glTextureParameteri(edgeTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(edgeTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(edgeTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(edgeTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        auto edgeTex = gl.CreateEmpty2D(16, 16, Leon::ERHIFormat::RGBA8_UNorm);
 
         std::vector<uint8_t> edgeData(16 * 16 * 4, 0);
         for (int y = 0; y < 16; ++y) {
@@ -127,7 +96,7 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
                 edgeData[idx + 3] = val; // Luma in alpha
             }
         }
-        glTextureSubImage2D(edgeTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, edgeData.data());
+        gl.Upload(edgeTex, edgeData.data());
 
         gl.BindTexture(0, edgeTex);
         shader->SetInt("u_LDRTexture", 0);
@@ -137,10 +106,8 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         shader->SetInt("u_FXAAEnabled", 0);
         gl.DrawQuad();
 
-        std::vector<uint8_t> readbackOff(16 * 16 * 4, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, testFBO->GetRendererID());
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, readbackOff.data());
+        const std::vector<uint8_t> readbackOff = gl.ReadPixelsRGBA8();
+        REQUIRE(readbackOff.size() == 16 * 16 * 4);
 
         CHECK(readbackOff[(8 * 16 + 8) * 4] == 255);
         CHECK(readbackOff[(7 * 16 + 8) * 4] == 0);
@@ -149,8 +116,8 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         shader->SetInt("u_FXAAEnabled", 1);
         gl.DrawQuad();
 
-        std::vector<uint8_t> readbackOn(16 * 16 * 4, 0);
-        glReadPixels(0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, readbackOn.data());
+        const std::vector<uint8_t> readbackOn = gl.ReadPixelsRGBA8();
+        REQUIRE(readbackOn.size() == 16 * 16 * 4);
 
         float centerVal = static_cast<float>(readbackOn[(8 * 16 + 8) * 4]) / 255.0f;
         float neighborVal = static_cast<float>(readbackOn[(7 * 16 + 8) * 4]) / 255.0f;
@@ -160,7 +127,7 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         CHECK(centerVal < 0.95f);  // Center peak intensity softened
         CHECK(neighborVal > 0.0f); // Radiance distributed to orthogonal neighbor across the edge
 
-        glDeleteTextures(1, &edgeTex);
+        gl.DestroyTexture(edgeTex);
     }
 
     TEST_CASE("FXAA Subpixel Anti-Aliasing on Isolated High-Frequency Feature") {
@@ -173,24 +140,10 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
 
         gl.BindDefaultTextures();
 
-        Leon::FFramebufferSpecification fboSpec;
-        fboSpec.Width = 16;
-        fboSpec.Height = 16;
-        fboSpec.Attachments = {Leon::EFramebufferTextureFormat::RGBA8};
-        auto testFBO = Leon::FFramebuffer::Create(fboSpec);
-        REQUIRE(testFBO != nullptr);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, testFBO->GetRendererID());
-        glViewport(0, 0, 16, 16);
+        gl.BindFramebuffer(16, 16);
 
         // 16x16 Texture: Black field with an isolated single white pixel at (8, 8)
-        GLuint pointTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &pointTex);
-        glTextureStorage2D(pointTex, 1, GL_RGBA8, 16, 16);
-        glTextureParameteri(pointTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(pointTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(pointTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(pointTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        auto pointTex = gl.CreateEmpty2D(16, 16, Leon::ERHIFormat::RGBA8_UNorm);
 
         std::vector<uint8_t> pointData(16 * 16 * 4, 0);
         size_t centerIdx = (8 * 16 + 8) * 4;
@@ -199,7 +152,7 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         pointData[centerIdx + 2] = 255;
         pointData[centerIdx + 3] = 255; // Luma in alpha
 
-        glTextureSubImage2D(pointTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, pointData.data());
+        gl.Upload(pointTex, pointData.data());
 
         gl.BindTexture(0, pointTex);
         shader->SetInt("u_LDRTexture", 0);
@@ -209,16 +162,14 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         shader->SetInt("u_FXAAEnabled", 1);
         gl.DrawQuad();
 
-        std::vector<uint8_t> readback(16 * 16 * 4, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, testFBO->GetRendererID());
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, readback.data());
+        const std::vector<uint8_t> readback = gl.ReadPixelsRGBA8();
+        REQUIRE(readback.size() == 16 * 16 * 4);
 
         float centerVal = static_cast<float>(readback[centerIdx + 0]) / 255.0f;
         CHECK(!std::isnan(centerVal));
         CHECK(centerVal < 0.95f); // Peak intensity attenuated by subpixel filter
         CHECK(centerVal > 0.10f);
 
-        glDeleteTextures(1, &pointTex);
+        gl.DestroyTexture(pointTex);
     }
 }

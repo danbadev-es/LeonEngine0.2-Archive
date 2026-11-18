@@ -3,6 +3,7 @@
 #include "RHID3D12/FD3D12RHI.hpp"
 
 #include "Core/FLog.hpp"
+#include "RHI/FRenderer.hpp"
 
 #include <d3d12sdklayers.h>
 
@@ -232,12 +233,62 @@ namespace Leon {
     // Resources: release through the device so the GPU never sees a freed object
     // ---------------------------------------------------------------------------------------------
 
+    namespace {
+
+        // Video memory by kind and by debug name, for the statistics overlay and the quality budget.
+        // An estimate from the description: what the driver really reserves is not known here.
+
+        EGPUMemoryCategory MemoryCategory(const FRHIBufferDesc& InDesc) {
+            switch (InDesc.Usage) {
+            case ERHIBufferUsage::Vertex:
+                return EGPUMemoryCategory::VertexBuffer;
+            case ERHIBufferUsage::Index:
+                return EGPUMemoryCategory::IndexBuffer;
+            case ERHIBufferUsage::Constant:
+                break;
+            }
+            return EGPUMemoryCategory::UniformBuffer;
+        }
+
+        EGPUMemoryCategory MemoryCategory(const FRHITextureDesc& InDesc) {
+            if ((InDesc.Usage & (RHITextureUsage_RenderTarget | RHITextureUsage_DepthStencil)) != 0)
+                return EGPUMemoryCategory::Framebuffer;
+            const bool bCube = InDesc.Dimension == ERHITextureDimension::TextureCube ||
+                               InDesc.Dimension == ERHITextureDimension::TextureCubeArray;
+            return bCube ? EGPUMemoryCategory::TextureCube : EGPUMemoryCategory::Texture2D;
+        }
+
+        uint64_t MemoryBytes(const FRHITextureDesc& InDesc) {
+            uint64_t texels = 0;
+            for (uint32_t mip = 0; mip < std::max(InDesc.MipLevels, 1u); ++mip)
+                texels += static_cast<uint64_t>(std::max(InDesc.Width >> mip, 1u)) * std::max(InDesc.Height >> mip, 1u);
+            return texels * RHIFormatBytesPerPixel(InDesc.Format) * std::max(InDesc.SliceCount(), 1u);
+        }
+
+        void TrackMemory(FD3D12Buffer& InBuffer) {
+            InBuffer.TrackedBytes = InBuffer.Desc.Size;
+            FRenderer::OnGPUAlloc(static_cast<size_t>(InBuffer.TrackedBytes), MemoryCategory(InBuffer.Desc),
+                                  InBuffer.Desc.DebugName.c_str());
+        }
+
+        void TrackMemory(FD3D12Texture& InTexture) {
+            InTexture.TrackedBytes = MemoryBytes(InTexture.Desc);
+            FRenderer::OnGPUAlloc(static_cast<size_t>(InTexture.TrackedBytes), MemoryCategory(InTexture.Desc),
+                                  InTexture.Desc.DebugName.c_str());
+        }
+
+    } // namespace
+
     FD3D12Buffer::~FD3D12Buffer() {
+        if (TrackedBytes > 0)
+            FRenderer::OnGPUFree(static_cast<size_t>(TrackedBytes), MemoryCategory(Desc), Desc.DebugName.c_str());
         if (FD3D12Device* device = GetD3D12Device())
             device->DeferRelease(Resource);
     }
 
     FD3D12Texture::~FD3D12Texture() {
+        if (TrackedBytes > 0)
+            FRenderer::OnGPUFree(static_cast<size_t>(TrackedBytes), MemoryCategory(Desc), Desc.DebugName.c_str());
         FD3D12Device* device = GetD3D12Device();
         if (!device)
             return;
@@ -596,6 +647,7 @@ namespace Leon {
             if (InInitialData)
                 std::memcpy(buffer->Mapped, InInitialData, static_cast<size_t>(InDesc.Size));
             SetName(buffer->Resource.Get(), InDesc.DebugName);
+            TrackMemory(*buffer);
             return buffer;
         }
 
@@ -627,6 +679,7 @@ namespace Leon {
             list->CopyBufferRegion(buffer->Resource.Get(), 0, staging.Get(), 0, InDesc.Size);
             EndImmediate();
         }
+        TrackMemory(*buffer);
         return buffer;
     }
 
@@ -717,6 +770,7 @@ namespace Leon {
             }
             Device->CreateShaderResourceView(texture->Resource.Get(), &view, SrvPool.At(texture->SrvIndex));
         }
+        TrackMemory(*texture);
         return texture;
     }
 

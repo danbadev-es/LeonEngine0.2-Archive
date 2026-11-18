@@ -2,7 +2,7 @@
 #include "Assets/FLODSettings.hpp"
 #include "Assets/FMeshSimplifier.hpp"
 #include "Assets/UStaticMesh.hpp"
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 
 #include <cmath>
 #include <algorithm>
@@ -194,13 +194,15 @@ TEST_SUITE("Automatic static mesh LOD") {
     }
 
     TEST_CASE("GPU resources exist for each generated LOD") {
-        auto& gl = TestGPU::FHeadlessGLContext::Get();
+        TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
+        gl.UseEngineResources();
         auto mesh = MakeGridMesh(16);
         mesh->BuildAutomaticLODs();
         mesh->CreateGPUResources();
         REQUIRE(mesh->GetVertexArray() != nullptr);
         for (uint32_t i = 0; i < mesh->GetLODCount(); ++i)
             CHECK(mesh->GetLODVertexArray(i) != nullptr);
+        CHECK(gl.ValidationErrors() == 0);
     }
 }

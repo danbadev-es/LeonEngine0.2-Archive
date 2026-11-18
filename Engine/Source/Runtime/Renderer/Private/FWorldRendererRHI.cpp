@@ -12,7 +12,7 @@
 
 #include "Renderer/FWorldRenderer.hpp"
 
-#include "FPostProcessRHI.hpp"
+#include "Renderer/FPostProcessRHI.hpp"
 #include "FWorldRendererInternals.hpp"
 
 #include "Assets/FAnimTypes.hpp"

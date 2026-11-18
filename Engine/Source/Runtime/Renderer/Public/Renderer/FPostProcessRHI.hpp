@@ -35,6 +35,14 @@ namespace Leon {
         void Render(IRHICommandList& InCommands, const FPostProcessInputs& InInputs,
                     const FPostProcessSettings& InSettings);
 
+        // The intermediate targets, as the last Render left them (empty or null before the first).
+        /** Bloom levels, largest first: half the output, then half of that, and so on. */
+        const std::vector<TRef<IRHITexture>>& GetBloomTargets() const { return BloomDown; }
+        /** Ambient occlusion, at half the output's size. */
+        IRHITexture* GetOcclusionTarget() const { return Occlusion.get(); }
+        /** The tone-mapped image anti-aliasing reads, at the output's size. */
+        IRHITexture* GetToneMappedTarget() const { return ToneMapped.get(); }
+
     private:
         void EnsureTargets(IRHIDevice& InDevice, uint32_t InWidth, uint32_t InHeight);
         IRHIPipeline* GetPipeline(IRHIDevice& InDevice, const char* InFile, const char* InPixelEntry,

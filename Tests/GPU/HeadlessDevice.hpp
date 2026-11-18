@@ -11,7 +11,9 @@
 // One FHeadlessDevice per test case, declared first: it creates the device and destroys it, so tests
 // do not depend on each other. Set LEON_TEST_GPU=1 to run on the machine's graphics card.
 
+#include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/IRHIDevice.hpp"
+#include "RHI/IRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
 #include "Renderer/FShaderConstants.hpp"
 #include "Renderer/FShaderLibrary.hpp"
@@ -271,6 +273,8 @@ namespace Leon::TestGPU {
             ShadowArray.reset();
             PointShadowCubes.reset();
             FShaderLibrary::Clear();
+            if (bEngineResources)
+                FRenderDriverRegistry::RegisterDriver(nullptr);
             if (Device)
                 FRHI::Shutdown();
             if (Current() == this)
@@ -287,6 +291,16 @@ namespace Leon::TestGPU {
         }
 
         bool IsValid() const { return bInitialized; }
+        /**
+         * Lets engine objects (meshes, textures) create their resources on this device. Whatever they
+         * create must be destroyed before the device: declare it after this object.
+         */
+        void UseEngineResources() {
+            if (Device && !bEngineResources) {
+                FLegacyRenderDriver::Register();
+                bEngineResources = true;
+            }
+        }
         IRHIDevice* GetDevice() const { return Device; }
         /** Messages the Direct3D debug layer has raised since this device was created. */
         uint64_t ValidationErrors() const { return FD3D12RHI::GetValidationErrorCount() - ErrorsAtStart; }
@@ -371,6 +385,21 @@ namespace Leon::TestGPU {
             if (texture && InPixels)
                 Device->UploadTexture(*texture, 0, 0, InPixels, InWidth * RHIFormatBytesPerPixel(InFormat));
             return texture;
+        }
+
+        /** A texture to be filled later with Upload. */
+        FTestTexture CreateEmpty2D(uint32_t InWidth, uint32_t InHeight, ERHIFormat InFormat, uint32_t InMipLevels = 1) {
+            return Create2D(InWidth, InHeight, InFormat, nullptr, InMipLevels);
+        }
+
+        /** Replaces one mip level of a texture; InPixels holds tightly packed rows of the texture's format. */
+        void Upload(const FTestTexture& InTexture, const void* InPixels, uint32_t InMipLevel = 0, uint32_t InSlice = 0) {
+            if (!InTexture || !InPixels)
+                return;
+            const uint32_t width = std::max(InTexture->GetDesc().Width >> InMipLevel, 1u);
+            Device->WaitIdle();
+            Device->UploadTexture(*InTexture, InMipLevel, InSlice, InPixels,
+                                  width * RHIFormatBytesPerPixel(InTexture->GetDesc().Format));
         }
 
         FTestTexture Create1x1Texture(uint8_t InR, uint8_t InG, uint8_t InB, uint8_t InA = 255) {
@@ -537,6 +566,34 @@ namespace Leon::TestGPU {
                 y = height - 1 - y;
             std::memcpy(&pixel, bytes.data() + (static_cast<size_t>(y) * width + x) * 16, 16);
             return pixel;
+        }
+
+        /** Every pixel of the render target, four floats each, rows in the order ReadPixel counts them. */
+        std::vector<float> ReadPixels() {
+            std::vector<float> pixels;
+            if (!Device || !Color)
+                return pixels;
+            Device->WaitIdle();
+            std::vector<uint8_t> bytes;
+            if (!Device->ReadTexture(*Color, 0, 0, bytes))
+                return pixels;
+            const size_t width = Color->GetDesc().Width;
+            const size_t height = Color->GetDesc().Height;
+            pixels.resize(width * height * 4);
+            for (size_t y = 0; y < height; ++y) {
+                const size_t source = bReadFlipped ? height - 1 - y : y;
+                std::memcpy(pixels.data() + y * width * 4, bytes.data() + source * width * 16, width * 16);
+            }
+            return pixels;
+        }
+
+        /** ReadPixels as an 8-bit image would store it: clamped to 0..1 and rounded to 0..255. */
+        std::vector<uint8_t> ReadPixelsRGBA8() {
+            const std::vector<float> pixels = ReadPixels();
+            std::vector<uint8_t> bytes(pixels.size());
+            for (size_t i = 0; i < pixels.size(); ++i)
+                bytes[i] = static_cast<uint8_t>(std::clamp(pixels[i], 0.0f, 1.0f) * 255.0f + 0.5f);
+            return bytes;
         }
 
         /** A copy of the render target as a texture, to feed the next pass. */
@@ -807,6 +864,7 @@ namespace Leon::TestGPU {
 
         IRHIDevice* Device = nullptr;
         bool bInitialized = false;
+        bool bEngineResources = false;
         uint64_t ErrorsAtStart = 0;
 
         FTestTexture Color;

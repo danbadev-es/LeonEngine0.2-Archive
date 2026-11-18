@@ -3,7 +3,6 @@
 #include "Assets/UAssetManager.hpp"
 #include "Assets/FMeshImporter.hpp"
 #include "Assets/FLightmapUV.hpp"
-#include "GPU/HeadlessGLContext.hpp"
 #include "Renderer/FVertexLayout.hpp"
 
 #include <cmath>
@@ -67,10 +66,6 @@ TEST_SUITE("StaticMesh & .lmesh Binary Format Tests") {
     }
 
     TEST_CASE("ResolveStaticSubmeshMaterial prefers MaterialOverrides (planar/geometry shared path)") {
-        // Material creation loads PBR_Lit — needs a valid GL context
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
-        REQUIRE(gl.IsValid());
-
         auto mesh = UStaticMesh::Create("OverrideResolve");
         FStaticSubmesh body;
         body.Name = "Body";
