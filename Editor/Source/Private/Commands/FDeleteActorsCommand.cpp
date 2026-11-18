@@ -16,6 +16,7 @@ namespace Leon::Editor {
         snap.ClassName = InActor.GetClass();
         snap.Guid = InActor.GetActorGuid();
         snap.FolderPath = InActor.GetFolderPath();
+        snap.Properties = InActor.GetProperties();
 
         if (InActor.HasComponent<FTransformComponent>()) {
             snap.bHasTransform = true;
@@ -181,6 +182,10 @@ namespace Leon::Editor {
             else
                 actor->AddComponent<FSkyboxComponent>(InSnapshot.Skybox);
         }
+
+        for (const auto& [key, value] : InSnapshot.Properties)
+            actor->SetProperty(key, value);
+        actor->OnPropertiesLoaded();
 
         return actor;
     }

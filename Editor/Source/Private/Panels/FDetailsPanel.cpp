@@ -188,6 +188,7 @@ namespace Leon::Editor {
         DrawLightComponents(InActor, InFilter);
         DrawCameraComponent(InActor, InFilter);
         DrawBoxCollisionComponent(InActor, InFilter);
+        DrawActorProperties(InActor, InFilter);
 
         if (Context && !bEditedBeforeProperties && GImGui->ActiveIdHasBeenEditedThisFrame)
             Context->MarkMapDirty();
@@ -612,6 +613,64 @@ namespace Leon::Editor {
 
             FEditorWidgets::EndPropertyGrid();
         }
+    }
+
+    void FDetailsPanel::DrawActorProperties(AActor& InActor, const std::string& InFilter) {
+        if (!MatchesFilter("Properties Key Value Data", InFilter))
+            return;
+        if (!ImGui::CollapsingHeader("Properties", ImGuiTreeNodeFlags_DefaultOpen))
+            return;
+
+        // Existing entries: value is editable in place, the key is fixed (remove and re-add to rename).
+        std::string keyToRemove;
+        for (const auto& [key, value] : InActor.GetProperties()) {
+            ImGui::PushID(key.c_str());
+            char valueBuffer[256] = "";
+            strncpy_s(valueBuffer, value.c_str(), sizeof(valueBuffer) - 1);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(key.c_str());
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x * 0.38f);
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 34.0f);
+            if (ImGui::InputText("##Value", valueBuffer, sizeof(valueBuffer))) {
+                InActor.SetProperty(key, valueBuffer);
+                InActor.OnPropertiesLoaded();
+            }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x"))
+                keyToRemove = key;
+            ImGui::PopID();
+        }
+        if (!keyToRemove.empty()) {
+            InActor.RemoveProperty(keyToRemove);
+            InActor.OnPropertiesLoaded();
+            if (Context)
+                Context->MarkMapDirty();
+        }
+
+        // New entry.
+        static char newKey[64] = "";
+        static char newValue[256] = "";
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.36f);
+        ImGui::InputTextWithHint("##NewPropertyKey", "Key", newKey, sizeof(newKey));
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 46.0f);
+        ImGui::InputTextWithHint("##NewPropertyValue", "Value", newValue, sizeof(newValue));
+        ImGui::SameLine();
+        const bool bKeyValid = AActor::IsValidPropertyKey(newKey);
+        if (!bKeyValid)
+            ImGui::BeginDisabled();
+        if (ImGui::SmallButton("Add")) {
+            InActor.SetProperty(newKey, newValue);
+            InActor.OnPropertiesLoaded();
+            newKey[0] = '\0';
+            newValue[0] = '\0';
+            if (Context)
+                Context->MarkMapDirty();
+        }
+        if (!bKeyValid)
+            ImGui::EndDisabled();
+        if (newKey[0] != '\0' && !bKeyValid)
+            ImGui::TextDisabled("Key: letters, digits, '_' and '.'; must start with a letter.");
     }
 
     void FDetailsPanel::DrawBoxCollisionComponent(AActor& InActor, const std::string& InFilter) {

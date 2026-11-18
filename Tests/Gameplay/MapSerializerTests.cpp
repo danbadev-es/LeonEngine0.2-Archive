@@ -4,6 +4,7 @@
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
+#include "Gameplay/UClassRegistry.hpp"
 
 #include <doctest/doctest.h>
 
@@ -185,6 +186,123 @@ Actors:
             CHECK(restored->GetActorLocation().z == doctest::Approx(-2.0f));
             CHECK(restored->HasComponent<FPointLightComponent>());
             CHECK(restored->GetActorGuid() == lamp->GetActorGuid());
+        }
+    }
+
+    namespace {
+        /** Reads its authored data in the load hook, as a door or a pickup does. */
+        class ATestPropertyActor : public AActor {
+        public:
+            ATestPropertyActor(entt::entity InHandle, UWorld* InWorld, const std::string& InName = "PropertyActor")
+                : AActor(InHandle, InWorld, InName) {
+                SetClass("ATestPropertyActor");
+            }
+            void OnPropertiesLoaded() override {
+                ++LoadedCalls;
+                RequiredKey = GetProperty("RequiredKey", "none");
+                Amount = GetPropertyInt("Amount", -1);
+                bLocked = GetPropertyBool("Locked", false);
+                // The hook must run after components and transform are restored.
+                LocationAtLoad = GetActorLocation();
+                bHadLightAtLoad = HasComponent<FPointLightComponent>();
+            }
+            int LoadedCalls = 0;
+            std::string RequiredKey;
+            int32_t Amount = 0;
+            bool bLocked = false;
+            glm::vec3 LocationAtLoad{0.0f};
+            bool bHadLightAtLoad = false;
+        };
+    } // namespace
+
+    TEST_SUITE("Actor properties") {
+
+        TEST_CASE("keys are validated and typed getters fall back to defaults") {
+            auto world = UWorld::Create("Props");
+            AActor* actor = world->SpawnActor<AActor>("A");
+            CHECK(actor->SetProperty("RequiredKey", "red"));
+            CHECK(actor->SetProperty("Door.Open_2", "true"));
+            CHECK_FALSE(actor->SetProperty("", "x"));
+            CHECK_FALSE(actor->SetProperty("2fast", "x"));
+            CHECK_FALSE(actor->SetProperty("has space", "x"));
+            CHECK_FALSE(actor->SetProperty("colon:key", "x"));
+            CHECK_FALSE(actor->SetProperty("quote\"key", "x"));
+            CHECK(actor->GetProperties().size() == 2);
+
+            CHECK(actor->GetProperty("RequiredKey") == "red");
+            CHECK(actor->GetProperty("Missing", "fallback") == "fallback");
+            CHECK(actor->GetPropertyBool("Door.Open_2"));
+            CHECK(actor->GetPropertyBool("Missing", true));
+            actor->SetProperty("Amount", "12");
+            actor->SetProperty("Speed", "1.5");
+            actor->SetProperty("Junk", "abc");
+            CHECK(actor->GetPropertyInt("Amount") == 12);
+            CHECK(actor->GetPropertyFloat("Speed") == doctest::Approx(1.5f));
+            CHECK(actor->GetPropertyInt("Junk", 7) == 7);
+            CHECK(actor->GetPropertyFloat("Junk", 2.0f) == doctest::Approx(2.0f));
+
+            actor->RemoveProperty("Amount");
+            CHECK_FALSE(actor->HasProperty("Amount"));
+        }
+
+        TEST_CASE("properties round-trip through the map and the load hook sees the finished actor") {
+            UClassRegistry::Get().RegisterClass<ATestPropertyActor>("ATestPropertyActor");
+
+            auto src = UWorld::Create("PropsMap");
+            auto* door = src->SpawnActor<ATestPropertyActor>("Door");
+            door->SetActorLocation({3.0f, 0.0f, -7.0f});
+            door->AddComponent<FPointLightComponent>();
+            door->SetProperty("RequiredKey", "red");
+            door->SetProperty("Amount", "3");
+            door->SetProperty("Locked", "true");
+            // Values that would break a line-based format, and a key equal to a section name.
+            door->SetProperty("Note", "Line one\nHe said \"run\" \\ now");
+            door->SetProperty("Map", "not the header");
+            door->SetProperty("Transform", "not a section");
+            door->SetProperty("Empty", "");
+            src->SpawnActor<AActor>("Plain"); // no properties: no block is written
+
+            std::string yaml;
+            REQUIRE(FMapSerializer(src).SerializeText(yaml));
+            CHECK(yaml.find("Properties:") != std::string::npos);
+
+            auto dst = UWorld::Create("PropsDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(yaml));
+            CHECK(dst->GetName() == "PropsMap"); // the "Map" property did not hijack the header
+
+            auto* restored = dynamic_cast<ATestPropertyActor*>(dst->FindActorByName("Door"));
+            REQUIRE(restored);
+            CHECK(restored->GetProperties().size() == 7);
+            CHECK(restored->GetProperty("Note") == "Line one\nHe said \"run\" \\ now");
+            CHECK(restored->GetProperty("Map") == "not the header");
+            CHECK(restored->GetProperty("Transform") == "not a section");
+            CHECK(restored->HasProperty("Empty"));
+            CHECK(restored->GetProperty("Empty").empty());
+
+            CHECK(restored->LoadedCalls == 1);
+            CHECK(restored->RequiredKey == "red");
+            CHECK(restored->Amount == 3);
+            CHECK(restored->bLocked);
+            CHECK(restored->LocationAtLoad.x == doctest::Approx(3.0f));
+            CHECK(restored->LocationAtLoad.z == doctest::Approx(-7.0f));
+            CHECK(restored->bHadLightAtLoad);
+
+            AActor* plain = dst->FindActorByName("Plain");
+            REQUIRE(plain);
+            CHECK(plain->GetProperties().empty());
+            // The transform after the Properties block was still parsed.
+            CHECK(restored->GetActorLocation().z == doctest::Approx(-7.0f));
+        }
+
+        TEST_CASE("an invalid property key in a map file is ignored with the rest loaded") {
+            const char* kMap = "Map:\n  Name: \"K\"\n  Version: \"2.2\"\nActors:\n  - Name: \"A\"\n"
+                               "    Properties:\n      Good: \"1\"\n      9bad: \"2\"\n";
+            auto world = UWorld::Create("K");
+            REQUIRE(FMapSerializer(world).DeserializeText(kMap));
+            AActor* a = world->FindActorByName("A");
+            REQUIRE(a);
+            CHECK(a->GetProperties().size() == 1);
+            CHECK(a->GetProperty("Good") == "1");
         }
     }
 

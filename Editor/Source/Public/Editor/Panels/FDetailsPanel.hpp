@@ -35,6 +35,7 @@ namespace Leon::Editor {
         void DrawLightComponents(AActor& InActor, const std::string& InFilter);
         void DrawCameraComponent(AActor& InActor, const std::string& InFilter);
         void DrawBoxCollisionComponent(AActor& InActor, const std::string& InFilter);
+        void DrawActorProperties(AActor& InActor, const std::string& InFilter);
         void DrawAddComponentMenu(AActor& InActor);
 
         void BeginTransformUndoCapture(const std::vector<AActor*>& InActors);

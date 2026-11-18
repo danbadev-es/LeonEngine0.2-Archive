@@ -12,6 +12,7 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -164,6 +165,30 @@ namespace Leon {
         const std::string& GetFolderPath() const { return FolderPath; }
         void SetFolderPath(const std::string& InPath) { FolderPath = NormalizeFolderPath(InPath); }
 
+        // --- Authored properties ---
+        // Free-form key/value data saved with the actor in the map (`Properties:` block) and edited in the
+        // Details panel. This is how a placed game actor carries its own data (which key a door needs,
+        // what a pickup gives) without a serializer change per class. Subclasses read them in
+        // OnPropertiesLoaded().
+
+        /** Keys start with a letter and contain only letters, digits, '_' and '.'. */
+        static bool IsValidPropertyKey(const std::string& InKey);
+        /** Returns false (and stores nothing) when the key is invalid. */
+        bool SetProperty(const std::string& InKey, const std::string& InValue);
+        bool HasProperty(const std::string& InKey) const { return Properties.find(InKey) != Properties.end(); }
+        void RemoveProperty(const std::string& InKey) { Properties.erase(InKey); }
+        const std::string& GetProperty(const std::string& InKey, const std::string& InDefault = EmptyProperty) const;
+        float GetPropertyFloat(const std::string& InKey, float InDefault = 0.0f) const;
+        int32_t GetPropertyInt(const std::string& InKey, int32_t InDefault = 0) const;
+        bool GetPropertyBool(const std::string& InKey, bool bInDefault = false) const;
+        const std::map<std::string, std::string>& GetProperties() const { return Properties; }
+
+        /**
+         * Called once the actor has been fully restored from a map or an editor snapshot: transform,
+         * components and properties are all in place. Not called for actors spawned from code.
+         */
+        virtual void OnPropertiesLoaded() {}
+
         glm::vec3 GetRelativeLocation() const;
         void SetRelativeLocation(const glm::vec3& InLocation);
         glm::vec3 GetRelativeRotation() const;
@@ -260,6 +285,8 @@ namespace Leon {
         AActor* ParentActor = nullptr;
         std::vector<AActor*> ChildActors;
         std::string FolderPath;
+        std::map<std::string, std::string> Properties; // ordered: deterministic map files
+        static const std::string EmptyProperty;
 
         friend class UWorld;
         friend class FMapSerializer;

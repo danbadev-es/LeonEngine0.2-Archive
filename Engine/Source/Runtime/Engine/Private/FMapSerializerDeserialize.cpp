@@ -122,6 +122,8 @@ namespace Leon {
         FBoxCollisionComponent BoxCollision;
         bool bTriggerEnabled = true;
         bool bPlayerStartEnabled = true;
+
+        std::vector<std::pair<std::string, std::string>> Properties;
     };
 
     bool FMapSerializer::DeserializeText(const std::string& InYamlString) {
@@ -175,7 +177,8 @@ namespace Leon {
             PointLight,
             SpotLight,
             Text,
-            BoxCollision
+            BoxCollision,
+            Properties
         };
 
         EParserSection currentSection = EParserSection::None;
@@ -200,7 +203,7 @@ namespace Leon {
             }
 
             // Top-Level Section headers
-            if (trimmed == "Map:" || trimmed.rfind("Map:", 0) == 0) {
+            if (currentSection == EParserSection::None && (trimmed == "Map:" || trimmed.rfind("Map:", 0) == 0)) {
                 currentSection = EParserSection::Map;
                 size_t colon = trimmed.find(':');
                 std::string val = FStringUtils::Trim(trimmed.substr(colon + 1));
@@ -422,6 +425,9 @@ namespace Leon {
                     currentCompSection = EActorComponentSection::BoxCollision;
                     currentActor.bHasBoxCollision = true;
                     continue;
+                } else if (trimmed == "Properties:") {
+                    currentCompSection = EActorComponentSection::Properties;
+                    continue;
                 }
 
                 // Material Overrides List items (- Slot: 0)
@@ -457,6 +463,10 @@ namespace Leon {
                             currentActor.bPlayerStartEnabled = (val == "true");
                         else if (key == "TriggerEnabled")
                             currentActor.bTriggerEnabled = (val == "true");
+                        break;
+
+                    case EActorComponentSection::Properties:
+                        currentActor.Properties.emplace_back(key, val);
                         break;
 
                     case EActorComponentSection::BoxCollision:
@@ -976,6 +986,14 @@ namespace Leon {
             if (actorData.bHasText) {
                 entity->AddComponent<FTextComponent>(actorData.TextComp);
             }
+
+            // Authored properties last, then the hook: the actor is complete when it runs.
+            for (const auto& [key, value] : actorData.Properties) {
+                if (!entity->SetProperty(key, value))
+                    LE_CORE_WARN("FMapSerializer: Ignored invalid property key '{0}' on actor '{1}'", key,
+                                 actorData.Name);
+            }
+            entity->OnPropertiesLoaded();
         }
 
         LE_CORE_INFO("FMapSerializer: Instantiated {0} actors from map file", actors.size());

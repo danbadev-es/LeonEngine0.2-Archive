@@ -7,6 +7,7 @@
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,7 @@ namespace Leon::Editor {
         std::string ClassName;
         FUUID Guid;
         std::string FolderPath;
+        std::map<std::string, std::string> Properties;
 
         bool bHasTransform = false;
         FTransformComponent Transform;

@@ -231,6 +231,15 @@ namespace Leon {
                 }
             }
 
+            if (!entity.GetProperties().empty()) {
+                Indent(ss, 2);
+                ss << "Properties:\n";
+                for (const auto& [key, value] : entity.GetProperties()) {
+                    Indent(ss, 3);
+                    ss << key << ": " << QuoteMapString(value) << "\n";
+                }
+            }
+
             // Transform
             if (entity.HasComponent<FTransformComponent>()) {
                 const auto& tc = entity.GetComponent<FTransformComponent>();

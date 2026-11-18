@@ -6,6 +6,7 @@
 #include "Core/FFrameProfiler.hpp"
 
 #include <cctype>
+#include <cstdlib>
 
 namespace Leon {
 
@@ -142,6 +143,61 @@ namespace Leon {
         // Components are intentionally kept: they are released with the actor. Clearing them here freed
         // components that were still on the call stack (a component destroying its owner from Tick) and
         // left RootComponent dangling.
+    }
+
+    const std::string AActor::EmptyProperty;
+
+    bool AActor::IsValidPropertyKey(const std::string& InKey) {
+        if (InKey.empty() || !std::isalpha(static_cast<unsigned char>(InKey.front())))
+            return false;
+        for (char c : InKey) {
+            const bool bAllowed = std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '.';
+            if (!bAllowed)
+                return false;
+        }
+        return true;
+    }
+
+    bool AActor::SetProperty(const std::string& InKey, const std::string& InValue) {
+        if (!IsValidPropertyKey(InKey))
+            return false;
+        Properties[InKey] = InValue;
+        return true;
+    }
+
+    const std::string& AActor::GetProperty(const std::string& InKey, const std::string& InDefault) const {
+        const auto it = Properties.find(InKey);
+        return it != Properties.end() ? it->second : InDefault;
+    }
+
+    float AActor::GetPropertyFloat(const std::string& InKey, float InDefault) const {
+        const auto it = Properties.find(InKey);
+        if (it == Properties.end() || it->second.empty())
+            return InDefault;
+        char* end = nullptr;
+        const float value = std::strtof(it->second.c_str(), &end);
+        return end == it->second.c_str() ? InDefault : value;
+    }
+
+    int32_t AActor::GetPropertyInt(const std::string& InKey, int32_t InDefault) const {
+        const auto it = Properties.find(InKey);
+        if (it == Properties.end() || it->second.empty())
+            return InDefault;
+        char* end = nullptr;
+        const long value = std::strtol(it->second.c_str(), &end, 10);
+        return end == it->second.c_str() ? InDefault : static_cast<int32_t>(value);
+    }
+
+    bool AActor::GetPropertyBool(const std::string& InKey, bool bInDefault) const {
+        const auto it = Properties.find(InKey);
+        if (it == Properties.end() || it->second.empty())
+            return bInDefault;
+        const std::string& v = it->second;
+        if (v == "true" || v == "True" || v == "1")
+            return true;
+        if (v == "false" || v == "False" || v == "0")
+            return false;
+        return bInDefault;
     }
 
     void AActor::SetName(const std::string& InName) {
