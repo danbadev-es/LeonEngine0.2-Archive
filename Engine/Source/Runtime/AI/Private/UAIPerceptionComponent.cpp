@@ -1,5 +1,6 @@
 #include "AI/UAIPerceptionComponent.hpp"
 #include "AI/UBlackboardComponent.hpp"
+#include "Gameplay/AAIController.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/ACharacter.hpp"
 #include "Gameplay/AController.hpp"
@@ -144,19 +145,53 @@ namespace Leon {
     }
 
     bool UAIPerceptionComponent::HasLastKnown() const {
-        return LastKnownAge < SightConfig.MemoryMaxAge && glm::length(LastKnownLocation) > 0.01f;
+        // An explicit flag: the world origin is a legitimate place to have seen or heard something.
+        return bLastKnownValid && LastKnownAge < SightConfig.MemoryMaxAge;
     }
 
     void UAIPerceptionComponent::RememberActor(AActor* InActor) {
         if (!InActor)
             return;
         LastKnownLocation = InActor->GetActorLocation();
+        bLastKnownValid = true;
         LastKnownAge = 0.0f;
         CurrentTarget = InActor;
     }
 
+    bool UAIPerceptionComponent::ReportNoise(const glm::vec3& InLocation, float InRadius) {
+        APawn* self = GetSensePawn();
+        if (!self || InRadius <= 0.0f)
+            return false;
+        const glm::vec3 delta = InLocation - self->GetActorLocation();
+        if (glm::dot(delta, delta) > InRadius * InRadius)
+            return false;
+        LastKnownLocation = InLocation;
+        bLastKnownValid = true;
+        LastKnownAge = 0.0f;
+        WriteToBlackboard();
+        return true;
+    }
+
+    int32_t UAIPerceptionComponent::ReportNoiseEvent(UWorld& InWorld, const glm::vec3& InLocation, float InRadius,
+                                                     AActor* InInstigator) {
+        int32_t heard = 0;
+        // Copy: a listener may react by spawning or destroying controllers.
+        const std::vector<AAIController*> controllers = InWorld.GetAIControllers();
+        for (AAIController* controller : controllers) {
+            if (!controller || controller->IsPendingKill())
+                continue;
+            if (InInstigator && controller->GetPawn() == InInstigator)
+                continue;
+            auto perception = controller->GetPerceptionComponent();
+            if (perception && perception->ReportNoise(InLocation, InRadius))
+                ++heard;
+        }
+        return heard;
+    }
+
     void UAIPerceptionComponent::ForgetLastKnown() {
         LastKnownLocation = glm::vec3(0.0f);
+        bLastKnownValid = false;
         LastKnownAge = SightConfig.MemoryMaxAge;
         CurrentTarget = nullptr;
         PerceivedHandles.clear();
@@ -241,7 +276,10 @@ namespace Leon {
         float bestScore = -1.0e9f;
         for (int i = 0; i < topCount; ++i) {
             float score = top[i].Score;
-            if (HasLineOfSight(*top[i].Actor))
+            const bool bLos = HasLineOfSight(*top[i].Actor);
+            if (SightConfig.bRequireLineOfSight && !bLos)
+                continue;
+            if (bLos)
                 score += 100.0f;
             if (score > bestScore) {
                 bestScore = score;
@@ -252,6 +290,7 @@ namespace Leon {
         CurrentTarget = best;
         if (best && HasLineOfSight(*best)) {
             LastKnownLocation = best->GetActorLocation();
+            bLastKnownValid = true;
             LastKnownAge = 0.0f;
         }
         WriteToBlackboard();

@@ -13,6 +13,7 @@ namespace Leon {
     class AActor;
     class APawn;
     class UBlackboardComponent;
+    class UWorld;
 
     /** Sight cone for UAIPerceptionComponent. Peripheral angle is half-FOV from forward. */
     struct FAISightConfig {
@@ -24,6 +25,11 @@ namespace Leon {
         float UpdateInterval = 0.12f;
         float EyeHeightOffset = 0.25f;
         ECollisionChannel TraceChannel = ECollisionChannel::Visibility;
+        /**
+         * When true an actor only becomes the target while there is a clear trace to it. When false
+         * (default) line of sight is just a scoring bonus, so targets can be picked through walls.
+         */
+        bool bRequireLineOfSight = false;
     };
 
     /**
@@ -58,6 +64,15 @@ namespace Leon {
 
         void RememberActor(AActor* InActor);
         void ForgetLastKnown();
+
+        /**
+         * Hearing: if the sensing pawn is within InRadius of the noise, the noise position becomes the
+         * last-known location to investigate. Does not select a target. Returns true when heard.
+         */
+        bool ReportNoise(const glm::vec3& InLocation, float InRadius);
+        /** Reports a noise to every AI controller in the world; returns how many heard it. */
+        static int32_t ReportNoiseEvent(UWorld& InWorld, const glm::vec3& InLocation, float InRadius,
+                                        AActor* InInstigator = nullptr);
         const glm::vec3& GetLastKnownLocation() const { return LastKnownLocation; }
         float GetLastKnownAge() const { return LastKnownAge; }
         bool HasLastKnown() const;
@@ -80,6 +95,7 @@ namespace Leon {
         mutable std::vector<AActor*> PerceivedActorsCache; // rebuilt by GetPerceivedActors()
         FActorHandle CurrentTarget;
         glm::vec3 LastKnownLocation{0.0f};
+        bool bLastKnownValid = false;
         float LastKnownAge = 1.0e6f;
         float UpdateAccumulator = 0.0f;
     };
