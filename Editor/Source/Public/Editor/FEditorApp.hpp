@@ -90,7 +90,11 @@ namespace Leon::Editor {
         void DrawUnsavedChangesModal();
         void ExecutePendingUnsavedAction(bool bInSaveFirst);
         void ApplyPendingLoadMap();
-        void ApplyPendingLoadMap(const std::string& InMapPath);
+        /**
+         * Replaces the editor world with the map at InMapPath (empty path = new untitled map).
+         * Returns false and keeps the current world, selection and history when the map fails to load.
+         */
+        bool ApplyPendingLoadMap(const std::string& InMapPath);
         void ApplyPendingOpenProject();
         [[nodiscard]] std::string FormatMapDisplayName() const;
 

@@ -6,7 +6,10 @@
 #include "Editor/UI/FEditorTheme.hpp"
 #include "Editor/UI/FLucideIcons.hpp"
 #include "Editor/Utils/FEditorFileDialog.hpp"
+#include "Assets/UAssetManager.hpp"
 #include "Engine/Components.hpp"
+#include "Engine/FMapSerializer.hpp"
+#include "Engine/FMaterialSerializer.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 
@@ -333,9 +336,6 @@ namespace Leon::Editor {
             }
             if (ImGui::MenuItem("Level / Map (.lmap)")) {
                 CreateNewAsset("Map");
-            }
-            if (ImGui::MenuItem("Blueprint / Script (.lua)")) {
-                CreateNewAsset("Script");
             }
             ImGui::EndPopup();
         }
@@ -969,30 +969,37 @@ namespace Leon::Editor {
         if (!fs::exists(CurrentDirectory, ec) || ec)
             return;
 
+        // Never overwrite: "New Map" twice used to truncate the first map, built out or not.
+        const auto uniquePath = [&](const std::string& InStem, const std::string& InExt) {
+            fs::path candidate = CurrentDirectory / (InStem + InExt);
+            for (int counter = 1; fs::exists(candidate, ec); ++counter)
+                candidate = CurrentDirectory / (InStem + "_" + std::to_string(counter) + InExt);
+            return candidate;
+        };
+
+        // Assets are written by the engine serializers so they are in the format the loaders read.
         fs::path newAssetPath;
+        bool bWritten = false;
         if (InAssetType == "Material") {
-            newAssetPath = CurrentDirectory / "M_NewMaterial.lmat";
-            std::ofstream out(newAssetPath);
-            if (out.is_open()) {
-                out << "{\n  \"Shader\": \"DefaultPBR\",\n  \"Albedo\": [0.8, 0.2, 0.3],\n  \"Roughness\": 0.4,\n  "
-                       "\"Metallic\": 0.1\n}\n";
-            }
+            newAssetPath = uniquePath("M_NewMaterial", ".lmat");
+            if (auto defaults = UAssetManager::GetDefaultMaterial())
+                bWritten = FMaterialSerializer::Serialize(newAssetPath.string(), *defaults);
         } else if (InAssetType == "Map") {
-            newAssetPath = CurrentDirectory / "NewLevel.lmap";
-            std::ofstream out(newAssetPath);
-            if (out.is_open()) {
-                out << "{\n  \"MapName\": \"NewLevel\",\n  \"Actors\": []\n}\n";
-            }
-        } else if (InAssetType == "Script") {
-            newAssetPath = CurrentDirectory / "NewScript.lua";
-            std::ofstream out(newAssetPath);
-            if (out.is_open()) {
-                out << "-- LeonEngine Lua Script Component\nfunction OnBeginPlay()\nend\n\nfunction "
-                       "OnUpdate(dt)\nend\n";
-            }
+            newAssetPath = uniquePath("NewLevel", ".lmap");
+            auto emptyWorld = UWorld::Create(newAssetPath.stem().string());
+            bWritten = FMapSerializer(emptyWorld).Serialize(newAssetPath.string());
+        } else {
+            return;
         }
 
-        if (!newAssetPath.empty() && Context) {
+        if (!bWritten) {
+            LE_CORE_ERROR("FContentBrowserPanel: Failed to create asset '{}'", newAssetPath.string());
+            if (OnNotify)
+                OnNotify("Could not create " + newAssetPath.filename().string(), true);
+            return;
+        }
+
+        if (Context) {
             Context->GetSelection().SelectAsset(newAssetPath.string());
         }
     }

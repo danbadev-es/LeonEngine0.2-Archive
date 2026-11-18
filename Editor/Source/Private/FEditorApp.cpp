@@ -389,23 +389,17 @@ namespace Leon::Editor {
                 resolvedMap += ".lmap";
             }
             if (fs::exists(resolvedMap)) {
-                ApplyPendingLoadMap(resolvedMap);
+                if (!ApplyPendingLoadMap(resolvedMap)) {
+                    // The previous world belongs to another project; do not keep it.
+                    LE_CORE_WARN("FEditorApp: Default map '{}' failed to load, starting with empty level", resolvedMap);
+                    ApplyPendingLoadMap("");
+                }
             } else {
                 LE_CORE_WARN("FEditorApp: Default map not found '{}', starting with empty level", resolvedMap);
                 ApplyPendingLoadMap("");
             }
         } else {
-            if (EditorWorld) {
-                EditorWorld->EndPlay();
-                EditorWorld->Clear();
-            }
-            EditorWorld = UWorld::Create("EditorWorld");
-            EditorWorld->InitWorld();
-            ActiveMapPath.clear();
-            ActiveMapName = "Untitled";
-            Context.SetActiveWorld(EditorWorld.get());
-            Context.SetActiveMapPath(ActiveMapPath);
-            Context.ClearMapDirty();
+            ApplyPendingLoadMap("");
         }
 
         bShowProjectHub = false;
@@ -434,52 +428,68 @@ namespace Leon::Editor {
         ApplyPendingLoadMap(PendingUnsavedPath);
     }
 
-    void FEditorApp::ApplyPendingLoadMap(const std::string& InMapPath) {
+    bool FEditorApp::ApplyPendingLoadMap(const std::string& InMapPath) {
+        // Load into a separate world first. The world being edited, its selection, its undo history and
+        // ActiveMapPath are only replaced once the new map is known to be good; a failed load used to leave
+        // the editor pointing at freed actors and let Ctrl+S overwrite the previous map with an empty world.
+        TRef<UWorld> NewWorld = UWorld::Create("EditorWorld");
+        NewWorld->InitWorld();
+
+        if (!InMapPath.empty()) {
+            bool bLoaded = false;
+            try {
+                FMapSerializer serializer(NewWorld);
+                bLoaded = serializer.Deserialize(InMapPath);
+            } catch (const std::exception& e) {
+                LE_CORE_ERROR("FEditorApp: Exception while loading map '{}': {}", InMapPath, e.what());
+            }
+            if (!bLoaded) {
+                OutputLog.AddLog(ELogLevel::Error, "Map",
+                                 "Failed to load map: " + InMapPath + " (the current map was kept; see log for the line)");
+                LE_CORE_ERROR("FEditorApp: Failed to deserialize map '{}'; keeping the current map", InMapPath);
+                ShowToast("Failed to load map - the current map was kept", true);
+                return false;
+            }
+        }
+
+        // Drop every editor reference into the old world before releasing it. SetActiveWorld(nullptr) is
+        // explicit because the new world may be allocated at the address of the old one.
+        Outliner.SetSelectedActor(nullptr);
+        Context.SetActiveWorld(nullptr);
+        Context.GetHistory().Clear();
         if (EditorWorld) {
             EditorWorld->EndPlay();
             EditorWorld->Clear();
-            EditorWorld.reset();
         }
-
-        EditorWorld = UWorld::Create("EditorWorld");
-        EditorWorld->InitWorld();
+        EditorWorld = NewWorld;
 
         if (!InMapPath.empty()) {
-            FMapSerializer serializer(EditorWorld);
-            if (serializer.Deserialize(InMapPath)) {
-                ActiveMapPath = InMapPath;
-                ActiveMapName = fs::path(InMapPath).stem().string();
-                Outliner.SetSelectedActor(nullptr);
-                Context.SetActiveWorld(EditorWorld.get());
-                Context.SetActiveMapPath(ActiveMapPath);
-                Context.GetHistory().Clear();
-                Context.ClearMapDirty();
-                OutputLog.AddLog(ELogLevel::Info, "Map",
-                                 "Loaded map: " + ActiveMapName + " (" +
-                                     std::to_string(EditorWorld->GetAllActors().size()) + " actors)");
-                FLightmass::RefreshRuntimeLightmapTrust(*EditorWorld);
-                if (!EditorWorld->AreLightmapsTrusted()) {
-                    OutputLog.AddLog(ELogLevel::Warning, "Lighting",
-                                     "Lightmaps are stale or missing — Static lights fall back to dynamic until you "
-                                     "Bake Lighting. For outdoor sun prefer Mobility: Stationary.");
-                }
-                LE_CORE_INFO("FEditorApp: Successfully loaded map '{}' ({} actors)", ActiveMapName,
-                             EditorWorld->GetAllActors().size());
-            } else {
-                OutputLog.AddLog(ELogLevel::Error, "Map", "Failed to deserialize map: " + InMapPath);
-                LE_CORE_ERROR("FEditorApp: Failed to deserialize map '{}'", InMapPath);
+            ActiveMapPath = InMapPath;
+            ActiveMapName = fs::path(InMapPath).stem().string();
+            Context.SetActiveWorld(EditorWorld.get());
+            Context.SetActiveMapPath(ActiveMapPath);
+            Context.ClearMapDirty();
+            OutputLog.AddLog(ELogLevel::Info, "Map",
+                             "Loaded map: " + ActiveMapName + " (" +
+                                 std::to_string(EditorWorld->GetAllActors().size()) + " actors)");
+            FLightmass::RefreshRuntimeLightmapTrust(*EditorWorld);
+            if (!EditorWorld->AreLightmapsTrusted()) {
+                OutputLog.AddLog(ELogLevel::Warning, "Lighting",
+                                 "Lightmaps are stale or missing — Static lights fall back to dynamic until you "
+                                 "Bake Lighting. For outdoor sun prefer Mobility: Stationary.");
             }
+            LE_CORE_INFO("FEditorApp: Successfully loaded map '{}' ({} actors)", ActiveMapName,
+                         EditorWorld->GetAllActors().size());
         } else {
             ActiveMapPath.clear();
             ActiveMapName = "Untitled";
-            Outliner.SetSelectedActor(nullptr);
             Context.SetActiveWorld(EditorWorld.get());
             Context.SetActiveMapPath(ActiveMapPath);
-            Context.GetHistory().Clear();
             Context.ClearMapDirty();
         }
 
         UpdateWindowTitle();
+        return true;
     }
 
     void FEditorApp::SaveCurrentMap() {
@@ -639,6 +649,17 @@ namespace Leon::Editor {
 
             // Baker stamped the .lmap and wrote .llightmap on disk — hot-reload so the viewport
             // shows the new lighting without a manual map reopen.
+            if (!ActiveMapPath.empty() && Context.IsMapDirty()) {
+                // The map changed while the bake ran (panels are locked, but viewport edits are possible).
+                // Reloading would discard those edits, so keep them and say what that costs.
+                const std::string warn = "Lighting was built from the saved map, but the map was edited meanwhile. "
+                                         "The new lighting was not applied to keep your edits; save and rebuild "
+                                         "lighting to use it.";
+                OutputLog.AddLog(ELogLevel::Warning, "Build", warn);
+                ShowToast("Lighting built, not applied: the map has unsaved edits", true);
+                Context.SetStatusMessage("Ready");
+                return;
+            }
             if (!ActiveMapPath.empty()) {
                 FPerspectiveCamera& cam = Viewport.GetCamera();
                 const glm::vec3 camPos = cam.GetPosition();
@@ -1085,12 +1106,16 @@ namespace Leon::Editor {
             // Full Editor Suite with Dockspace and Viewport
             SafeDrawPanel("Dockspace", [&]() { DrawDockspace(); });
 
+            // The baker works on the saved map and the editor reloads it afterwards: editing meanwhile
+            // would be discarded, so the editing panels are locked for the duration, as during Play.
+            const bool bEditLocked = bPlaying || bBakeRunning.load();
+
             if (bShowPlaceActors) {
                 SafeDrawPanel("PlaceActors", [&]() {
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::BeginDisabled();
                     PlaceActors.Draw(EditorWorld.get(), &bShowPlaceActors);
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::EndDisabled();
                 });
             }
@@ -1104,28 +1129,28 @@ namespace Leon::Editor {
 
             if (bShowOutliner) {
                 SafeDrawPanel("Outliner", [&]() {
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::BeginDisabled();
                     Outliner.Draw(EditorWorld.get(), &bShowOutliner);
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::EndDisabled();
                 });
             }
             if (bShowDetails) {
                 SafeDrawPanel("Details", [&]() {
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::BeginDisabled();
                     Details.Draw(&bShowDetails);
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::EndDisabled();
                 });
             }
             if (bShowWorldSettings) {
                 SafeDrawPanel("WorldSettings", [&]() {
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::BeginDisabled();
                     WorldSettings.Draw(EditorWorld.get(), ActiveProjectDescriptor.DefaultGameMode, &bShowWorldSettings);
-                    if (bPlaying)
+                    if (bEditLocked)
                         ImGui::EndDisabled();
                 });
             }

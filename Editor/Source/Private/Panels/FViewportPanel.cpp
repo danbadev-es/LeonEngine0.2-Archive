@@ -5,6 +5,7 @@
 #include "Core/FApplication.hpp"
 #include "Core/FInput.hpp"
 #include "Core/FLog.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "Editor/Context/FEditorHistory.hpp"
 #include "Editor/Panels/FPlaceActorsPanel.hpp"
 #include "Editor/UI/FEditorWidgets.hpp"
@@ -1095,11 +1096,13 @@ namespace Leon::Editor {
                                 InWorld, glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y), vpMin, vpSize);
                             AActor* spawned = InWorld->SpawnActor<AActor>("DroppedMesh");
                             if (spawned) {
-                                auto& tc = spawned->AddComponent<FTransformComponent>();
-                                tc.Translation = spawnPos;
+                                // SpawnActor already added the transform; adding it again asserts.
+                                spawned->SetActorLocation(spawnPos);
+                                // Store the virtual path: the payload is an absolute OS path.
+                                const std::string storedPath = FProjectPaths::MakeVirtualPath(pathStr);
                                 auto& sm = spawned->AddComponent<FStaticMeshComponent>();
-                                sm.AssetPath = pathStr;
-                                sm.StaticMesh = UAssetManager::GetStaticMesh(pathStr);
+                                sm.AssetPath = storedPath;
+                                sm.StaticMesh = UAssetManager::GetStaticMesh(storedPath);
                                 if (OnActorSpawned) {
                                     OnActorSpawned(spawned);
                                 }

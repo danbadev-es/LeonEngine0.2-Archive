@@ -1,6 +1,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Editor/Panels/FDetailsPanel.hpp"
 #include "Core/FLog.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "Editor/Commands/FTransformActorsCommand.hpp"
 #include "Editor/UI/FEditorWidgets.hpp"
 #include "Editor/UI/FLucideIcons.hpp"
@@ -36,14 +37,22 @@ namespace Leon::Editor {
                                                       InDefaultIndex);
         }
 
+        // Asset references are stored as virtual paths (/Game/..., /Engine/...). The Content Browser drag
+        // payload and a pasted path are absolute OS paths, which would tie the map to this machine.
+        std::string ToStoredAssetPath(const std::string& InPath) {
+            return InPath.empty() ? InPath : FProjectPaths::MakeVirtualPath(InPath);
+        }
+
         void ApplyStaticMeshPath(FStaticMeshComponent& InMeshComp, const std::string& InPath) {
-            InMeshComp.AssetPath = InPath;
-            InMeshComp.StaticMesh = InPath.empty() ? nullptr : UAssetManager::GetStaticMesh(InPath);
+            const std::string stored = ToStoredAssetPath(InPath);
+            InMeshComp.AssetPath = stored;
+            InMeshComp.StaticMesh = stored.empty() ? nullptr : UAssetManager::GetStaticMesh(stored);
         }
 
         void ApplyMaterialPath(FMaterialComponent& InMatComp, const std::string& InPath) {
-            InMatComp.AssetPath = InPath;
-            InMatComp.MaterialInstance = InPath.empty() ? nullptr : UAssetManager::GetMaterialInstance(InPath);
+            const std::string stored = ToStoredAssetPath(InPath);
+            InMatComp.AssetPath = stored;
+            InMatComp.MaterialInstance = stored.empty() ? nullptr : UAssetManager::GetMaterialInstance(stored);
         }
 
     } // namespace
