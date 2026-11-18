@@ -898,27 +898,29 @@ namespace Leon {
                 float meshHeight = actorData.MeshHeight;
                 float meshDepth = actorData.MeshDepth;
                 float meshMetersPerUv = actorData.MeshMetersPerUv;
+                if (meshType == "Cube") {
+                    // Legacy: unit cube * actor scale. It becomes a Box with world-metre UVs and the
+                    // scale is cleared. Decided from the data alone, with or without a renderer: the
+                    // light baker (no renderer) and the game must load the same world, or the bake
+                    // never matches the map it was made for.
+                    const float sx = actorData.Scale.x * actorData.MeshSize;
+                    const float sy = actorData.Scale.y * actorData.MeshSize;
+                    const float sz = actorData.Scale.z * actorData.MeshSize;
+                    if (std::abs(sx - actorData.MeshSize) > 0.01f || std::abs(sy - actorData.MeshSize) > 0.01f ||
+                        std::abs(sz - actorData.MeshSize) > 0.01f) {
+                        meshType = "Box";
+                        meshWidth = sx;
+                        meshHeight = sy;
+                        meshDepth = sz;
+                        meshMetersPerUv = meshMetersPerUv > 0.05f ? meshMetersPerUv : 1.0f;
+                        transform.Scale = {1.0f, 1.0f, 1.0f};
+                    }
+                }
                 if (FRenderDriverRegistry::GetActiveDriver()) {
                     if (meshType == "Box") {
                         va = FMeshPrimitives::CreateBox(meshWidth, meshHeight, meshDepth, meshMetersPerUv);
                     } else if (meshType == "Cube") {
-                        // Legacy: unit cube * actor scale. Rebuild as Box with world-meter UVs and clear scale.
-                        const float sx = actorData.Scale.x * actorData.MeshSize;
-                        const float sy = actorData.Scale.y * actorData.MeshSize;
-                        const float sz = actorData.Scale.z * actorData.MeshSize;
-                        if (std::abs(sx - actorData.MeshSize) > 0.01f || std::abs(sy - actorData.MeshSize) > 0.01f ||
-                            std::abs(sz - actorData.MeshSize) > 0.01f) {
-                            const float mpu = meshMetersPerUv > 0.05f ? meshMetersPerUv : 1.0f;
-                            va = FMeshPrimitives::CreateBox(sx, sy, sz, mpu);
-                            meshType = "Box";
-                            meshWidth = sx;
-                            meshHeight = sy;
-                            meshDepth = sz;
-                            meshMetersPerUv = mpu;
-                            transform.Scale = {1.0f, 1.0f, 1.0f};
-                        } else {
-                            va = FMeshPrimitives::CreateCube(actorData.MeshSize);
-                        }
+                        va = FMeshPrimitives::CreateCube(actorData.MeshSize);
                     } else if (meshType == "Plane") {
                         va = FMeshPrimitives::CreatePlane(meshWidth, meshDepth, actorData.MeshSubdivX,
                                                           actorData.MeshSubdivZ);
@@ -988,10 +990,16 @@ namespace Leon {
                 comp.bEnabled = actorData.bSpotLightEnabled;
                 comp.Mobility = actorData.SpotLightMobility;
                 comp.Light.Position = actorData.Translation;
-                // Align actor rotation to authored Direction so rotate gizmo drives aim.
+                // The actor's rotation is what aims the light (the rotate gizmo drives it); the stored
+                // direction is what the file says it aims at. When they disagree the direction wins and
+                // the rotation is rebuilt from it. When they agree nothing is rewritten: rebuilding one
+                // from the other every time moved both by a rounding error on each load, so a map never
+                // loaded twice the same and its lightmap bake always read as stale.
                 if (glm::length(comp.Light.Direction) > 1e-5f) {
                     auto& xf = entity->GetComponent<FTransformComponent>();
-                    xf.Rotation = SpotLightEulerFromWorldDirection(comp.Light.Direction);
+                    const glm::vec3 authored = glm::normalize(comp.Light.Direction);
+                    if (glm::dot(SpotLightWorldDirectionFromEuler(xf.Rotation), authored) < 0.999999f)
+                        xf.Rotation = SpotLightEulerFromWorldDirection(authored);
                     SyncSpotLightFromTransform(comp.Light, xf.Translation, xf.Rotation);
                 }
             }

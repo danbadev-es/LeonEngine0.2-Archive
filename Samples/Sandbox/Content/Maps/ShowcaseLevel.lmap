@@ -2,7 +2,7 @@
 # Human-Readable & Deterministic Serialization
 Map:
   Name: "ShowcaseLevel"
-  Version: "2.1"
+  Version: "2.2"
 
 Environment:
   WorldSettings:
@@ -18,7 +18,7 @@ Environment:
     TexelPadding: 2
     WorldScale: 1
     LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
-    LightmapBakeHash: "6408776fd5da1564"
+    LightmapBakeHash: "760ad414264d3ee3"
   Skybox:
     Enabled: true
     Exposure: 0.9
@@ -111,11 +111,11 @@ Actors:
     GUID: "4c454f4ebfc30820bfc308209c7705c4"
     Transform:
       Translation: [-7, 4, 4]
-      Rotation: [0, 0, 0]
+      Rotation: [28.111599, -13.847598, 51.750053]
       Scale: [1, 1, 1]
     SpotLight:
       Enabled: true
-      Direction: [0.75, -0.45, -0.45]
+      Direction: [0.7624929, -0.4574957, -0.4574957]
       Color: [1, 0.85, 0.4]
       Intensity: 40
       Radius: 24
@@ -136,9 +136,9 @@ Actors:
       Height: 1
       Depth: 28
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 40
       SubdivisionsZ: 28
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: false
       ReceiveShadows: true
       VisibleInReflection: false
@@ -146,7 +146,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 0
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.775391, 0.0078125]
+      LightmapBias: [0.001953125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_StudioFloor.lmat"
@@ -178,9 +178,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -188,7 +188,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 1
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.453125, 0.265625]
+      LightmapBias: [0.06640625, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_WoodFloor.lmat"
@@ -200,7 +200,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nWOOD FLOOR"
+      Content: "CUBE\\nWOOD FLOOR"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -220,9 +220,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -230,7 +230,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 2
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.388672, 0.265625]
+      LightmapBias: [0.13085938, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_ContainerCube.lmat"
@@ -242,7 +242,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nCONTAINER"
+      Content: "CUBE\\nCONTAINER"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -262,9 +262,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -272,7 +272,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 3
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.324219, 0.265625]
+      LightmapBias: [0.1953125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_IndustrialMetal.lmat"
@@ -284,7 +284,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nINDUSTRIAL"
+      Content: "CUBE\\nINDUSTRIAL"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -304,9 +304,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -314,7 +314,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 4
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.259766, 0.265625]
+      LightmapBias: [0.25976562, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_BrushedIron.lmat"
@@ -326,7 +326,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CYLINDER\nBRUSHED IRON"
+      Content: "CYLINDER\\nBRUSHED IRON"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -346,9 +346,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -356,7 +356,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 5
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.195312, 0.265625]
+      LightmapBias: [0.32421875, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_RoughCastIron.lmat"
@@ -368,7 +368,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CYLINDER\nCAST IRON"
+      Content: "CYLINDER\\nCAST IRON"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -388,9 +388,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -398,7 +398,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 6
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.130859, 0.265625]
+      LightmapBias: [0.38867188, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_PureCopper.lmat"
@@ -410,7 +410,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nCOPPER"
+      Content: "CUBE\\nCOPPER"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -422,17 +422,17 @@ Actors:
     Transform:
       Translation: [6.6, 0.45, 3.8]
       Rotation: [0, 25, 0]
-      Scale: [-1, 1, 1]
+      Scale: [1, 1, 1]
     StaticMesh:
-      Type: "Cube"
+      Type: "Box"
       Size: 0.7
-      Width: 0.7
+      Width: -0.7
       Height: 0.7
       Depth: 0.7
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -448,7 +448,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nMIRRORED SCALE"
+      Content: "CUBE\\nMIRRORED SCALE"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -482,9 +482,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -492,7 +492,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 7
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.0664062, 0.265625]
+      LightmapBias: [0.453125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_WhitePlastic.lmat"
@@ -504,7 +504,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nWHITE PLASTIC"
+      Content: "SPHERE\\nWHITE PLASTIC"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -524,9 +524,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -534,7 +534,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 8
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.00195312, 0.265625]
+      LightmapBias: [0.5175781, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_RedPlastic.lmat"
@@ -546,7 +546,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nRED PLASTIC"
+      Content: "CUBE\\nRED PLASTIC"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -566,9 +566,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -576,7 +576,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 9
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.904297, 0.0078125]
+      LightmapBias: [0.58203125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_MatteRubber.lmat"
@@ -588,7 +588,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CYLINDER\nRUBBER"
+      Content: "CYLINDER\\nRUBBER"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -608,9 +608,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -618,7 +618,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 10
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.839844, 0.0078125]
+      LightmapBias: [0.6464844, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_MustardPaint.lmat"
@@ -630,7 +630,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nMUSTARD PAINT"
+      Content: "CUBE\\nMUSTARD PAINT"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -650,9 +650,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -660,7 +660,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 11
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.00195312, 0.0078125]
+      LightmapBias: [0.7109375, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_RubyDielectric.lmat"
@@ -672,7 +672,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nRUBY"
+      Content: "SPHERE\\nRUBY"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -692,9 +692,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -702,7 +702,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 12
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.710938, 0.0078125]
+      LightmapBias: [0.7753906, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_EmeraldRamp.lmat"
@@ -714,7 +714,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "RAMP\nEMERALD"
+      Content: "RAMP\\nEMERALD"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -734,9 +734,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -744,7 +744,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 13
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.646484, 0.0078125]
+      LightmapBias: [0.83984375, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_CeramicGlaze.lmat"
@@ -756,7 +756,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nCERAMIC"
+      Content: "SPHERE\\nCERAMIC"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -790,9 +790,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -800,7 +800,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 14
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.582031, 0.0078125]
+      LightmapBias: [0.9042969, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_PolishedGold.lmat"
@@ -812,7 +812,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nGOLD"
+      Content: "SPHERE\\nGOLD"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -832,9 +832,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -842,7 +842,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 15
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.517578, 0.0078125]
+      LightmapBias: [0.001953125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_ChromeMirror.lmat"
@@ -854,7 +854,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nCHROME"
+      Content: "SPHERE\\nCHROME"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -874,9 +874,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -884,7 +884,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 16
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.453125, 0.0078125]
+      LightmapBias: [0.06640625, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_PolishedBrass.lmat"
@@ -896,7 +896,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CONE\nBRASS"
+      Content: "CONE\\nBRASS"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -916,9 +916,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -926,7 +926,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 17
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.388672, 0.0078125]
+      LightmapBias: [0.13085938, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_SatinTitanium.lmat"
@@ -938,7 +938,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nTITANIUM"
+      Content: "SPHERE\\nTITANIUM"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -958,9 +958,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -968,7 +968,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 18
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.324219, 0.0078125]
+      LightmapBias: [0.1953125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_CobaltPyramid.lmat"
@@ -980,7 +980,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "PYRAMID\nCOBALT"
+      Content: "PYRAMID\\nCOBALT"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1000,9 +1000,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1010,7 +1010,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 19
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.259766, 0.0078125]
+      LightmapBias: [0.25976562, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_RoseGold.lmat"
@@ -1022,7 +1022,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nROSE GOLD"
+      Content: "SPHERE\\nROSE GOLD"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1042,9 +1042,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1052,7 +1052,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 20
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.195312, 0.0078125]
+      LightmapBias: [0.32421875, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_AnodizedBlue.lmat"
@@ -1064,7 +1064,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nANODIZED BLUE"
+      Content: "CUBE\\nANODIZED BLUE"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1098,9 +1098,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1108,7 +1108,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 21
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.130859, 0.0078125]
+      LightmapBias: [0.38867188, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_MatteObsidian.lmat"
@@ -1120,7 +1120,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "PYRAMID\nOBSIDIAN"
+      Content: "PYRAMID\\nOBSIDIAN"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1140,9 +1140,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.55
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: false
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1158,7 +1158,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nGLASS"
+      Content: "SPHERE\\nGLASS"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1178,9 +1178,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: false
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1196,7 +1196,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nFROSTED GLASS"
+      Content: "CUBE\\nFROSTED GLASS"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1216,9 +1216,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1226,7 +1226,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 22
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.0664062, 0.0078125]
+      LightmapBias: [0.453125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/ShowcaseLevel.llightmap"
     Material:
       Asset: "/Game/Materials/M_SapphireCrystal.lmat"
@@ -1238,7 +1238,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CONE\nSAPPHIRE"
+      Content: "CONE\\nSAPPHIRE"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1258,9 +1258,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1276,7 +1276,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CUBE\nNEON CYAN"
+      Content: "CUBE\\nNEON CYAN"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1296,9 +1296,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1314,7 +1314,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "SPHERE\nAMBER"
+      Content: "SPHERE\\nAMBER"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15
@@ -1334,9 +1334,9 @@ Actors:
       Height: 1
       Depth: 1
       Radius: 0.5
+      MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -1352,7 +1352,7 @@ Actors:
       Rotation: [-18, 0, 0]
       Scale: [1, 1, 1]
     Text:
-      Content: "CYLINDER\nLIME EMISSIVE"
+      Content: "CYLINDER\\nLIME EMISSIVE"
       Color: [0.18, 0.18, 0.22, 0.95]
       Scale: 0.11
       LineSpacing: 1.15

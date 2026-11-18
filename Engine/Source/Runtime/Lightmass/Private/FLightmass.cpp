@@ -65,7 +65,9 @@ namespace Leon {
                     candidate = InPath;
                 resolved = candidate.string();
             }
-            Hash = HashString(Hash, FAssetPath::Normalize(resolved));
+            // The path as the map names it, not where it is on disk: moving or renaming the project
+            // folder must not make a bake look stale.
+            Hash = HashString(Hash, FAssetPath::Normalize(InPath));
             std::error_code ec;
             if (fs::exists(resolved, ec)) {
                 uint64_t content = ComputeFileHash64(resolved);
@@ -1034,6 +1036,37 @@ namespace Leon {
 
         if (!serializer.Serialize(InMapPath)) {
             LogLM("Warning: failed to write lightmap metadata back to map");
+        }
+
+        // The game hashes the map as it loads it, which is not always the world this bake started
+        // from: saving normalises light directions and writes derived rotations. So the hash that
+        // counts is that of the file just written. Read it back and stamp that, until it settles.
+        for (int round = 0; round < 3; ++round) {
+            auto written = UWorld::Create();
+            FMapSerializer reader(written);
+            if (!reader.Deserialize(InMapPath))
+                break;
+            FWorldSettingsComponent* writtenSettings = FindWorldSettings(*written);
+            if (!writtenSettings)
+                break;
+            FLightmassSettings asLoadedSettings;
+            ApplyLightingBuildQuality(writtenSettings->LightingBuildQuality, asLoadedSettings);
+            std::string unusedPath;
+            ApplyWorldSettings(*writtenSettings, asLoadedSettings, unusedPath);
+            const uint64_t asLoaded = ComputeBakeInputHash(*written, asLoadedSettings);
+            if (asLoaded == writtenSettings->LightmapBakeHash)
+                break;
+            if (round == 2) {
+                LogLM("Warning: the map does not load back the same twice; its bake will read as stale");
+                break;
+            }
+            writtenSettings->LightmapBakeHash = asLoaded;
+            asset.SetContentHash(asLoaded);
+            if (!asset.SaveToFile(lightmapAbs.string()) || !reader.Serialize(InMapPath)) {
+                LogLM("Warning: failed to restamp the bake hash");
+                break;
+            }
+            result.BakeHash = asLoaded;
         }
 
         result.bSuccess = true;

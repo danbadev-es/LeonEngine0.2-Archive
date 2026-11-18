@@ -145,6 +145,15 @@ namespace Leon {
         if (auto it = TextureCache.find(InPath); it != TextureCache.end() && it->second)
             return it->second;
 
+        // The grid texture is made in memory, not read from disk. Clearing the cache (a change of
+        // texture quality does) must not turn it into a missing file.
+        if (InPath == FEngineBuiltins::kWorldGridTexture || InPath == "/" + std::string(FEngineBuiltins::kWorldGridTexture)) {
+            if (TRef<FTexture2D> grid = GetDefaultCheckerTexture()) {
+                TextureCache[InPath] = grid;
+                return grid;
+            }
+        }
+
         std::string resolved = ResolveVirtualPath(InPath);
 
         auto it = TextureCache.find(resolved);

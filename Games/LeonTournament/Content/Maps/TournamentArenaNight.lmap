@@ -2,7 +2,7 @@
 # Human-Readable & Deterministic Serialization
 Map:
   Name: "TournamentArenaNight"
-  Version: "2.1"
+  Version: "2.2"
 
 Environment:
   WorldSettings:
@@ -18,7 +18,7 @@ Environment:
     TexelPadding: 2
     WorldScale: 1
     LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
-    LightmapBakeHash: "9e6d79ec4b3f79ed"
+    LightmapBakeHash: "4a86babcb2b68745"
   Skybox:
     Enabled: true
     Exposure: 1.05
@@ -69,7 +69,6 @@ Actors:
       MetersPerUv: 2
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: false
@@ -77,7 +76,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 0
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.839844, 0.0078125]
+      LightmapBias: [0.001953125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabFloor.lmat"
@@ -98,7 +97,6 @@ Actors:
       MetersPerUv: 3
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -106,7 +104,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 1
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.646484, 0.265625]
+      LightmapBias: [0.06640625, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabCeiling.lmat"
@@ -127,7 +125,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -135,7 +132,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 2
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.582031, 0.265625]
+      LightmapBias: [0.13085938, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -156,7 +153,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -164,7 +160,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 3
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.517578, 0.265625]
+      LightmapBias: [0.1953125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -185,7 +181,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -193,7 +188,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 4
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.453125, 0.265625]
+      LightmapBias: [0.25976562, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -214,7 +209,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -222,7 +216,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 5
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.388672, 0.265625]
+      LightmapBias: [0.32421875, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -243,7 +237,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -251,7 +244,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 6
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.324219, 0.265625]
+      LightmapBias: [0.38867188, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -272,7 +265,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -280,7 +272,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 7
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.259766, 0.265625]
+      LightmapBias: [0.453125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -301,7 +293,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -309,7 +300,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 8
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.195312, 0.265625]
+      LightmapBias: [0.5175781, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -330,7 +321,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -338,7 +328,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 9
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.130859, 0.265625]
+      LightmapBias: [0.58203125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -359,7 +349,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -367,7 +356,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 10
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.0664062, 0.265625]
+      LightmapBias: [0.6464844, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -388,7 +377,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -396,7 +384,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 11
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.00195312, 0.265625]
+      LightmapBias: [0.7109375, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -417,7 +405,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -425,7 +412,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 12
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.904297, 0.0078125]
+      LightmapBias: [0.7753906, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -446,7 +433,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -454,7 +440,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 13
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.00195312, 0.0078125]
+      LightmapBias: [0.83984375, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -475,7 +461,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -483,7 +468,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 14
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.775391, 0.0078125]
+      LightmapBias: [0.9042969, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabProp.lmat"
@@ -504,7 +489,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -512,7 +496,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 15
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.710938, 0.0078125]
+      LightmapBias: [0.001953125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -533,7 +517,6 @@ Actors:
       MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -541,7 +524,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 16
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.646484, 0.0078125]
+      LightmapBias: [0.06640625, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaAccent.lmat"
@@ -562,7 +545,6 @@ Actors:
       MetersPerUv: 1
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -570,7 +552,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 17
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.582031, 0.0078125]
+      LightmapBias: [0.13085938, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaAccent.lmat"
@@ -591,7 +573,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -599,7 +580,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 18
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.517578, 0.0078125]
+      LightmapBias: [0.1953125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -620,7 +601,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -628,7 +608,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 19
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.453125, 0.0078125]
+      LightmapBias: [0.25976562, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -649,7 +629,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -657,7 +636,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 20
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.388672, 0.0078125]
+      LightmapBias: [0.32421875, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabProp.lmat"
@@ -678,7 +657,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -686,7 +664,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 21
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.324219, 0.0078125]
+      LightmapBias: [0.38867188, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabProp.lmat"
@@ -707,7 +685,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -715,7 +692,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 22
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.259766, 0.0078125]
+      LightmapBias: [0.453125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -736,7 +713,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -744,7 +720,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 23
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.195312, 0.0078125]
+      LightmapBias: [0.5175781, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -765,7 +741,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -773,7 +748,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 24
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.130859, 0.0078125]
+      LightmapBias: [0.58203125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -794,7 +769,6 @@ Actors:
       MetersPerUv: 1.5
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -802,7 +776,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 25
       LightmapScale: [0.0625, 0.25]
-      LightmapBias: [0.0664062, 0.0078125]
+      LightmapBias: [0.6464844, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArenaNight.llightmap"
     Material:
       Asset: "/Game/Materials/M_ArenaMetal.lmat"
@@ -1201,7 +1175,7 @@ Actors:
     GUID: "3552085b98db21925decb81e624fb2e9"
     Transform:
       Translation: [0, 9.5, 0]
-      Rotation: [0, 0, 0]
+      Rotation: [0, -0, 0]
       Scale: [1, 1, 1]
     SpotLight:
       Enabled: true
@@ -1217,11 +1191,11 @@ Actors:
     GUID: "3456f810ca65a6b1e2d807f5b9d4a847"
     Transform:
       Translation: [-20, 9, -20]
-      Rotation: [0, 0, 0]
+      Rotation: [-18.306526, 2.9743714, 18.306526]
       Scale: [1, 1, 1]
     SpotLight:
       Enabled: true
-      Direction: [0.35, -1, 0.35]
+      Direction: [0.31367746, -0.89622146, 0.31367746]
       Color: [1, 0.82, 0.55]
       Intensity: 14
       Radius: 20
@@ -1233,11 +1207,11 @@ Actors:
     GUID: "dbb9b9dda657a447f942abef1a56aa7e"
     Transform:
       Translation: [20, 9, 20]
-      Rotation: [0, 0, 0]
+      Rotation: [18.306526, 2.9743714, -18.306526]
       Scale: [1, 1, 1]
     SpotLight:
       Enabled: true
-      Direction: [-0.35, -1, -0.35]
+      Direction: [-0.31367746, -0.89622146, -0.31367746]
       Color: [1, 0.82, 0.55]
       Intensity: 14
       Radius: 20

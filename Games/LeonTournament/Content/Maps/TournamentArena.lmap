@@ -2,7 +2,7 @@
 # Human-Readable & Deterministic Serialization
 Map:
   Name: "TournamentArena"
-  Version: "2.1"
+  Version: "2.2"
 
 Environment:
   WorldSettings:
@@ -295,7 +295,6 @@ Actors:
       MetersPerUv: 2
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: false
@@ -324,7 +323,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -332,7 +330,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 1
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.132812, 0.0078125]
+      LightmapBias: [0.1328125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -353,7 +351,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -361,7 +358,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 2
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.261719, 0.0078125]
+      LightmapBias: [0.26171875, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
     Material:
       Asset: "/Game/Materials/M_LabWall.lmat"
@@ -382,7 +379,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -411,7 +407,6 @@ Actors:
       MetersPerUv: 1
       SubdivisionsX: 32
       SubdivisionsZ: 16
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
@@ -419,7 +414,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 4
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.519531, 0.0078125]
+      LightmapBias: [0.51953125, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
     Material:
       Asset: "Engine/Materials/M_WorldGrid.lmat"
@@ -457,7 +452,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 5
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.648438, 0.0078125]
+      LightmapBias: [0.6484375, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
       MaterialOverrides:
         - Slot: 0
@@ -480,7 +475,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 6
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.777344, 0.0078125]
+      LightmapBias: [0.77734375, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
       MaterialOverrides:
         - Slot: 0
@@ -526,7 +521,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 8
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.132812, 0.265625]
+      LightmapBias: [0.1328125, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
       MaterialOverrides:
         - Slot: 0
@@ -578,7 +573,7 @@ Actors:
       LightmapResolution: 64
       LightmapIndex: 9
       LightmapScale: [0.125, 0.25]
-      LightmapBias: [0.261719, 0.265625]
+      LightmapBias: [0.26171875, 0.265625]
       LightmapAsset: "/Game/Lightmaps/TournamentArena.llightmap"
       MaterialOverrides:
         - Slot: 0
@@ -602,7 +597,6 @@ Actors:
       MetersPerUv: 1.25
       SubdivisionsX: 24
       SubdivisionsZ: 24
-      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"
       CastShadows: true
       ReceiveShadows: true
       VisibleInReflection: true
