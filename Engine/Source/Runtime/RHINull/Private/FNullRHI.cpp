@@ -71,6 +71,7 @@ namespace Leon {
                 if (bInPass)
                     ++GStats.DrawCalls;
             }
+            void GenerateMips(IRHITexture&, IRHIPipeline*) override {}
             void PushMarker(const char*) override {}
             void PopMarker() override {}
 

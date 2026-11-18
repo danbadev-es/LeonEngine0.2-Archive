@@ -5,8 +5,8 @@
 // lightmaps, image-based lighting, fog and shadows (sun cascades, one spot light, point lights), plus
 // skinned outlines and the sky, into an HDR target that FPostProcessRHI turns into the final image
 // (ambient occlusion, bloom, tone mapping, anti-aliasing). World-space text, debug lines and particles
-// submitted through FSceneBatchesRHI are drawn at the end of the scene pass.
-// Still to come: planar reflections.
+// submitted through FSceneBatchesRHI are drawn at the end of the scene pass. Surfaces that ask for it
+// reflect a capture of the scene mirrored in the floor or in a wall mirror.
 //
 // The old Render() still runs first each frame; this code relies on it for work that is not drawing:
 // the image-based lighting environment, level-of-detail selection, light/transform syncing and
@@ -53,6 +53,7 @@ namespace Leon {
         constexpr uint32_t kSlotMetallic = 2;
         constexpr uint32_t kSlotAO = 3;
         constexpr uint32_t kSlotRoughness = 4;
+        constexpr uint32_t kSlotPlanarFloor = 5;
         constexpr uint32_t kSlotBRDFLUT = 6;
         constexpr uint32_t kSlotIrradiance = 7;
         constexpr uint32_t kSlotPrefilter = 8;
@@ -60,6 +61,7 @@ namespace Leon {
         constexpr uint32_t kSlotCascadeShadow = 10;
         constexpr uint32_t kSlotSpotShadow = 11;
         constexpr uint32_t kSlotLightmap = 12;
+        constexpr uint32_t kSlotPlanarWall = 13;
         constexpr uint32_t kSlotPointShadow = 14;
 
         // The structures below mirror constant buffers in Engine/Shaders. Keep field order and types
@@ -108,6 +110,10 @@ namespace Leon {
             glm::vec4 ShadowParams{0.0f};
             glm::ivec4 ShadowSettings{0, -1, 0, 0};
             glm::ivec4 ShadowFlags{0};
+            glm::mat4 PlanarMatrix[2]{glm::mat4(1.0f), glm::mat4(1.0f)};
+            glm::vec4 PlanarPlane[2]{glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)};
+            glm::vec4 ClipPlane{0.0f, 1.0f, 0.0f, 0.0f};
+            glm::ivec4 PlanarFlags{0};
         };
 
         struct FShadowPassConstants { // ShadowDepth.hlsl
@@ -234,7 +240,10 @@ namespace Leon {
             /** Bone matrices of a skinned mesh; null for static geometry. */
             const std::vector<glm::mat4>* Bones = nullptr;
             bool bReceiveShadows = true;
+            /** The material asks for planar reflections (wet floors, mirrors). */
+            bool bPlanar = false;
             glm::mat4 Model{1.0f};
+            glm::mat4 NormalMatrix{1.0f};
             glm::vec2 LightmapScale{1.0f};
             glm::vec2 LightmapBias{0.0f};
             uint32_t IndexCount = 0;
@@ -378,6 +387,10 @@ namespace Leon {
         std::map<std::string, TRef<IRHIPipeline>> SurfacePipelines;
         TRef<IRHIPipeline> OutlinePipeline;
         TRef<IRHIPipeline> SkyPipeline;
+        /** The scene mirrored in a plane: 0 = floor, 1 = wall mirror. Mip levels hold blurrier copies. */
+        TRef<IRHITexture> PlanarColor[2];
+        TRef<IRHITexture> PlanarDepth;
+        TRef<IRHIPipeline> DownsamplePipeline;
         /** Depth maps seen from the lights: four sun cascades, one spot light, a cube per point light. */
         TRef<IRHITexture> CascadeShadowMap;
         TRef<IRHITexture> SpotShadowMap;
@@ -469,6 +482,13 @@ namespace Leon {
         TRef<IRHIShader> skyVS = FShaderLibrary::Get("Skybox.hlsl", "VSMain", ERHIShaderStage::Vertex);
         TRef<IRHIShader> skyPS = FShaderLibrary::Get("Skybox.hlsl", "PSMain", ERHIShaderStage::Pixel);
 
+        // Where submitted draws go and how they are prepared. The main view uses the defaults; each
+        // reflection capture points these at its own lists while it collects.
+        std::vector<FSceneDraw>* collectOpaque = nullptr;
+        std::vector<FSceneDraw>* collectTransparent = nullptr;
+        bool bCollectMirrored = false;
+        glm::mat4 collectNormalTransform(1.0f);
+
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
                                          const glm::mat4& InModel, bool bInTransparent,
                                          bool bInSkinned) -> IRHIPipeline* {
@@ -478,6 +498,9 @@ namespace Leon {
             const FMaterialPipelineState& materialState = InMaterial.GetPipelineState();
             ECullMode cull = InMaterial.GetDoubleSided() ? ECullMode::None : materialState.CullMode;
             cull = FlipCullForNegativeScale(cull, InModel);
+            // A mirrored view reverses the winding of everything it shows.
+            if (bCollectMirrored && cull != ECullMode::None)
+                cull = cull == ECullMode::Back ? ECullMode::Front : ECullMode::Back;
 
             FRHIGraphicsPipelineDesc desc;
             desc.VertexLayout = GetRHIVertexLayout(InVertexArray);
@@ -585,18 +608,22 @@ namespace Leon {
                 return;
             draw.Material = InMaterial;
             draw.Lightmap = InLightmap;
+            draw.bPlanar = InMaterial->GetUsePlanarReflection();
             draw.Model = InModel;
+            draw.NormalMatrix = glm::mat4(SafeNormalMatrix(collectNormalTransform * InModel));
             draw.LightmapScale = InLightmapScale;
             draw.LightmapBias = InLightmapBias;
             draw.IndexCount = InIndexCount;
             draw.FirstIndex = InFirstIndex;
             if (bTransparent) {
                 draw.DistanceSq = TransparentSortDistanceSq(InModel, InLocalMin, InLocalMax, cameraPosition);
-                transparent.push_back(draw);
+                collectTransparent->push_back(draw);
             } else {
-                opaque.push_back(draw);
+                collectOpaque->push_back(draw);
             }
         };
+        collectOpaque = &opaque;
+        collectTransparent = &transparent;
 
         // A mesh section that blocks light. Lights cull the list themselves: a caster outside the
         // camera's view can still throw a shadow into it.
@@ -984,24 +1011,22 @@ namespace Leon {
         frame.ViewportSize = {static_cast<float>(width), static_cast<float>(height), 1.0f / static_cast<float>(width),
                               1.0f / static_cast<float>(height)};
 
-        // --- Scene pass: linear HDR colour ---
-        FRHIRenderPassDesc scenePass;
-        scenePass.NumColorTargets = 1;
-        scenePass.Color[0].Texture = state.SceneColor.get();
-        scenePass.Color[0].ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
-        scenePass.Depth.Texture = state.SceneDepth.get();
-        scenePass.Name = "Scene";
-        InCommands.BeginRenderPass(scenePass);
-        InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
-        InCommands.SetConstants(ERHIConstantSlot::Pass, &lighting.Constants, sizeof(lighting.Constants));
-        InCommands.SetTexture(kSlotBRDFLUT, brdfLut);
-        InCommands.SetTexture(kSlotIrradiance, bIBL ? irradiance : state.BlackCube.get());
-        InCommands.SetTexture(kSlotPrefilter, bIBL ? prefilter : state.BlackCube.get());
-        InCommands.SetTexture(kSlotCascadeShadow, state.CascadeShadowMap.get());
-        InCommands.SetTexture(kSlotSpotShadow, state.SpotShadowMap.get());
-        InCommands.SetTexture(kSlotPointShadow, state.PointShadowMap.get());
+        // --- Helpers shared by the scene pass and the reflection captures ---
+        // Textures every lit draw can read. The planar captures are passed in: while one is being drawn
+        // it cannot also be read.
+        const auto bindSceneTextures = [&](IRHITexture* InPlanarFloor, IRHITexture* InPlanarWall) {
+            InCommands.SetTexture(kSlotBRDFLUT, brdfLut);
+            InCommands.SetTexture(kSlotIrradiance, bIBL ? irradiance : state.BlackCube.get());
+            InCommands.SetTexture(kSlotPrefilter, bIBL ? prefilter : state.BlackCube.get());
+            InCommands.SetTexture(kSlotCascadeShadow, state.CascadeShadowMap.get());
+            InCommands.SetTexture(kSlotSpotShadow, state.SpotShadowMap.get());
+            InCommands.SetTexture(kSlotPointShadow, state.PointShadowMap.get());
+            InCommands.SetTexture(kSlotPlanarFloor, InPlanarFloor);
+            InCommands.SetTexture(kSlotPlanarWall, InPlanarWall);
+        };
 
-        const auto drawAll = [&](const std::vector<FSceneDraw>& InDraws, const char* InName) {
+        // bInCapture: the draws belong to a reflection capture, which shows no shadows or reflections.
+        const auto drawAll = [&](const std::vector<FSceneDraw>& InDraws, const char* InName, bool bInCapture) {
             if (InDraws.empty())
                 return;
             InCommands.PushMarker(InName);
@@ -1047,15 +1072,241 @@ namespace Leon {
                 }
                 FDrawConstants constants;
                 constants.Model = draw.Model;
-                constants.NormalMatrix = glm::mat4(SafeNormalMatrix(draw.Model));
+                constants.NormalMatrix = draw.NormalMatrix;
                 constants.LightmapScaleBias = glm::vec4(draw.LightmapScale, draw.LightmapBias);
-                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, draw.bReceiveShadows ? 1 : 0, 0);
+                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, (draw.bReceiveShadows && !bInCapture) ? 1 : 0,
+                                                 (draw.bPlanar && !bInCapture) ? 1 : 0);
                 InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
                 InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex);
             }
             InCommands.PopMarker();
         };
-        drawAll(opaque, "Opaque");
+
+        // The sky as seen with the given view and projection (engine clip convention).
+        const auto drawSky = [&](const glm::mat4& InView, const glm::mat4& InProjection) {
+            if (!bDrawSky || !state.SkyPipeline)
+                return;
+            const FSkyboxComponent& skybox = lighting.Skybox;
+            const FDirectionalLightConstants& sun = lighting.Constants.DirLight;
+            FSkyConstants sky;
+            // The view without its translation: the sky is infinitely far, so only rotation matters.
+            sky.ClipToDirection = glm::inverse(ClipDepthZeroToOne() * InProjection * glm::mat4(glm::mat3(InView)));
+            sky.SunDirection = sun.Direction.w > 0.5f ? glm::vec4(-glm::vec3(sun.Direction), 0.0f)
+                                                      : glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+            sky.SkyColor = glm::vec4(skybox.SkyZenithColor, skybox.EnvironmentIntensity);
+            sky.HorizonColor = glm::vec4(skybox.HorizonColor, 0.0f);
+            sky.GroundColor = glm::vec4(skybox.GroundColor, 0.0f);
+            sky.SunColor = glm::vec4(skybox.SunColor, skybox.SunIntensity);
+            sky.SkyFlags = glm::ivec4(panorama ? 1 : 0, 0, 0, 0);
+            InCommands.PushMarker("Sky");
+            InCommands.SetPipeline(state.SkyPipeline.get());
+            InCommands.SetConstants(ERHIConstantSlot::Material, &sky, sizeof(sky));
+            InCommands.SetTexture(0, panorama);
+            InCommands.Draw(3);
+            InCommands.PopMarker();
+        };
+
+        // --- Planar reflections: the scene again, mirrored in a plane ---
+        // Only when something on screen shows them. The planes and the mirrored cameras were chosen by
+        // the old Render() this frame (floor always; a wall mirror when the camera faces one).
+        const auto wantsPlanar = [](const FSceneDraw& InDraw) { return InDraw.bPlanar; };
+        const bool bPlanar = bEnablePlanarReflection && PlanarReflectionFramebuffer &&
+                             (std::any_of(opaque.begin(), opaque.end(), wantsPlanar) ||
+                              std::any_of(transparent.begin(), transparent.end(), wantsPlanar));
+        bool bPlanarCaptured[2] = {false, false};
+        if (bPlanar) {
+            const FFramebufferSpecification& spec = PlanarReflectionFramebuffer->GetSpecification();
+            const uint32_t captureWidth = std::max(spec.Width > 0 ? spec.Width : PlanarCaptureWidth(), 1u);
+            const uint32_t captureHeight = std::max(spec.Height > 0 ? spec.Height : PlanarCaptureHeight(), 1u);
+            uint32_t maxLevels = 1;
+            for (uint32_t size = std::max(captureWidth, captureHeight); size > 1; size /= 2)
+                ++maxLevels;
+            const uint32_t levels = std::clamp(spec.ColorMipLevels, 1u, maxLevels);
+            if (!state.PlanarColor[0] || state.PlanarColor[0]->GetDesc().Width != captureWidth ||
+                state.PlanarColor[0]->GetDesc().Height != captureHeight ||
+                state.PlanarColor[0]->GetDesc().MipLevels != levels) {
+                FRHITextureDesc colorDesc;
+                colorDesc.Width = captureWidth;
+                colorDesc.Height = captureHeight;
+                colorDesc.MipLevels = levels;
+                colorDesc.Format = ERHIFormat::RGBA16_Float;
+                colorDesc.Usage = RHITextureUsage_Sampled | RHITextureUsage_RenderTarget;
+                colorDesc.ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
+                colorDesc.DebugName = "PlanarFloor";
+                state.PlanarColor[0] = device->CreateTexture(colorDesc);
+                colorDesc.DebugName = "PlanarWall";
+                state.PlanarColor[1] = device->CreateTexture(colorDesc);
+                FRHITextureDesc depthDesc;
+                depthDesc.Width = captureWidth;
+                depthDesc.Height = captureHeight;
+                depthDesc.Format = ERHIFormat::D32_Float;
+                depthDesc.Usage = RHITextureUsage_DepthStencil;
+                depthDesc.DebugName = "PlanarDepth";
+                state.PlanarDepth = device->CreateTexture(depthDesc);
+            }
+            if (!state.DownsamplePipeline) {
+                const TRef<IRHIShader> downVS = FShaderLibrary::Get("Downsample.hlsl", "VSMain", ERHIShaderStage::Vertex);
+                const TRef<IRHIShader> downPS = FShaderLibrary::Get("Downsample.hlsl", "PSMain", ERHIShaderStage::Pixel);
+                if (downVS && downPS) {
+                    FRHIGraphicsPipelineDesc desc;
+                    desc.VertexShader = downVS.get();
+                    desc.PixelShader = downPS.get();
+                    desc.Raster.Cull = ERHICull::None;
+                    desc.Depth.bTest = false;
+                    desc.Depth.bWrite = false;
+                    desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
+                    desc.DebugName = "Downsample";
+                    state.DownsamplePipeline = device->CreateGraphicsPipeline(desc);
+                }
+            }
+
+            const auto capture = [&](uint32_t InIndex, const glm::vec3& InPlaneNormal, float InPlaneDistance,
+                                     const glm::mat4& InMirroredViewProjection, const char* InName) {
+                IRHITexture* target = state.PlanarColor[InIndex].get();
+                if (!target || !state.PlanarDepth)
+                    return;
+                const glm::mat4 reflection = PlanarReflectionMatrix(InPlaneNormal, InPlaneDistance);
+                const glm::mat4 mirrorView = InCamera.GetViewMatrix() * reflection;
+                const glm::vec3 mirrorPosition = ReflectPointThroughPlane(cameraPosition, InPlaneNormal, InPlaneDistance);
+                const glm::vec3 mirrorForward =
+                    SafeNormalize(glm::mat3(reflection) * InCamera.GetForwardDirection(), glm::vec3(0.0f, 0.0f, -1.0f));
+
+                // What the mirrored camera sees.
+                std::vector<FSceneDraw> captureOpaque;
+                std::vector<FSceneDraw> captureTransparent;
+                collectOpaque = &captureOpaque;
+                collectTransparent = &captureTransparent;
+                bCollectMirrored = true;
+                collectNormalTransform = reflection;
+                const FFrustumPlanes captureFrustum = ExtractFrustumPlanes(InMirroredViewProjection);
+                for (auto entity : meshView) {
+                    auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
+                    if (!mesh.VertexArray ||
+                        !CanContributeToPlanarReflection(mesh.bVisible, mesh.bVisibleInReflection, mesh.Mobility))
+                        continue;
+                    const glm::mat4 model = ResolveActorWorldMatrix(World, entity, transform);
+                    if (IsProceduralMeshOutsideLightFrustum(model, mesh, captureFrustum))
+                        continue;
+                    TRef<FMaterialInstance> material;
+                    if (const auto* component = registry.try_get<FMaterialComponent>(entity))
+                        material = component->MaterialInstance;
+                    if (!material)
+                        material = defaultMaterial;
+                    const glm::vec3 extent = ProceduralMeshLocalExtent(mesh);
+                    submit(*mesh.VertexArray, material.get(), model, GetRHIIndexCount(*mesh.VertexArray), 0,
+                           lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
+                           mesh.LightmapBias, -extent, extent, nullptr, false);
+                }
+                for (auto entity : staticView) {
+                    auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
+                    if (!component.StaticMesh || !CanContributeToPlanarReflection(component.bVisible,
+                                                                                  component.bVisibleInReflection,
+                                                                                  component.Mobility))
+                        continue;
+                    const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+                    if (IsStaticMeshOutsideLightFrustum(world, component, captureFrustum))
+                        continue;
+                    const uint32_t lod =
+                        std::min(component.CurrentLOD, std::max(1u, component.StaticMesh->GetLODCount()) - 1);
+                    const TRef<FVertexArray> vertexArray = component.StaticMesh->GetLODVertexArray(lod);
+                    if (!vertexArray)
+                        continue;
+                    IRHITexture* lightmap =
+                        lightmapFor(component.Mobility, component.LightmapIndex, component.LightmapAssetPath);
+                    for (const auto& submesh : component.StaticMesh->GetLODSubmeshes(lod)) {
+                        const TRef<FMaterialInstance> material =
+                            ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides);
+                        submit(*vertexArray, material ? material.get() : defaultMaterial.get(),
+                               world * submesh.LocalTransform, submesh.IndexCount, submesh.IndexOffset, lightmap,
+                               component.LightmapScale, component.LightmapBias, component.StaticMesh->GetBoundsMin(),
+                               component.StaticMesh->GetBoundsMax(), nullptr, false);
+                    }
+                }
+                for (auto entity : skinnedView) {
+                    auto [transform, skinned] = skinnedView.get<FTransformComponent, FSkinnedMeshRenderState>(entity);
+                    if (!skinned.bVisible || !skinned.bVisibleInReflection || !skinned.SkeletalMesh)
+                        continue;
+                    const TRef<FVertexArray> vertexArray = skinned.SkeletalMesh->GetVertexArray();
+                    if (!vertexArray)
+                        continue;
+                    const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+                    if (IsSkeletalMeshOutsideLightFrustum(world, skinned, captureFrustum))
+                        continue;
+                    for (const auto& submesh : skinned.SkeletalMesh->GetSubmeshes()) {
+                        const TRef<FMaterialInstance> material =
+                            ResolveSkeletalSubmeshMaterial(*skinned.SkeletalMesh, submesh, skinned.MaterialOverrides);
+                        submit(*vertexArray, material ? material.get() : defaultMaterial.get(),
+                               SkeletalModelMatrix(world, skinned, submesh.LocalTransform), submesh.IndexCount,
+                               submesh.IndexOffset, nullptr, glm::vec2(1.0f), glm::vec2(0.0f),
+                               skinned.SkeletalMesh->GetBoundsMin(), skinned.SkeletalMesh->GetBoundsMax(),
+                               &skinned.BonePalette, false);
+                    }
+                }
+                collectOpaque = &opaque;
+                collectTransparent = &transparent;
+                bCollectMirrored = false;
+                collectNormalTransform = glm::mat4(1.0f);
+                for (const FSceneDraw& draw : captureOpaque)
+                    prepareMaterial(*draw.Material);
+                for (const FSceneDraw& draw : captureTransparent)
+                    prepareMaterial(*draw.Material);
+
+                FFrameConstants captureFrame = frame;
+                captureFrame.ViewProjection = ClipDepthZeroToOne() * InMirroredViewProjection;
+                captureFrame.View = mirrorView;
+                captureFrame.ViewPosition = glm::vec4(mirrorPosition, 1.0f);
+                captureFrame.CameraForward = glm::vec4(mirrorForward, 0.0f);
+                captureFrame.ViewportSize = {static_cast<float>(captureWidth), static_cast<float>(captureHeight),
+                                             1.0f / static_cast<float>(captureWidth),
+                                             1.0f / static_cast<float>(captureHeight)};
+                // The same lights, without shadows, reflections or debug views, cut at the mirror plane
+                // so that nothing behind the mirror shows up in it.
+                FLitPassConstants capturePass = lighting.Constants;
+                capturePass.PassFlags.y = 0;
+                capturePass.ShadowFlags = glm::ivec4(0);
+                capturePass.ShadowSettings.y = -1;
+                capturePass.ClipPlane = glm::vec4(InPlaneNormal, InPlaneDistance);
+                capturePass.PlanarFlags = glm::ivec4(0, 0, 1, 0);
+
+                FRHIRenderPassDesc pass;
+                pass.NumColorTargets = 1;
+                pass.Color[0].Texture = target;
+                pass.Color[0].ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
+                pass.Depth.Texture = state.PlanarDepth.get();
+                pass.Name = InName;
+                InCommands.BeginRenderPass(pass);
+                InCommands.SetConstants(ERHIConstantSlot::Frame, &captureFrame, sizeof(captureFrame));
+                InCommands.SetConstants(ERHIConstantSlot::Pass, &capturePass, sizeof(capturePass));
+                bindSceneTextures(nullptr, nullptr);
+                drawAll(captureOpaque, "Opaque", true);
+                drawSky(mirrorView, InCamera.GetProjectionMatrix());
+                drawAll(captureTransparent, "Transparent", true);
+                InCommands.EndRenderPass();
+                InCommands.GenerateMips(*target, state.DownsamplePipeline.get());
+
+                lit.PlanarMatrix[InIndex] = ClipToShadowMap() * InMirroredViewProjection;
+                lit.PlanarPlane[InIndex] = glm::vec4(InPlaneNormal, InPlaneDistance);
+                bPlanarCaptured[InIndex] = true;
+            };
+            capture(0, PlanarPlaneNormal, PlanarPlaneDistance, PlanarViewProjection, "PlanarFloor");
+            if (bWallPlanarActive)
+                capture(1, WallPlanarPlaneNormal, WallPlanarPlaneDistance, WallPlanarViewProjection, "PlanarWall");
+        }
+        lit.PlanarFlags = glm::ivec4(bPlanarCaptured[0] ? 1 : 0, bPlanarCaptured[1] ? 1 : 0, 0, 0);
+
+        // --- Scene pass: linear HDR colour ---
+        FRHIRenderPassDesc scenePass;
+        scenePass.NumColorTargets = 1;
+        scenePass.Color[0].Texture = state.SceneColor.get();
+        scenePass.Color[0].ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
+        scenePass.Depth.Texture = state.SceneDepth.get();
+        scenePass.Name = "Scene";
+        InCommands.BeginRenderPass(scenePass);
+        InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
+        InCommands.SetConstants(ERHIConstantSlot::Pass, &lighting.Constants, sizeof(lighting.Constants));
+        bindSceneTextures(bPlanarCaptured[0] ? state.PlanarColor[0].get() : nullptr,
+                          bPlanarCaptured[1] ? state.PlanarColor[1].get() : nullptr);
+        drawAll(opaque, "Opaque", false);
         if (!outlines.empty() && state.OutlinePipeline) {
             InCommands.PushMarker("Outlines");
             InCommands.SetPipeline(state.OutlinePipeline.get());
@@ -1076,28 +1327,8 @@ namespace Leon {
             }
             InCommands.PopMarker();
         }
-        if (bDrawSky && state.SkyPipeline) {
-            const FSkyboxComponent& skybox = lighting.Skybox;
-            const FDirectionalLightConstants& sun = lighting.Constants.DirLight;
-            FSkyConstants sky;
-            // The view without its translation: the sky is infinitely far, so only rotation matters.
-            sky.ClipToDirection = glm::inverse(ClipDepthZeroToOne() * InCamera.GetProjectionMatrix() *
-                                               glm::mat4(glm::mat3(InCamera.GetViewMatrix())));
-            sky.SunDirection = sun.Direction.w > 0.5f ? glm::vec4(-glm::vec3(sun.Direction), 0.0f)
-                                                      : glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-            sky.SkyColor = glm::vec4(skybox.SkyZenithColor, skybox.EnvironmentIntensity);
-            sky.HorizonColor = glm::vec4(skybox.HorizonColor, 0.0f);
-            sky.GroundColor = glm::vec4(skybox.GroundColor, 0.0f);
-            sky.SunColor = glm::vec4(skybox.SunColor, skybox.SunIntensity);
-            sky.SkyFlags = glm::ivec4(panorama ? 1 : 0, 0, 0, 0);
-            InCommands.PushMarker("Sky");
-            InCommands.SetPipeline(state.SkyPipeline.get());
-            InCommands.SetConstants(ERHIConstantSlot::Material, &sky, sizeof(sky));
-            InCommands.SetTexture(0, panorama);
-            InCommands.Draw(3);
-            InCommands.PopMarker();
-        }
-        drawAll(transparent, "Transparent");
+        drawSky(InCamera.GetViewMatrix(), InCamera.GetProjectionMatrix());
+        drawAll(transparent, "Transparent", false);
         FSceneBatchesRHI::Flush(InCommands, ERHIFormat::RGBA16_Float, ERHIFormat::D32_Float);
         InCommands.EndRenderPass();
 

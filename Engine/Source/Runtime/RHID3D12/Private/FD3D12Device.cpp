@@ -245,6 +245,8 @@ namespace Leon {
             device->DeferFree(device->GetRtvPool(), index);
         for (const auto& [key, index] : DsvIndices)
             device->DeferFree(device->GetDsvPool(), index);
+        for (const auto& [key, index] : MipSrvIndices)
+            device->DeferFree(device->GetSrvPool(), index);
     }
 
     FD3D12Pipeline::~FD3D12Pipeline() {
@@ -751,6 +753,23 @@ namespace Leon {
         Device->CreateRenderTargetView(InTexture.Resource.Get(), &view, RtvPool.At(index));
         InTexture.RtvIndices[key] = index;
         return RtvPool.At(index);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE FD3D12Device::GetMipShaderView(FD3D12Texture& InTexture, uint32_t InMip) {
+        const auto found = InTexture.MipSrvIndices.find(InMip);
+        if (found != InTexture.MipSrvIndices.end())
+            return SrvPool.At(found->second);
+
+        const uint32_t index = SrvPool.Allocate();
+        D3D12_SHADER_RESOURCE_VIEW_DESC view{};
+        view.Format = D3D12ShaderReadFormat(InTexture.Desc.Format);
+        view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        view.Texture2D.MostDetailedMip = InMip;
+        view.Texture2D.MipLevels = 1;
+        Device->CreateShaderResourceView(InTexture.Resource.Get(), &view, SrvPool.At(index));
+        InTexture.MipSrvIndices[InMip] = index;
+        return SrvPool.At(index);
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE FD3D12Device::GetDepthStencilView(FD3D12Texture& InTexture, uint32_t InSlice) {

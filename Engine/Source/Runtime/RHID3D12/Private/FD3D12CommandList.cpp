@@ -214,6 +214,68 @@ namespace Leon {
         List->DrawIndexedInstanced(InIndexCount, std::max(InInstanceCount, 1u), InFirstIndex, InBaseVertex, 0);
     }
 
+    void FD3D12CommandList::GenerateMips(IRHITexture& InTexture, IRHIPipeline* InDownsample) {
+        auto& texture = static_cast<FD3D12Texture&>(InTexture);
+        auto* pipeline = static_cast<FD3D12Pipeline*>(InDownsample);
+        const FRHITextureDesc& desc = texture.Desc;
+        const bool bSupported = desc.Dimension == ERHITextureDimension::Texture2D && desc.ArraySize == 1 &&
+                                (desc.Usage & RHITextureUsage_RenderTarget) && (desc.Usage & RHITextureUsage_Sampled);
+        if (!List || !texture.Resource || !pipeline || !pipeline->State || !bSupported || desc.MipLevels < 2)
+            return;
+        if (bInPass)
+            EndRenderPass();
+        PushMarker("GenerateMips");
+
+        // This is the one place where the levels of a texture are in different states: the level being
+        // drawn is a render target while the level above it is read. Everywhere else a texture changes
+        // state as a whole, so each level is put back before moving on.
+        const D3D12_RESOURCE_STATES readState = texture.State;
+        const auto transitionLevel = [&](uint32_t InLevel, D3D12_RESOURCE_STATES InBefore, D3D12_RESOURCE_STATES InAfter) {
+            D3D12_RESOURCE_BARRIER barrier{};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource = texture.Resource.Get();
+            barrier.Transition.Subresource = InLevel;
+            barrier.Transition.StateBefore = InBefore;
+            barrier.Transition.StateAfter = InAfter;
+            List->ResourceBarrier(1, &barrier);
+        };
+
+        List->SetPipelineState(pipeline->State.Get());
+        List->IASetPrimitiveTopology(pipeline->Topology);
+        const UINT stride = Device.GetD3D()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        for (uint32_t level = 1; level < desc.MipLevels; ++level) {
+            D3D12_CPU_DESCRIPTOR_HANDLE cpu{};
+            D3D12_GPU_DESCRIPTOR_HANDLE gpu{};
+            if (!Device.AllocateTextureTable(cpu, gpu))
+                break;
+            for (uint32_t slot = 0; slot < kRHITextureSlots; ++slot) {
+                D3D12_CPU_DESCRIPTOR_HANDLE destination = cpu;
+                destination.ptr += static_cast<SIZE_T>(slot) * stride;
+                Device.GetD3D()->CopyDescriptorsSimple(
+                    1, destination, slot == 0 ? Device.GetMipShaderView(texture, level - 1) : Device.GetNullSrv(),
+                    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            }
+
+            const uint32_t width = std::max(desc.Width >> level, 1u);
+            const uint32_t height = std::max(desc.Height >> level, 1u);
+            transitionLevel(level, readState, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            const D3D12_CPU_DESCRIPTOR_HANDLE target = Device.GetRenderTargetView(texture, level, 0);
+            List->OMSetRenderTargets(1, &target, FALSE, nullptr);
+            const D3D12_VIEWPORT viewport{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f};
+            const D3D12_RECT scissor{0, 0, static_cast<LONG>(width), static_cast<LONG>(height)};
+            List->RSSetViewports(1, &viewport);
+            List->RSSetScissorRects(1, &scissor);
+            List->SetGraphicsRootDescriptorTable(kD3D12TextureTableRootIndex, gpu);
+            List->DrawInstanced(3, 1, 0, 0);
+            transitionLevel(level, D3D12_RESOURCE_STATE_RENDER_TARGET, readState);
+        }
+
+        // What the caller had set no longer holds.
+        bPipelineSet = false;
+        bTexturesDirty = true;
+        PopMarker();
+    }
+
     void FD3D12CommandList::PushMarker(const char* InName) {
         if (!List || !InName)
             return;

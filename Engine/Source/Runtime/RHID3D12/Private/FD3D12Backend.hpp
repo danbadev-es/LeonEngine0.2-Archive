@@ -83,6 +83,8 @@ namespace Leon {
         uint32_t SrvIndex = kD3D12InvalidDescriptor;
         std::unordered_map<uint32_t, uint32_t> RtvIndices;
         std::unordered_map<uint32_t, uint32_t> DsvIndices;
+        /** Views of one mip level each, by level; created when mips are generated. */
+        std::unordered_map<uint32_t, uint32_t> MipSrvIndices;
     };
 
     class FD3D12Shader final : public IRHIShader {
@@ -119,6 +121,7 @@ namespace Leon {
         void Draw(uint32_t InVertexCount, uint32_t InFirstVertex) override;
         void DrawIndexed(uint32_t InIndexCount, uint32_t InFirstIndex, int32_t InBaseVertex,
                          uint32_t InInstanceCount) override;
+        void GenerateMips(IRHITexture& InTexture, IRHIPipeline* InDownsample) override;
         void PushMarker(const char* InName) override;
         void PopMarker() override;
 
@@ -197,6 +200,8 @@ namespace Leon {
         FD3D12DescriptorPool& GetDsvPool() { return DsvPool; }
         FD3D12DescriptorPool& GetSrvPool() { return SrvPool; }
         D3D12_CPU_DESCRIPTOR_HANDLE GetNullSrv() const { return SrvPool.At(NullSrvIndex); }
+        /** A view that shows only InMip of a 2D texture. */
+        D3D12_CPU_DESCRIPTOR_HANDLE GetMipShaderView(FD3D12Texture& InTexture, uint32_t InMip);
 
         /** View of one mip of one slice, created on first use. */
         D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView(FD3D12Texture& InTexture, uint32_t InMip, uint32_t InSlice);

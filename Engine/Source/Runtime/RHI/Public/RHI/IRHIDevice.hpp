@@ -78,6 +78,14 @@ namespace Leon {
         virtual void DrawIndexed(uint32_t InIndexCount, uint32_t InFirstIndex = 0, int32_t InBaseVertex = 0,
                                  uint32_t InInstanceCount = 1) = 0;
 
+        /**
+         * Fills every mip level of a 2D render target below the first, each drawn from the one above
+         * with InDownsample: a pipeline that draws a full-screen triangle (3 vertices, no vertex
+         * buffer, no constants) reading its source at t0, built for the texture's format with no
+         * depth. Call outside a render pass; the pipeline and textures set on the list are forgotten.
+         */
+        virtual void GenerateMips(IRHITexture& InTexture, IRHIPipeline* InDownsample) = 0;
+
         /** Named regions in GPU captures (PIX, RenderDoc). */
         virtual void PushMarker(const char* InName) = 0;
         virtual void PopMarker() = 0;

@@ -46,6 +46,11 @@ cbuffer PassConstants : register(b1) {
     float4 u_ShadowParams;    // x = constant bias, y = slope bias, z = normal offset, w = cascade blend width
     int4 u_ShadowSettings;    // x = filter (0 hard, 1 3x3, 2 5x5, 3 Poisson), y = spot light with the shadow map, z = cascades
     int4 u_ShadowFlags;       // 1 where a map was drawn this frame: x = sun, y = spot, z = point
+    // Planar reflections: the scene captured from behind a mirror plane (0 = floor, 1 = wall mirror).
+    float4x4 u_PlanarMatrix[2]; // world position -> capture texture coordinates (divide xy by w)
+    float4 u_PlanarPlane[2];    // xyz = plane normal, w = plane distance
+    float4 u_ClipPlane;         // xyz = normal, w = distance; geometry behind it is cut when u_PlanarFlags.z is set
+    int4 u_PlanarFlags;         // x = floor capture available, y = wall capture available, z = cut against u_ClipPlane
 };
 
 // --- Cook-Torrance -----------------------------------------------------------------------------

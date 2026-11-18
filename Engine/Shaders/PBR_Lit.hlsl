@@ -4,7 +4,7 @@
 // Compiled twice: as is for static geometry, and with SKINNED defined for meshes that follow a
 // skeleton (two more vertex inputs and the bone palette).
 //
-// Not brought over from the OpenGL renderer yet: planar reflections, instancing.
+// Not brought over from the OpenGL renderer yet: instancing.
 
 #include "PBR_Common.hlsli"
 #include "Shadows.hlsli"
@@ -34,7 +34,7 @@ cbuffer DrawConstants : register(b3) {
     float4x4 u_Model;
     float4x4 u_NormalMatrix;    // inverse transpose of u_Model (upper 3x3 used)
     float4 u_LightmapScaleBias; // xy = scale, zw = bias of this object's chart in the atlas
-    int4 u_DrawFlags;           // x = has lightmap, y = lightmap uses the first UV set, z = receives shadows
+    int4 u_DrawFlags;           // x = has lightmap, y = lightmap uses the first UV set, z = receives shadows, w = shows planar reflections
 };
 
 Texture2D<float4> t_Albedo : register(t0);
@@ -42,11 +42,13 @@ Texture2D<float4> t_Normal : register(t1);
 Texture2D<float4> t_Metallic : register(t2);
 Texture2D<float4> t_AO : register(t3);
 Texture2D<float4> t_Roughness : register(t4);
+Texture2D<float4> t_PlanarFloor : register(t5);
 Texture2D<float4> t_BRDFLUT : register(t6);
 TextureCube<float4> t_Irradiance : register(t7);
 TextureCube<float4> t_Prefilter : register(t8);
 Texture2D<float4> t_Emissive : register(t9);
 Texture2D<float4> t_Lightmap : register(t12);
+Texture2D<float4> t_PlanarWall : register(t13);
 
 struct FVertexInput {
     float3 Position : ATTRIBUTE0;
@@ -69,7 +71,35 @@ struct FVertexOutput {
     float3 Bitangent : TEXCOORD3;
     float2 TexCoord : TEXCOORD4;
     float2 LightmapUV : TEXCOORD5;
+    float ClipDistance : SV_ClipDistance0; // negative = behind the mirror plane of a reflection capture
 };
+
+/**
+ * Light arriving along the mirror direction from one planar capture, and how much to trust it
+ * (OutWeight, 0..1). The capture is a flat mirror image, so it is only right for surfaces lying on the
+ * plane and facing along it; everything else keeps the environment reflection.
+ */
+float3 SamplePlanarCapture(Texture2D<float4> InCapture, int InIndex, float3 InWorldPosition, float3 N,
+                           float InRoughness, out float OutWeight) {
+    const float4 projected = mul(u_PlanarMatrix[InIndex], float4(InWorldPosition, 1.0));
+    float2 uv = projected.xy / max(abs(projected.w), 1e-5);
+    // A little distortion by the surface normal breaks the perfect-mirror look on bumpy surfaces.
+    uv += float2(N.x, -N.z) * 0.03 * (1.0 - InRoughness);
+
+    // Fade towards the edges of the capture: a hard cut pops between the capture and the environment.
+    const float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+    const float inBounds = smoothstep(0.0, 0.08, edge);
+    const float inFront = smoothstep(0.0, 0.04, projected.w);
+    const float3 planeNormal = normalize(u_PlanarPlane[InIndex].xyz);
+    const float aligned = smoothstep(0.35, 0.70, abs(dot(N, planeNormal)));
+    const float planeDistance = abs(dot(InWorldPosition, planeNormal) + u_PlanarPlane[InIndex].w);
+    const float onPlane = 1.0 - smoothstep(0.08, 0.40, planeDistance);
+    OutWeight = saturate(1.0 - InRoughness * 1.1) * inFront * inBounds * aligned * onPlane;
+
+    // Rougher surfaces read blurrier levels of the capture, like the prefiltered environment.
+    const float kMaxPlanarLod = 4.0;
+    return InCapture.SampleLevel(s_LinearClamp, clamp(uv, 0.001, 0.999), InRoughness * kMaxPlanarLod).rgb;
+}
 
 FVertexOutput VSMain(FVertexInput InVertex) {
     FVertexOutput output;
@@ -100,6 +130,7 @@ FVertexOutput VSMain(FVertexInput InVertex) {
     output.Bitangent = cross(N, T) * InVertex.Tangent.w * mirror;
     output.TexCoord = InVertex.TexCoord;
     output.LightmapUV = InVertex.LightmapUV;
+    output.ClipDistance = u_PlanarFlags.z == 1 ? dot(float4(worldPosition.xyz, 1.0), u_ClipPlane) : 1.0;
     return output;
 }
 
@@ -246,6 +277,22 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
         diffuseIBL = GetHemisphereIrradiance(N) * albedo / kPi;
         reflection = SampleEnvironmentAtmosphere(R);
     }
+    // Planar captures replace the environment reflection where they apply. They hold linear scene
+    // light along the mirror ray, so they go through the same split-sum factor as the environment.
+    if (u_DrawFlags.w == 1 && u_PlanarFlags.x == 1) {
+        float floorWeight = 0.0;
+        float3 planar = SamplePlanarCapture(t_PlanarFloor, 0, InPixel.WorldPosition, N, roughness, floorWeight);
+        float planarWeight = floorWeight;
+        if (u_PlanarFlags.y == 1) {
+            float wallWeight = 0.0;
+            const float3 wall = SamplePlanarCapture(t_PlanarWall, 1, InPixel.WorldPosition, N, roughness, wallWeight);
+            if (wallWeight > floorWeight) {
+                planar = wall;
+                planarWeight = wallWeight;
+            }
+        }
+        reflection = lerp(reflection, planar, planarWeight);
+    }
     const float3 specularIBL = reflection * (fresnelIBL * envBRDF.x + envBRDF.y);
     float3 ambient = (diffuseWeightIBL * diffuseIBL + specularIBL) * ao;
 
@@ -282,7 +329,10 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
             view = N * 0.5 + 0.5;
         else if (debugView == 12)
             view = R * 0.5 + 0.5;
-        else if (debugView == 14)
+        else if (debugView == 13) {
+            const float4 projected = mul(u_PlanarMatrix[0], float4(InPixel.WorldPosition, 1.0));
+            view = t_PlanarFloor.SampleLevel(s_LinearClamp, clamp(projected.xy / max(abs(projected.w), 1e-5), 0.001, 0.999), 0.0).rgb;
+        } else if (debugView == 14)
             view = albedo;
         else if (debugView == 15)
             view = float3(metallic, metallic, metallic);
