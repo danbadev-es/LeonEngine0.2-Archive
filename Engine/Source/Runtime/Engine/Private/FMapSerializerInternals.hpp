@@ -111,11 +111,9 @@ namespace Leon {
         while (std::getline(ss, item, ',')) {
             item = FStringUtils::Trim(item);
             if (!item.empty()) {
-                try {
-                    result.push_back(std::stof(item));
-                } catch (...) {
-                    result.push_back(0.0f);
-                }
+                // A malformed component used to become 0 silently (a typo moved an actor to the origin).
+                // Let it throw: the reader reports the line and refuses the file instead.
+                result.push_back(std::stof(item));
             }
         }
         return result;

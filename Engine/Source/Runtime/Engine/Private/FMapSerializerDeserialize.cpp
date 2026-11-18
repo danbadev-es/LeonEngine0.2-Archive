@@ -23,10 +23,13 @@
 #include "RHI/IRenderDriver.hpp"
 
 #include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iomanip>
+#include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Leon {
@@ -121,8 +124,29 @@ namespace Leon {
             return false;
         }
 
+        // Numeric conversions in the parser throw on malformed text. Parsing completes before the world is
+        // touched, so a bad file is reported with its line number and leaves the current world intact.
+        FLoadProgress progress;
+        try {
+            return ParseAndPopulate(InYamlString, progress);
+        } catch (const std::exception& e) {
+            if (progress.bWorldModified) {
+                LE_CORE_ERROR("FMapSerializer: Failed while instantiating actors ({0}). The world is incomplete.",
+                              e.what());
+            } else {
+                LE_CORE_ERROR("FMapSerializer: Malformed value at line {0} ({1}). Map not loaded; world untouched.",
+                              progress.Line, e.what());
+            }
+            return false;
+        }
+    }
+
+    bool FMapSerializer::ParseAndPopulate(const std::string& InYamlString, FLoadProgress& OutProgress) {
         std::stringstream ss(InYamlString);
         std::string line;
+        std::string mapName;
+        bool bHasMapName = false;
+        std::string mapVersion;
 
         enum class EParserSection { None, Map, OutlinerFolders, Environment, WorldSettings, Skybox, Actors, InActor };
         enum class EActorComponentSection {
@@ -155,6 +179,7 @@ namespace Leon {
         std::vector<std::string> outlinerFolders;
 
         while (std::getline(ss, line)) {
+            ++OutProgress.Line;
             std::string trimmed = FStringUtils::Trim(line);
             if (trimmed.empty() || trimmed[0] == '#') {
                 continue;
@@ -166,7 +191,8 @@ namespace Leon {
                 size_t colon = trimmed.find(':');
                 std::string val = FStringUtils::Trim(trimmed.substr(colon + 1));
                 if (!val.empty()) {
-                    World->SetName(StripQuotes(val));
+                    mapName = StripQuotes(val);
+                    bHasMapName = true;
                 }
                 continue;
             }
@@ -204,7 +230,10 @@ namespace Leon {
                     std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
                     std::string val = StripQuotes(trimmed.substr(colon + 1));
                     if (key == "Name") {
-                        World->SetName(val);
+                        mapName = val;
+                        bHasMapName = true;
+                    } else if (key == "Version") {
+                        mapVersion = val;
                     } else if (key == "OutlinerFolders" && !val.empty()) {
                         outlinerFolders.push_back(val);
                     }
@@ -651,8 +680,23 @@ namespace Leon {
             actors.push_back(currentActor);
         }
 
-        // 3. Populate World
+        // Files without a Version predate the field and are accepted. A newer major means a format this
+        // build does not understand: refuse instead of loading it partially and saving it back truncated.
+        if (!mapVersion.empty()) {
+            const int major = static_cast<int>(std::strtol(mapVersion.c_str(), nullptr, 10));
+            if (major > SupportedFormatMajor) {
+                LE_CORE_ERROR("FMapSerializer: Map format version {0} is newer than supported major {1}. "
+                              "Map not loaded; world untouched.",
+                              mapVersion, SupportedFormatMajor);
+                return false;
+            }
+        }
+
+        // 3. Populate World (nothing above this line modified it)
+        OutProgress.bWorldModified = true;
         World->Clear();
+        if (bHasMapName)
+            World->SetName(mapName);
         World->SetEditorFolders(outlinerFolders);
 
         // Environment / Skybox / WorldSettings
@@ -668,6 +712,7 @@ namespace Leon {
         }
 
         // Spawn actors
+        std::set<std::pair<uint64_t, uint64_t>> usedGuids;
         for (const auto& actorData : actors) {
             AActor* entity = nullptr;
             std::string className = actorData.ClassName.empty() ? "AActor" : actorData.ClassName;
@@ -680,10 +725,18 @@ namespace Leon {
                 continue;
 
             entity->SetClass(className);
-            if (actorData.Guid.IsValid())
-                entity->SetActorGuid(actorData.Guid);
-            else
-                entity->SetActorGuid(FUUID::FromPath(World->GetName() + "/" + actorData.Name));
+            // GUIDs identify actors for undo, save games and cross references, so they must be unique.
+            // Copy-pasted blocks and same-named actors without a GUID would otherwise collide.
+            FUUID guid = actorData.Guid.IsValid() ? actorData.Guid
+                                                  : FUUID::FromPath(World->GetName() + "/" + actorData.Name);
+            if (!usedGuids.insert({guid.High, guid.Low}).second) {
+                LE_CORE_WARN("FMapSerializer: Actor '{0}' reuses a GUID already present in the map; "
+                             "assigned a new one.",
+                             actorData.Name);
+                guid = FUUID::Generate();
+                usedGuids.insert({guid.High, guid.Low});
+            }
+            entity->SetActorGuid(guid);
             if (!actorData.FolderPath.empty()) {
                 entity->SetFolderPath(actorData.FolderPath);
                 World->RegisterEditorFolder(actorData.FolderPath);
