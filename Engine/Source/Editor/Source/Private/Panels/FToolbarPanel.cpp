@@ -96,7 +96,7 @@ namespace Leon::Editor {
                     OnStop();
             }
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-                ImGui::SetTooltip("Stop Play In Editor (Shift+Esc)");
+                ImGui::SetTooltip("Stop Play In Editor (Esc)");
         }
 
         ToolbarSameLine();

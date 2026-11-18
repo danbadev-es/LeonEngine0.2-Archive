@@ -84,7 +84,7 @@ Canonical plan (types, files, NAMING.md): [EDITOR_POLISH_PLAN.md](EDITOR_POLISH_
 | Phase | Focus |
 | :--- | :--- |
 | 2 | **Done** — dirty map, Ctrl+S, PIE must not poison selection, Details loads meshes, Outliner filter |
-| 3 | **Done** — PIE mouse capture, Esc = pause, Stop = Shift+Esc / toolbar, honest Play Settings |
+| 3 | **Done** — PIE mouse capture, Stop = Esc / toolbar, Shift+F1 frees the mouse, honest Play Settings |
 | 4 | **Done** — grid, surface place, Ramp / Skybox / `ATriggerVolume`, `FSpawnActorsCommand` |
 | 5 | **Done** — AssetTool import (not copy), exact asset refs, blank project without a game DLL |
 
@@ -98,7 +98,7 @@ Canonical plan (types, files, NAMING.md): [EDITOR_POLISH_PLAN.md](EDITOR_POLISH_
 ## Play In Editor (implemented)
 
 - Toolbar **Play / Stop** starts an in-process `FPlaySession` (`PlayWorld`) using the open map and `WorldSettings.GameModeClass`.
-- While GameOnly, the editor hides and disables the GLFW cursor (same as packaged `FGameViewportLayer`) and does not let ImGui steal mouse/keyboard. **Esc** pauses the game; **Shift+Esc** or toolbar Stop ends PIE and restores the cursor.
+- While GameOnly, the editor hides and disables the GLFW cursor (same as packaged `FGameViewportLayer`) and does not let ImGui steal mouse/keyboard. **Esc** or toolbar Stop ends PIE and restores the cursor (a game's own Esc binding, such as a pause menu, is only reachable in the standalone game). **Shift+F1** gives the mouse and keyboard back to the editor while the game keeps running; a click on the viewport hands them to the game again.
 - `FPlaySettings` (1–4 players, NetMode) persists under `Editor/Saved/PlaySettings.json`. Play Mode is Selected Viewport only (`NewEditorWindow` is not hosted).
 - Multi-player: host listens; extra clients spawn as `LeonEditor --pie-role=client` processes.
 - `ENetMode::DedicatedServer` skips local Login; clients join via listen port.

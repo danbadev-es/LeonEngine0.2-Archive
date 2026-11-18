@@ -43,6 +43,8 @@ namespace Leon::Editor {
 
         void SetPlayingInEditor(bool bInPlaying) { bPlayingInEditor = bInPlaying; }
         [[nodiscard]] bool IsPlayingInEditor() const { return bPlayingInEditor; }
+        /** Whether the mouse was over the viewport when it was last drawn. */
+        [[nodiscard]] bool IsHovered() const { return bHovered; }
 
         FPerspectiveCamera& GetCamera() { return EditorCamera; }
         const FPerspectiveCamera& GetCamera() const { return EditorCamera; }
@@ -100,6 +102,7 @@ namespace Leon::Editor {
         bool bShowEditorGizmos = true;
         bool bShowGrid = true;
         bool bPlayingInEditor = false;
+        bool bHovered = false;
 
         glm::vec3 PivotPoint{0.0f, 0.0f, 0.0f};
         bool bRmbNavigating = false;

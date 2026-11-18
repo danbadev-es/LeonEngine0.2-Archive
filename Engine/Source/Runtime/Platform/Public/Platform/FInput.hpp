@@ -140,6 +140,15 @@ namespace Leon {
         static float GetMouseX();
         static float GetMouseY();
 
+        /**
+         * Withholds keyboard and mouse from whoever polls this class: keys and buttons read as up
+         * and the mouse stays where it was. The editor uses it while a game played inside it does
+         * not have the mouse. When input comes back, a captured mouse carries on from where it
+         * stopped, so the camera does not jump.
+         */
+        static void SetBlocked(bool bInBlocked);
+        static bool IsBlocked();
+
         // Gamepad / Xbox Controller Queries (GLFW standard mapping — Xbox Series S/X, One, 360)
         static bool IsGamepadConnected(int InGamepadID = 0);
         static std::string GetGamepadName(int InGamepadID = 0);

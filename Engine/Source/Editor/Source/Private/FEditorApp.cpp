@@ -2,6 +2,7 @@
 
 #include "Assets/UAssetManager.hpp"
 #include "Core/FLog.hpp"
+#include "Platform/FInput.hpp"
 #include "Core/FProjectPaths.hpp"
 #include "Platform/FWindow.hpp"
 #include "Core/events/FApplicationEvent.hpp"
@@ -35,6 +36,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <algorithm>
+#include <cfloat>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -934,6 +936,18 @@ namespace Leon::Editor {
                 GetWindow().SetCursorVisible(true);
                 bPlayInEditorCursorHidden = false;
             }
+            bPlayInEditorMouseReleased = false;
+            FInput::SetBlocked(false);
+            return;
+        }
+
+        // The game does not hear the keyboard or the mouse while the editor has them.
+        FInput::SetBlocked(bPlayInEditorMouseReleased);
+        if (bPlayInEditorMouseReleased) {
+            if (bPlayInEditorCursorHidden) {
+                GetWindow().SetCursorVisible(true);
+                bPlayInEditorCursorHidden = false;
+            }
             return;
         }
 
@@ -1123,8 +1137,16 @@ namespace Leon::Editor {
 
         const bool bPlaying = PlaySession.IsPlaying();
         ImGuiIO& io = ImGui::GetIO();
-        if (bPlaying && !io.WantTextInput && io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Escape, false))
-            PlaySession.RequestStop();
+        if (bPlaying && !io.WantTextInput) {
+            // As in Unreal: Esc stops the game, Shift+F1 gives the mouse back to the editor and a
+            // click on the viewport hands it to the game again.
+            if (ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+                PlaySession.RequestStop();
+            else if (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F1, false))
+                bPlayInEditorMouseReleased = true;
+            else if (bPlayInEditorMouseReleased && Viewport.IsHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                bPlayInEditorMouseReleased = false;
+        }
 
         auto SafeDrawPanel = [this](const char* PanelName, auto&& DrawFn) {
             try {
@@ -1424,6 +1446,12 @@ namespace Leon::Editor {
             Io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 
         ImGui_ImplGlfw_NewFrame();
+        // A captured mouse belongs to the game. It still moves, without bounds, and the panels would
+        // light up and take clicks under a cursor nobody sees: for them it is nowhere. All of the
+        // frame's events are taken at once so that this position is the one a click is tested at.
+        Io.ConfigInputTrickleEventQueue = !bPlayInEditorCursorHidden;
+        if (bPlayInEditorCursorHidden)
+            Io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
         ImGui::NewFrame();
 
         if (bPlayInEditorCursorHidden) {

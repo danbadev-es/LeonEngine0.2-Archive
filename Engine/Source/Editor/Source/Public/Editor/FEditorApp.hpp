@@ -170,6 +170,8 @@ namespace Leon::Editor {
 
         /** True while PIE GameOnly hides and disables the OS cursor (restored on Stop / UI pause). */
         bool bPlayInEditorCursorHidden = false;
+        /** Shift+F1 while playing: the mouse goes back to the editor until the viewport is clicked. */
+        bool bPlayInEditorMouseReleased = false;
 
         /** Set when launched as a PIE client child process. */
         bool bPieClientBootstrap = false;

@@ -1026,6 +1026,7 @@ namespace Leon::Editor {
             }
 
             // Actor Selection and Raycast Picking
+            bHovered = bHasViewportImage && ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
             const bool bWindowHoveredForPick = ImGui::IsWindowHovered(
                 ImGuiHoveredFlags_AllowWhenBlockedByActiveItem |
                 ImGuiHoveredFlags_AllowWhenBlockedByPopup);
@@ -1483,7 +1484,7 @@ namespace Leon::Editor {
         char statsText[320];
         if (bPlayingInEditor) {
             snprintf(statsText, sizeof(statsText),
-                     "PIE  |  Shift+Esc to Stop  |  Map: %s  |  FPS: %.0f (%.1f ms)  |  Actors: %u",
+                     "PIE  |  Esc: stop  |  Shift+F1: free the mouse  |  Map: %s  |  FPS: %.0f (%.1f ms)  |  Actors: %u",
                      InMapName.empty() ? "Untitled" : InMapName.c_str(), FrameRate, FrameTimeMs, InActorCount);
         } else {
             snprintf(statsText, sizeof(statsText),

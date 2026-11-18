@@ -13,11 +13,26 @@ namespace Leon {
             return window ? static_cast<GLFWwindow*>(window->GetNativeHandle()) : nullptr;
         }
 
+        bool GBlocked = false;
+        bool GRebaseMouse = false;
+        std::pair<float, float> GLastMouse{0.0f, 0.0f};
+        std::pair<float, float> GMouseOffset{0.0f, 0.0f};
+
     } // namespace
+
+    void FInput::SetBlocked(bool bInBlocked) {
+        if (GBlocked && !bInBlocked)
+            GRebaseMouse = true;
+        GBlocked = bInBlocked;
+    }
+
+    bool FInput::IsBlocked() {
+        return GBlocked;
+    }
 
     bool FInput::IsKeyPressed(int InKeyCode) {
         GLFWwindow* window = GetInputWindow();
-        if (!window)
+        if (!window || GBlocked)
             return false;
 
         auto state = glfwGetKey(window, InKeyCode);
@@ -26,7 +41,7 @@ namespace Leon {
 
     bool FInput::IsMouseButtonPressed(int InButton) {
         GLFWwindow* window = GetInputWindow();
-        if (!window)
+        if (!window || GBlocked)
             return false;
 
         auto state = glfwGetMouseButton(window, InButton);
@@ -38,9 +53,24 @@ namespace Leon {
         if (!window)
             return {0.0f, 0.0f};
 
+        if (GBlocked)
+            return GLastMouse;
+
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
-        return {(float)xpos, (float)ypos};
+        std::pair<float, float> position{(float)xpos, (float)ypos};
+        // A captured mouse has no place on screen, only movement: after a block it carries on from
+        // where it was. A visible cursor is where it is.
+        if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+            if (GRebaseMouse) {
+                GMouseOffset = {GLastMouse.first - position.first, GLastMouse.second - position.second};
+                GRebaseMouse = false;
+            }
+            position.first += GMouseOffset.first;
+            position.second += GMouseOffset.second;
+        }
+        GLastMouse = position;
+        return position;
     }
 
     float FInput::GetMouseX() {
