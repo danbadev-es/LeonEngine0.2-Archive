@@ -1,6 +1,7 @@
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
+#include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
 
 #include "Core/FApplication.hpp"
@@ -38,6 +39,42 @@ namespace Leon {
         (void)InCharacter;
         bPlayerDied = true;
         LE_CORE_INFO("LeonHorror: the player died.");
+    }
+
+    void ALeonHorrorGameMode::NotifyPickupCollected(const ALeonHorrorPickup& InPickup) {
+        CollectedPickups.insert(InPickup.GetActorGuid().ToString());
+    }
+
+    void ALeonHorrorGameMode::NotifyDoorChanged(const ALeonHorrorDoor& InDoor) {
+        DoorStates[InDoor.GetActorGuid().ToString()] = {InDoor.IsLocked(), InDoor.IsOpen()};
+    }
+
+    void ALeonHorrorGameMode::ShowNote(const ALeonHorrorNote& InNote) {
+        NoteTitle = InNote.GetTitle();
+        NoteText = InNote.GetText();
+        bNoteOpen = true;
+        ReadNotes.insert(InNote.GetActorGuid().ToString());
+        if (World)
+            World->SetPaused(true); // reading takes no game time
+    }
+
+    void ALeonHorrorGameMode::DismissNote() {
+        if (!bNoteOpen)
+            return;
+        bNoteOpen = false;
+        if (World)
+            World->SetPaused(false);
+    }
+
+    bool ALeonHorrorGameMode::RequestSave(ALeonHorrorCharacter& InPlayer) {
+        (void)InPlayer;
+        ++SaveCount;
+        return true;
+    }
+
+    void ALeonHorrorGameMode::NotifySliceCompleted() {
+        bSliceCompleted = true;
+        LE_CORE_INFO("LeonHorror: slice completed.");
     }
 
     void ALeonHorrorGameMode::TickSmokeRun() {

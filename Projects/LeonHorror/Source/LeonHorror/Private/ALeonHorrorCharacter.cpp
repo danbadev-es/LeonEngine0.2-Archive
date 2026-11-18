@@ -2,7 +2,9 @@
 
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
+#include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
+#include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "Assets/USkeletalMesh.hpp"
 #include "Engine/UWorld.hpp"
@@ -34,6 +36,9 @@ namespace Leon {
             Health->SetMaxHealth(100.0f);
             Health->SetHealth(100.0f);
         }
+
+        if (!Inventory)
+            Inventory = AddActorComponent<ULeonHorrorInventoryComponent>("Inventory");
 
         if (auto movement = GetCharacterMovement()) {
             movement->SetMaxWalkSpeed(Tuning.WalkSpeed);
@@ -135,6 +140,11 @@ namespace Leon {
                 light->Toggle();
         }
 
+        if (InState.bInteractPressed) {
+            Focused = FindInteractable();
+            TryInteract();
+        }
+
         bAiming = InState.bAimHeld;
 
         glm::vec2 move = InState.Move;
@@ -189,6 +199,7 @@ namespace Leon {
         ACharacter::Tick(DeltaSeconds);
         UpdateCameraRig(DeltaSeconds);
         UpdateFlashlight();
+        Focused = bDead ? nullptr : FindInteractable();
         if (Anim)
             Anim->SetAiming(bAiming && !bDead);
     }
@@ -209,6 +220,59 @@ namespace Leon {
         if (!light)
             return;
         light->UpdateFromView(GetPawnViewLocation(), GetControlLookDirection());
+    }
+
+    ALeonHorrorInteractable* ALeonHorrorCharacter::FindInteractable() const {
+        if (!World || bDead)
+            return nullptr;
+        const glm::vec3 eye = GetPawnViewLocation();
+        const glm::vec3 look = GetControlLookDirection();
+        const float minCos = std::cos(glm::radians(Tuning.InteractConeDegrees));
+
+        ALeonHorrorInteractable* best = nullptr;
+        float bestScore = -1.0e9f;
+        for (const auto& actorRef : World->GetAllActors()) {
+            auto* candidate = dynamic_cast<ALeonHorrorInteractable*>(actorRef.get());
+            if (!candidate || !candidate->CanInteract(*this))
+                continue;
+            const glm::vec3 to = candidate->GetInteractLocation() - eye;
+            const float distance = glm::length(to);
+            if (distance > Tuning.InteractReach)
+                continue;
+            // Something at arm's length underfoot is always reachable; otherwise it must be in view.
+            const float alignment = distance > 0.35f ? glm::dot(to / distance, look) : 1.0f;
+            if (alignment < minCos)
+                continue;
+            // Nothing solid in between (the candidate itself may be the thing that is hit).
+            FHitResult hit;
+            if (World->LineTraceSingleByChannel(eye, candidate->GetInteractLocation(), ECollisionChannel::WorldStatic,
+                                                const_cast<ALeonHorrorCharacter*>(this), hit) &&
+                hit.Actor && hit.Actor != candidate)
+                continue;
+            // Prefer what is closest to the centre of the view, then what is nearer.
+            const float score = alignment * 10.0f - distance;
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    std::string ALeonHorrorCharacter::GetInteractPrompt() const {
+        const ALeonHorrorInteractable* target = Focused.Get();
+        return target ? target->GetInteractPrompt(*this) : std::string();
+    }
+
+    bool ALeonHorrorCharacter::TryInteract() {
+        ALeonHorrorInteractable* target = Focused.Get();
+        if (!target || bDead || !target->CanInteract(*this))
+            return false;
+        const bool bDone = target->Interact(*this);
+        if (bDone && Anim)
+            Anim->PlayAction(ELeonHorrorAnimAction::Interact);
+        Focused = FindInteractable(); // the target may be gone (a pickup) or changed (a door)
+        return bDone;
     }
 
     void ALeonHorrorCharacter::UpdateAnimInstance(UAnimInstance& InAnim) const {

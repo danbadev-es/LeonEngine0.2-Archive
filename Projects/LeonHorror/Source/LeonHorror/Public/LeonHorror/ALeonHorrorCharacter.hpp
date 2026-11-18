@@ -11,7 +11,9 @@
 namespace Leon {
 
     class ALeonHorrorFlashlight;
+    class ALeonHorrorInteractable;
     class ULeonHorrorAnimInstance;
+    class ULeonHorrorInventoryComponent;
 
     /** Movement and camera numbers for the player, in metres and seconds. */
     struct FLeonHorrorPlayerTuning {
@@ -28,6 +30,11 @@ namespace Leon {
 
         float ArmLength = 2.1f;
         glm::vec3 ShoulderOffset{0.55f, 0.15f, 0.0f};
+        /** How far the player can reach to use something, from the eye, in metres. */
+        float InteractReach = 2.4f;
+        /** Half-angle of the cone around the view direction in which things can be targeted. */
+        float InteractConeDegrees = 28.0f;
+
         float AimArmLength = 1.2f;
         glm::vec3 AimShoulderOffset{0.62f, 0.1f, 0.0f};
         /** How fast the camera rig moves between the two (1/seconds). */
@@ -67,6 +74,17 @@ namespace Leon {
 
         ULeonHorrorAnimInstance* GetHorrorAnim() const { return Anim.get(); }
 
+        ULeonHorrorInventoryComponent* GetInventory() const { return Inventory.get(); }
+
+        /** The thing the interact key would act on right now, or null. Refreshed every tick. */
+        ALeonHorrorInteractable* GetFocusedInteractable() const { return Focused.Get(); }
+        /** Prompt for the HUD; empty when nothing is in focus. */
+        std::string GetInteractPrompt() const;
+        /** Picks the best target for the current view. Public so tests can query without ticking. */
+        ALeonHorrorInteractable* FindInteractable() const;
+        /** Uses the focused interactable. Returns true when something happened. */
+        bool TryInteract();
+
         FLeonHorrorPlayerTuning Tuning;
 
     protected:
@@ -81,6 +99,8 @@ namespace Leon {
 
         TRef<UHealthComponent> Health;
         TRef<ULeonHorrorAnimInstance> Anim;
+        TRef<ULeonHorrorInventoryComponent> Inventory;
+        TWeakObjectPtr<ALeonHorrorInteractable> Focused;
         TWeakObjectPtr<ALeonHorrorFlashlight> Flashlight;
         FLeonHorrorInputSampler Sampler;
         std::optional<FLeonHorrorInputState> InjectedInput;
