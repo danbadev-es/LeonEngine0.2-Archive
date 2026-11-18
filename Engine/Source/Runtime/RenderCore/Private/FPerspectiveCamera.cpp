@@ -1,5 +1,5 @@
-#include "Renderer/FPerspectiveCamera.hpp"
-#include "Renderer/FRenderingMath.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
+#include "RenderCore/FRenderingMath.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>

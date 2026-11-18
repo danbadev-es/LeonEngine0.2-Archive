@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
 #include <cmath>
 #include <vector>
-#include "Renderer/FPBRMath.hpp"
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FPBRMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 TEST_SUITE("PBR - Energy Conservation Invariants") {
 

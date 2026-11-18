@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 TEST_SUITE("GPU & Geometry - Cubemap Face Boundary Seams") {
 

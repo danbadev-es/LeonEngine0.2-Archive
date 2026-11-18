@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Renderer/FLight.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FLight.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 #include "RHI/FShader.hpp"
 #include "RHI/FVertexArray.hpp"
 

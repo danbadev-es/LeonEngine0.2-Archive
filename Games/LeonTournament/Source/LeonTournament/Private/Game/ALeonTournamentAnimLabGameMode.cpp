@@ -12,7 +12,7 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 
 #include <cmath>
 

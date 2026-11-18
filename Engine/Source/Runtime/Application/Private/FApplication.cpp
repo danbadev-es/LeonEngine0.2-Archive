@@ -11,7 +11,7 @@
 #include "Renderer/FTextRenderer.hpp"
 #include "RHI/FRHIFrame.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 #include "Physics/IPhysicsScene.hpp"
 
 #include <algorithm>

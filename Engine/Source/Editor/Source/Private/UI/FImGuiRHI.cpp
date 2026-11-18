@@ -1,7 +1,7 @@
 #include "FImGuiRHI.hpp"
 
 #include "Core/FLog.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

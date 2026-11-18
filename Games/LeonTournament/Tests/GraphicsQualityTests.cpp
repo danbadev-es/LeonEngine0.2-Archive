@@ -4,8 +4,8 @@
 #include "Engine/FGraphicsQuality.hpp"
 #include "RHI/FRenderer.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Renderer/FShadowTypes.hpp"
-#include "Renderer/FPlanarReflectionTypes.hpp"
+#include "RenderCore/FShadowTypes.hpp"
+#include "RenderCore/FPlanarReflectionTypes.hpp"
 
 #include <ctime>
 #include <filesystem>
@@ -102,7 +102,7 @@ TEST_SUITE("LeonTournament graphics quality") {
         REQUIRE(world != nullptr);
         FGraphicsQuality::ApplyToWorld(*world, EGraphicsQuality::Low);
         CHECK(FRenderer::GetMaxTextureResolution() == 256);
-        UAssetManager::ReloadAllTextures(world.get());
+        world->ReloadTextures();
         CHECK(FRenderer::GetMaxTextureResolution() == 256);
     }
 

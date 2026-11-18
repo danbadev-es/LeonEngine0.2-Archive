@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RHI/FBuffer.hpp"
-#include "Renderer/FRenderingMath.hpp"
+#include "RenderCore/FRenderingMath.hpp"
 
 #include <glm/glm.hpp>
 #include <algorithm>

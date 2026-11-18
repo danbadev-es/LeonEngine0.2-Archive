@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 #include "RHI/FShader.hpp"
 #include "RHI/FVertexArray.hpp"
 

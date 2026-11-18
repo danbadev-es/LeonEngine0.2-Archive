@@ -20,7 +20,7 @@
 #include "UMG/FUIRenderer.hpp"
 #include "UMG/UWidgetSwitcher.hpp"
 #include "UMG/UCanvasPanel.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 #include <algorithm>
 #include <cmath>

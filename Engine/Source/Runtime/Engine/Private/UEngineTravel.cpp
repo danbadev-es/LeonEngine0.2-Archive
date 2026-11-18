@@ -19,7 +19,7 @@
 #include "Gameplay/UClassRegistry.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Renderer/FDebugRenderer.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 #include "UMG/FUIRenderer.hpp"
 #include "Audio/FAudioDevice.hpp"

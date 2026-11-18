@@ -2,7 +2,7 @@
 
 #include "Core/Base.hpp"
 #include "Assets/FAssetTypes.hpp"
-#include "Renderer/FMaterial.hpp"
+#include "Assets/FMaterial.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Assets/USkeletalMesh.hpp"

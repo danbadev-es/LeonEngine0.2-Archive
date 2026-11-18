@@ -9,7 +9,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/FMapSerializer.hpp"
-#include "Engine/FMaterialSerializer.hpp"
+#include "Assets/FMaterialSerializer.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 

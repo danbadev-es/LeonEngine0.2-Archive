@@ -15,7 +15,7 @@
 #include "AI/UBlackboardComponent.hpp"
 #include "AI/UBehaviorTree.hpp"
 #include "AI/UBehaviorTreeComponent.hpp"
-#include "Assets/UPhysicsAsset.hpp"
+#include "Physics/UPhysicsAsset.hpp"
 #include "Physics/IPhysicsScene.hpp"
 
 #include <fstream>

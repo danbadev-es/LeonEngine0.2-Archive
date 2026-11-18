@@ -14,12 +14,12 @@
 #include "Gameplay/APlayerState.hpp"
 #include "Gameplay/AGameStateBase.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Engine/UNetDriver.hpp"
 #include "Application/FApplication.hpp"
-#include "Renderer/FRenderingMath.hpp"
+#include "RenderCore/FRenderingMath.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 
 #include <algorithm>

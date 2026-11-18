@@ -4,9 +4,9 @@
 #include "Core/FTimestep.hpp"
 #include "Core/UObject.hpp"
 #include "Assets/FAssetTypes.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
-#include "Renderer/FPlanarReflectionTypes.hpp"
-#include "Renderer/FShadowTypes.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
+#include "RenderCore/FPlanarReflectionTypes.hpp"
+#include "RenderCore/FShadowTypes.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/FParticleTypes.hpp"
 #include "Engine/ENetTypes.hpp"
@@ -133,6 +133,12 @@ namespace Leon {
 
         void AddPlayerController(APlayerController* InPC);
         APlayerController* GetFirstPlayerController() const;
+
+        /**
+         * Reloads every texture at the current max texture resolution: the asset manager's, then the
+         * ones this world's sky and materials hold, and rebuilds the environment lighting.
+         */
+        void ReloadTextures();
         const std::vector<APlayerController*>& GetPlayerControllers() const { return PlayerControllers; }
 
         void AddAIController(AAIController* InAI);

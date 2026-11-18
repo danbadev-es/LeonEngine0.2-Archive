@@ -1,4 +1,4 @@
-#include "Assets/UPhysicsAsset.hpp"
+#include "Physics/UPhysicsAsset.hpp"
 #include "Assets/USkeleton.hpp"
 
 #include <fstream>

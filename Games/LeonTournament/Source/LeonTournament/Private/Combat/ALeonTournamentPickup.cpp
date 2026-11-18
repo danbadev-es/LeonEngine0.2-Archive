@@ -4,8 +4,8 @@
 #include "Gameplay/UHealthComponent.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Renderer/FMaterialInstance.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "Assets/FMaterialInstance.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 #include "Engine/Components.hpp"
 #include "Application/FApplication.hpp"
 

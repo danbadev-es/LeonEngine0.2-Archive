@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Renderer/FPlanarReflectionTypes.hpp"
-#include "Renderer/FShadowTypes.hpp"
+#include "RenderCore/FPlanarReflectionTypes.hpp"
+#include "RenderCore/FShadowTypes.hpp"
 
 #include <cstdint>
 #include <string>

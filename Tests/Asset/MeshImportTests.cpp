@@ -3,7 +3,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "Assets/FMeshImporter.hpp"
 #include "Assets/FLightmapUV.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 
 #include <cmath>
 #include <filesystem>

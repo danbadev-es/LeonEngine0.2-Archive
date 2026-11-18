@@ -4,9 +4,7 @@
 #include "Assets/FEngineBuiltins.hpp"
 #include "Assets/UBlendSpace.hpp"
 #include "Core/FLog.hpp"
-#include "Engine/FMaterialSerializer.hpp"
-#include "Engine/UWorld.hpp"
-#include "Renderer/FWorldRenderer.hpp"
+#include "Assets/FMaterialSerializer.hpp"
 #include "RHI/IRenderDriver.hpp"
 
 #include "Core/FProjectPaths.hpp"
@@ -674,7 +672,7 @@ namespace Leon {
         LightmapCache.clear();
     }
 
-    void UAssetManager::ReloadAllTextures(UWorld* InWorld) {
+    void UAssetManager::ReloadAllTextures() {
         TextureCache.clear();
         LightmapCache.clear();
 
@@ -682,32 +680,6 @@ namespace Leon {
             if (material)
                 material->ReloadTextures();
         }
-
-        if (!InWorld)
-            return;
-
-        auto& registry = InWorld->GetRegistry();
-        for (auto entity : registry.view<FSkyboxComponent>()) {
-            auto& sky = registry.get<FSkyboxComponent>(entity);
-            if (!sky.HDREnvironmentMapPath.empty())
-                sky.HDREnvironmentMap = GetHDRTexture(sky.HDREnvironmentMapPath);
-        }
-
-        for (auto entity : registry.view<FMaterialComponent>()) {
-            auto& materialComponent = registry.get<FMaterialComponent>(entity);
-            if (!materialComponent.AssetPath.empty()) {
-                materialComponent.MaterialInstance = GetMaterialInstance(materialComponent.AssetPath);
-                continue;
-            }
-            if (!materialComponent.MaterialInstance)
-                continue;
-            if (const TRef<FMaterial> parent = materialComponent.MaterialInstance->GetParent())
-                parent->ReloadTextures();
-            materialComponent.MaterialInstance->ReloadTextureOverrides();
-        }
-
-        if (FWorldRenderer* renderer = InWorld->GetWorldRendererIfInitialized())
-            renderer->InvalidateEnvironment();
     }
 
     void UAssetManager::UnloadUnused() {

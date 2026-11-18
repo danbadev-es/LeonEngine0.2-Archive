@@ -15,7 +15,7 @@
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/APlayerController.hpp"
 #include "Lightmass/FLightmass.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 #ifdef _WIN32
 #ifndef NOMINMAX

@@ -3,11 +3,11 @@
 #include "Core/Base.hpp"
 #include "RHI/RHITypes.hpp"
 #include "Renderer/FIBLGenerator.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
-#include "Renderer/FPlanarReflectionTypes.hpp"
-#include "Renderer/FPostProcessSettings.hpp"
-#include "Renderer/FShadowMath.hpp"
-#include "Renderer/FShadowTypes.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
+#include "RenderCore/FPlanarReflectionTypes.hpp"
+#include "RenderCore/FPostProcessSettings.hpp"
+#include "RenderCore/FShadowMath.hpp"
+#include "RenderCore/FShadowTypes.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>

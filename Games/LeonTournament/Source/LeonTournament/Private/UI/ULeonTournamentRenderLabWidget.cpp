@@ -14,8 +14,8 @@
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"
 #include "UMG/FUIRenderer.hpp"
-#include "Renderer/FShadowTypes.hpp"
-#include "Renderer/FPlanarReflectionTypes.hpp"
+#include "RenderCore/FShadowTypes.hpp"
+#include "RenderCore/FPlanarReflectionTypes.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 #include "Renderer/FRenderDebugHotkeys.hpp"
 

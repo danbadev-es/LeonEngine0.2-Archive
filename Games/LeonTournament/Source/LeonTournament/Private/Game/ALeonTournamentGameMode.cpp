@@ -29,9 +29,9 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/APlayerCameraManager.hpp"
 #include "Lightmass/FLightmass.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
+#include "Assets/FMaterial.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 #include "UMG/FUILayout.hpp"
 #include "Core/FWorldUnits.hpp"
 

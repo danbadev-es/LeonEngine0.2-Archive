@@ -17,6 +17,8 @@
 #include "Engine/FParticleTypes.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UNetDriver.hpp"
+#include "Assets/FMaterialInstance.hpp"
+#include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Gameplay/USkeletalMeshComponent.hpp"
 #include "Physics/IPhysicsScene.hpp"
@@ -580,6 +582,32 @@ namespace Leon {
             sh.PointShadowResolution = PendingPointShadowResolution;
             sh.MaxShadowedPointLights = PendingMaxShadowedPointLights;
         }
+    }
+
+    void UWorld::ReloadTextures() {
+        UAssetManager::ReloadAllTextures();
+
+        for (auto entity : Registry.view<FSkyboxComponent>()) {
+            auto& sky = Registry.get<FSkyboxComponent>(entity);
+            if (!sky.HDREnvironmentMapPath.empty())
+                sky.HDREnvironmentMap = UAssetManager::GetHDRTexture(sky.HDREnvironmentMapPath);
+        }
+
+        for (auto entity : Registry.view<FMaterialComponent>()) {
+            auto& materialComponent = Registry.get<FMaterialComponent>(entity);
+            if (!materialComponent.AssetPath.empty()) {
+                materialComponent.MaterialInstance = UAssetManager::GetMaterialInstance(materialComponent.AssetPath);
+                continue;
+            }
+            if (!materialComponent.MaterialInstance)
+                continue;
+            if (const TRef<FMaterial> parent = materialComponent.MaterialInstance->GetParent())
+                parent->ReloadTextures();
+            materialComponent.MaterialInstance->ReloadTextureOverrides();
+        }
+
+        if (FWorldRenderer* renderer = GetWorldRendererIfInitialized())
+            renderer->InvalidateEnvironment();
     }
 
     void UWorld::OnRender(const FPerspectiveCamera& InCamera) {

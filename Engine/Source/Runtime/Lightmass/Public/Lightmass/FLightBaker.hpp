@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lightmass/FLightmapBuilder.hpp"
-#include "Renderer/FLight.hpp"
+#include "RenderCore/FLight.hpp"
 
 #include <glm/glm.hpp>
 #include <vector>

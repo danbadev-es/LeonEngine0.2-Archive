@@ -1,7 +1,7 @@
 #include "Gameplay/ADefaultPawn.hpp"
 #include "Platform/FInputSettings.hpp"
 #include "Gameplay/APlayerController.hpp"
-#include "Renderer/FRenderingMath.hpp"
+#include "RenderCore/FRenderingMath.hpp"
 #include <algorithm>
 #include <cmath>
 

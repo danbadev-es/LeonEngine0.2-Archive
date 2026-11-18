@@ -14,8 +14,8 @@
 #include "RHI/IRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 
 #include <stb_image.h>

@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 #include "GPU/HeadlessDevice.hpp"
-#include "Renderer/FColorSpace.hpp"
+#include "RenderCore/FColorSpace.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {

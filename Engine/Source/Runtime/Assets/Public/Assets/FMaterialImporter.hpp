@@ -3,8 +3,8 @@
 #include "Core/Base.hpp"
 #include "Assets/FAssetTypes.hpp"
 #include "Assets/FMeshImporter.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMaterialInstance.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialInstance.hpp"
 
 #include <string>
 #include <vector>

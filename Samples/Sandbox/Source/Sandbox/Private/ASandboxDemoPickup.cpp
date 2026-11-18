@@ -3,7 +3,7 @@
 #include "Application/FApplication.hpp"
 #include "Engine/Components.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 
 namespace Leon {
 

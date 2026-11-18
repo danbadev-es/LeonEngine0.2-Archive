@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 TEST_SUITE("Math - Hemisphere PDF & Integration Invariants") {
 

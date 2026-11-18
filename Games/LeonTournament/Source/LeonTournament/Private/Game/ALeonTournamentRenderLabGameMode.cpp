@@ -12,10 +12,10 @@
 #include "Gameplay/APlayerCameraManager.hpp"
 #include "Gameplay/APawn.hpp"
 #include "Gameplay/AGameModeBase.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 #include "Renderer/FWorldRenderer.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMaterialInstance.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialInstance.hpp"
 
 #include <algorithm>
 

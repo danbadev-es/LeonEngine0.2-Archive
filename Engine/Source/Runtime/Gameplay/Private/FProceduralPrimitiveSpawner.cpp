@@ -7,8 +7,8 @@
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "Assets/FMaterial.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 
 namespace Leon {
 

@@ -2,7 +2,7 @@
 #include "Core/FLog.hpp"
 #include "Assets/FHDRImporter.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 #include "RHI/FRenderer.hpp"
 #include "RHI/FTexture.hpp"
 

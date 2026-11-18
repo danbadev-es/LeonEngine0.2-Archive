@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 #include <vector>
-#include "Renderer/FPBRMath.hpp"
+#include "RenderCore/FPBRMath.hpp"
 
 TEST_SUITE("PBR - Cook-Torrance Microfacet BRDF Invariants") {
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMaterialInstance.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialInstance.hpp"
 #include "RHI/FShader.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/USkeleton.hpp"
@@ -106,8 +106,11 @@ namespace Leon {
         static void Clear();
         /** Drop cached textures/materials so the next load respects the current max texture resolution. */
         static void ClearLoadedTextures();
-        /** Reload all resident material/world textures at the current max texture resolution. */
-        static void ReloadAllTextures(class UWorld* InWorld = nullptr);
+        /**
+         * Reloads the textures of every cached material at the current max texture resolution. What a
+         * world holds on its own is refreshed by UWorld::ReloadTextures, which calls this first.
+         */
+        static void ReloadAllTextures();
         /** Drop cache entries whose only remaining owner is the cache itself. Keeps shaders and defaults. */
         static void UnloadUnused();
 

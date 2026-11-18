@@ -13,7 +13,7 @@
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Assets/FAnimRuntime.hpp"
-#include "Renderer/FRenderingMath.hpp"
+#include "RenderCore/FRenderingMath.hpp"
 
 #include <algorithm>
 #include <cmath>

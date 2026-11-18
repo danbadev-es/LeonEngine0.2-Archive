@@ -9,11 +9,11 @@
 #include "RHI/IRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMaterialInstance.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialInstance.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>

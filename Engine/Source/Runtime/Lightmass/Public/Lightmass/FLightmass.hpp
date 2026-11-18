@@ -2,7 +2,7 @@
 
 #include "Assets/FLightmapAsset.hpp"
 #include "Engine/EMobility.hpp"
-#include "Renderer/FLight.hpp"
+#include "RenderCore/FLight.hpp"
 #include "Engine/Components.hpp"
 
 #include <glm/glm.hpp>

@@ -93,11 +93,21 @@ leon_add_module(Platform
     PRIVATE_LIBRARIES glfw stb_image
 )
 
-# --- Everything above them still builds as one library. These modules include each other in
-# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
-set(LEON_ENGINE_SOURCES
-    Source/Runtime/Application/Private/FApplication.cpp
-    Source/Runtime/Application/Private/FLayerStack.cpp
+# What drawing needs that does not know about worlds or assets: vertex formats, cameras, colour and
+# lighting maths, the shader library and the C++ side of the shaders' constant buffers.
+leon_add_module(RenderCore
+    SOURCES
+    Source/Runtime/RenderCore/Private/FShadowMath.cpp
+    Source/Runtime/RenderCore/Private/FPerspectiveCamera.cpp
+    Source/Runtime/RenderCore/Private/FShaderLibrary.cpp
+    Source/Runtime/RenderCore/Private/FMeshPrimitives.cpp
+    DEPENDS Core RHI ShaderCompiler
+)
+
+# Asset types and their manager: meshes, skeletons, animation, textures, materials. No importers
+# (those are in the pipeline library) and nothing about worlds.
+leon_add_module(Assets
+    SOURCES
     Source/Runtime/Assets/Private/UAssetManager.cpp
     Source/Runtime/Assets/Private/UStaticMesh.cpp
     Source/Runtime/Assets/Private/FMeshSimplifier.cpp
@@ -113,22 +123,29 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Assets/Private/FImageFileLoader.cpp
     Source/Runtime/Assets/Private/FAssetExporter.cpp
     Source/Runtime/Assets/Private/FLightmapAsset.cpp
+    Source/Runtime/Assets/Private/FMaterial.cpp
+    Source/Runtime/Assets/Private/FMaterialInstance.cpp
+    Source/Runtime/Assets/Private/FMaterialSerializer.cpp
+    DEPENDS Core RHI RenderCore
+    PRIVATE_LIBRARIES stb_image
+)
+target_include_directories(LeonModule_Assets PRIVATE "${LEON_ENGINE_ROOT}/Engine/ThirdParty/stb")
+
+# --- Everything above them still builds as one library. These modules include each other in
+# --- cycles (see Docs/adr); they are split one by one as the cycles are removed.
+set(LEON_ENGINE_SOURCES
+    Source/Runtime/Application/Private/FApplication.cpp
+    Source/Runtime/Application/Private/FLayerStack.cpp
     Source/Runtime/Renderer/Private/FWorldRenderer.cpp
     Source/Runtime/Renderer/Private/FWorldRendererRHI.cpp
     Source/Runtime/Renderer/Private/FPostProcessRHI.cpp
     Source/Runtime/Renderer/Private/FImmediateDrawRHI.cpp
-    Source/Runtime/Renderer/Private/FShaderLibrary.cpp
-    Source/Runtime/Renderer/Private/FMaterial.cpp
-    Source/Runtime/Renderer/Private/FMaterialInstance.cpp
-    Source/Runtime/Renderer/Private/FMeshPrimitives.cpp
-    Source/Runtime/Renderer/Private/FPerspectiveCamera.cpp
     Source/Runtime/Renderer/Private/FIBLGenerator.cpp
     Source/Runtime/Renderer/Private/FRenderDebugHotkeys.cpp
     Source/Runtime/Renderer/Private/FDebugOverlay.cpp
     Source/Runtime/Renderer/Private/FDebugRenderer.cpp
     Source/Runtime/Renderer/Private/FParticleRenderer.cpp
     Source/Runtime/Renderer/Private/FTextRenderer.cpp
-    Source/Runtime/Renderer/Private/FShadowMath.cpp
     Source/Runtime/UMG/Private/UWidget.cpp
     Source/Runtime/UMG/Private/UPanelWidget.cpp
     Source/Runtime/UMG/Private/UCanvasPanel.cpp
@@ -160,7 +177,6 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Engine/Private/FTimerManager.cpp
     Source/Runtime/Engine/Private/FMapSerializer.cpp
     Source/Runtime/Engine/Private/FMapSerializerDeserialize.cpp
-    Source/Runtime/Engine/Private/FMaterialSerializer.cpp
     Source/Runtime/Engine/Private/UNetDriver.cpp
     Source/Runtime/Engine/Private/ULoopbackNetDriver.cpp
     Source/Runtime/Engine/Private/UIpNetDriver.cpp
@@ -224,7 +240,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/AI/Private/UNavigationSystem.cpp
     Source/Runtime/AI/Private/UPathFollowingComponent.cpp
     Source/Runtime/AI/Private/UAIPerceptionComponent.cpp
-    Source/Runtime/Assets/Private/UPhysicsAsset.cpp
+    Source/Runtime/Physics/Private/UPhysicsAsset.cpp
 )
 
 add_library(LeonEngineCore STATIC ${LEON_ENGINE_SOURCES})
@@ -239,7 +255,6 @@ add_library(Leon::Gameplay ALIAS LeonEngineCore)
 target_include_directories(LeonEngineCore
     PUBLIC
         "${LEON_RUNTIME_ROOT}/Application/Public"
-        "${LEON_RUNTIME_ROOT}/Assets/Public"
         "${LEON_RUNTIME_ROOT}/Renderer/Public"
         "${LEON_RUNTIME_ROOT}/UMG/Public"
         "${LEON_RUNTIME_ROOT}/Engine/Public"
@@ -260,6 +275,8 @@ target_link_libraries(LeonEngineCore
         LeonModule_Platform
         LeonModule_RHI
         LeonModule_ShaderCompiler
+        LeonModule_RenderCore
+        LeonModule_Assets
         glfw
         glm::glm
         EnTT::EnTT
@@ -287,10 +304,10 @@ add_library(Leon::Pipeline ALIAS LeonEnginePipeline)
 target_include_directories(LeonEnginePipeline
     PUBLIC
         "${LEON_RUNTIME_ROOT}/Lightmass/Public"
-        "${LEON_RUNTIME_ROOT}/Assets/Public"
         "${LEON_ENGINE_ROOT}/Engine/ThirdParty/ufbx"
 )
 
+target_include_directories(LeonEnginePipeline PRIVATE "${LEON_RUNTIME_ROOT}/Assets/Private")
 target_compile_features(LeonEnginePipeline PUBLIC cxx_std_20)
 
 target_link_libraries(LeonEnginePipeline

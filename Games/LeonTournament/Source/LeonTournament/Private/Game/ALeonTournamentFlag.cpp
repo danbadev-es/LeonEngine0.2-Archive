@@ -2,8 +2,8 @@
 #include "ALeonTournamentCharacter.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Engine/Components.hpp"
-#include "Renderer/FMaterialInstance.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "Assets/FMaterialInstance.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 #include "Application/FApplication.hpp"
 
 #include <cmath>

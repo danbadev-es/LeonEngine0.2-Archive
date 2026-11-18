@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "Renderer/FMaterial.hpp"
+#include "Assets/FMaterial.hpp"
 
 #include <string>
 

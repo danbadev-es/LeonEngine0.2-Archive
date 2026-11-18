@@ -10,8 +10,8 @@
 #include "Lightmass/FLightBaker.hpp"
 #include "Lightmass/FLightmapBuilder.hpp"
 #include "Lightmass/FLightmass.hpp"
-#include "Renderer/FIBLMath.hpp"
-#include "Renderer/FLightAttenuation.hpp"
+#include "RenderCore/FIBLMath.hpp"
+#include "RenderCore/FLightAttenuation.hpp"
 
 #include <algorithm>
 #include <filesystem>

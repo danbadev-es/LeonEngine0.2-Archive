@@ -1,6 +1,6 @@
-#include "Renderer/FMeshPrimitives.hpp"
-#include "Renderer/FRenderingMath.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
+#include "RenderCore/FRenderingMath.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 #include "RHI/FBuffer.hpp"
 
 #include <cmath>

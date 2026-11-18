@@ -1,7 +1,7 @@
 #include "Assets/FLightmapAsset.hpp"
 #include "Core/FLog.hpp"
 #include "RHI/FTexture.hpp"
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 #include <cstring>
 #include <fstream>

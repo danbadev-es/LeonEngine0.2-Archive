@@ -1,7 +1,7 @@
 #include "Lightmass/FLightBaker.hpp"
 #include "Assets/FLightmapUV.hpp"
-#include "Renderer/FLightAttenuation.hpp"
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FLightAttenuation.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 #include <algorithm>
 #include <cmath>

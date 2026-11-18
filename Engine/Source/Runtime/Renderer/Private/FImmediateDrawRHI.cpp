@@ -1,8 +1,8 @@
 #include "Renderer/FImmediateDrawRHI.hpp"
 
 #include "RHI/FRHIFrame.hpp"
-#include "Renderer/FShaderConstants.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "RenderCore/FShaderConstants.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 
 #include <cstring>
 #include <map>

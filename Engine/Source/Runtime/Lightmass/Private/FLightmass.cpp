@@ -13,11 +13,11 @@
 #include "Gameplay/AActor.hpp"
 #include "Lightmass/FLightBaker.hpp"
 #include "Lightmass/FLightmapBuilder.hpp"
-#include "Renderer/FVertexLayout.hpp"
-#include "Renderer/FColorSpace.hpp"
-#include "Renderer/FIBLMath.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMaterialInstance.hpp"
+#include "RenderCore/FVertexLayout.hpp"
+#include "RenderCore/FColorSpace.hpp"
+#include "RenderCore/FIBLMath.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialInstance.hpp"
 
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>

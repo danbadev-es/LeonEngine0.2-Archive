@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include "Assets/UPhysicsAsset.hpp"
+#include "Physics/UPhysicsAsset.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Core/FTimestep.hpp"
 #include "Engine/Components.hpp"

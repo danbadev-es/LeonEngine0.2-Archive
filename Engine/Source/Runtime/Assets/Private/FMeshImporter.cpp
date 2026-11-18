@@ -2,7 +2,7 @@
 #include "Assets/FSkeletalImporter.hpp"
 #include "Core/FAssetPath.hpp"
 #include "Core/FLog.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 #include <ufbx.h>
 
 #include <algorithm>

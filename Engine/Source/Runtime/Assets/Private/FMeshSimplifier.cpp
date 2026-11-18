@@ -1,5 +1,5 @@
 #include "Assets/FMeshSimplifier.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 
 #include <algorithm>
 #include <cmath>

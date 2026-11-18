@@ -3,15 +3,15 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "Renderer/FColorSpace.hpp"
-#include "Renderer/FLightAttenuation.hpp"
-#include "Renderer/FPBRMath.hpp"
-#include "Renderer/FRenderingMath.hpp"
-#include "Renderer/FVertexLayout.hpp"
-#include "Renderer/FIBLMath.hpp"
-#include "Renderer/FPlanarReflectionTypes.hpp"
-#include "Renderer/FShadowTypes.hpp"
-#include "Renderer/FFrustumCull.hpp"
+#include "RenderCore/FColorSpace.hpp"
+#include "RenderCore/FLightAttenuation.hpp"
+#include "RenderCore/FPBRMath.hpp"
+#include "RenderCore/FRenderingMath.hpp"
+#include "RenderCore/FVertexLayout.hpp"
+#include "RenderCore/FIBLMath.hpp"
+#include "RenderCore/FPlanarReflectionTypes.hpp"
+#include "RenderCore/FShadowTypes.hpp"
+#include "RenderCore/FFrustumCull.hpp"
 
 TEST_SUITE("Renderer contract - transforms, TBN, PBR, color, shadows") {
 

@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 TEST_SUITE("PBR - BRDF LUT Invariants") {
 

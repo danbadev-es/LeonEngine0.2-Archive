@@ -34,12 +34,12 @@
 #include "RHI/IRHIDevice.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Renderer/FDebugRenderer.hpp"
-#include "Renderer/FLight.hpp"
-#include "Renderer/FMaterialInstance.hpp"
+#include "RenderCore/FLight.hpp"
+#include "Assets/FMaterialInstance.hpp"
 #include "Renderer/FParticleRenderer.hpp"
-#include "Renderer/FShaderConstants.hpp"
-#include "Renderer/FShaderLibrary.hpp"
-#include "Renderer/FShadowMath.hpp"
+#include "RenderCore/FShaderConstants.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
+#include "RenderCore/FShadowMath.hpp"
 #include "Renderer/FTextRenderer.hpp"
 
 #include <algorithm>

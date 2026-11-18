@@ -5,7 +5,7 @@
 #include "Gameplay/ACharacter.hpp"
 #include "Gameplay/USceneComponent.hpp"
 #include "Gameplay/UClassRegistry.hpp"
-#include "Renderer/FFrustumCull.hpp"
+#include "RenderCore/FFrustumCull.hpp"
 #include "UMG/UImage.hpp"
 #include "Engine/UWorld.hpp"
 

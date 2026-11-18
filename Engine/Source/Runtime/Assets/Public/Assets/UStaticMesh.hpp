@@ -4,9 +4,9 @@
 #include "Assets/FAssetTypes.hpp"
 #include "Assets/FLODSettings.hpp"
 #include "RHI/FBuffer.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FMaterialInstance.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "Assets/FMaterial.hpp"
+#include "Assets/FMaterialInstance.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 #include "RHI/FVertexArray.hpp"
 
 #include <glm/glm.hpp>

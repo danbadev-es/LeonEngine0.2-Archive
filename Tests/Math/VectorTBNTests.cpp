@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 TEST_SUITE("Math - Vector & TBN Invariants") {
 

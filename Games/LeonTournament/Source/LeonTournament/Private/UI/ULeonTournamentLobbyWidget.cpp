@@ -22,7 +22,7 @@
 #include "UMG/UCheckBox.hpp"
 #include "UMG/UWidgetSwitcher.hpp"
 #include "UMG/UScrollBox.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 #include <algorithm>
 #include <cmath>

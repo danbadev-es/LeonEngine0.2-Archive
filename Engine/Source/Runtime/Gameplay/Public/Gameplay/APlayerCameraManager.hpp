@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Gameplay/AActor.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 namespace Leon {
 

@@ -3,7 +3,7 @@
 #include "Core/Base.hpp"
 #include "Editor/Commands/FTransformActorsCommand.hpp"
 #include "Gameplay/AActor.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 #include <glm/glm.hpp>
 #include <vector>

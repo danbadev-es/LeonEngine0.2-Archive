@@ -5,7 +5,7 @@
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
 #include "Gameplay/UClassRegistry.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 #include "RHI/IRenderDriver.hpp"
 
 namespace Leon::Editor {

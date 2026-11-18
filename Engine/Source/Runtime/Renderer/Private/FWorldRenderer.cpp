@@ -10,8 +10,8 @@
 #include "RHI/FRHIFrame.hpp"
 #include "RHI/FRenderer.hpp"
 #include "RHI/FTexture.hpp"
-#include "Renderer/FLight.hpp"
-#include "Renderer/FRenderingMath.hpp"
+#include "RenderCore/FLight.hpp"
+#include "RenderCore/FRenderingMath.hpp"
 
 #include <algorithm>
 

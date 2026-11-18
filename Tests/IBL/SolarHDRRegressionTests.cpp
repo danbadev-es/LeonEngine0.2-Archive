@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 #include "Assets/FHDRImporter.hpp"
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 #include <cmath>
 #include <algorithm>

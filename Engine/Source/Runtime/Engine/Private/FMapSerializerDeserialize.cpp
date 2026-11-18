@@ -17,7 +17,7 @@
 #include "Gameplay/AWorldSettings.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 #include "Assets/UAssetManager.hpp"
-#include "Renderer/FMeshPrimitives.hpp"
+#include "RenderCore/FMeshPrimitives.hpp"
 #include "Engine/Components.hpp"
 #include <cmath>
 #include <algorithm>

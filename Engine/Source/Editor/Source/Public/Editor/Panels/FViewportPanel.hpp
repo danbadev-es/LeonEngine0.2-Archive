@@ -5,7 +5,7 @@
 #include "Editor/Gizmos/FTransformGizmo.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 #include "RHI/IRHIDevice.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 

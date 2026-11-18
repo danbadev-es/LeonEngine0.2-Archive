@@ -33,7 +33,7 @@
 #include "Engine/Components.hpp"
 #include "Engine/UEngine.hpp"
 #include "LeonTournamentTestSetup.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 #include <string>
 #include <vector>

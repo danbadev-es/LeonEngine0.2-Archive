@@ -1,7 +1,7 @@
 #include "Renderer/FPostProcessRHI.hpp"
 
-#include "Renderer/FShaderConstants.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "RenderCore/FShaderConstants.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 
 #include <algorithm>
 #include <random>

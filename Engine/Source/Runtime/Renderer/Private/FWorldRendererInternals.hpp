@@ -6,10 +6,10 @@
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "RHI/FRenderer.hpp"
-#include "Renderer/FFrustumCull.hpp"
-#include "Renderer/FMaterialInstance.hpp"
-#include "Renderer/FRenderingMath.hpp"
-#include "Renderer/FShadowTypes.hpp"
+#include "RenderCore/FFrustumCull.hpp"
+#include "Assets/FMaterialInstance.hpp"
+#include "RenderCore/FRenderingMath.hpp"
+#include "RenderCore/FShadowTypes.hpp"
 #include "RHI/FFrameProfiler.hpp"
 
 #include <algorithm>

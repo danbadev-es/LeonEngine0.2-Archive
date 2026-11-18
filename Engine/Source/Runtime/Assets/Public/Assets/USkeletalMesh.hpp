@@ -6,7 +6,7 @@
 #include "Assets/USkeleton.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/FSkeletalMeshSocket.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 #include "RHI/FVertexArray.hpp"
 
 #include <glm/glm.hpp>

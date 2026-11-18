@@ -3,7 +3,7 @@
 #include "Gameplay/USceneComponent.hpp"
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/UAnimSequence.hpp"
-#include "Assets/UPhysicsAsset.hpp"
+#include "Physics/UPhysicsAsset.hpp"
 #include "Assets/FSkeletalMeshSocket.hpp"
 #include "Gameplay/UAnimInstance.hpp"
 

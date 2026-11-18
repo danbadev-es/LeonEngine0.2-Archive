@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer/FShadowTypes.hpp"
+#include "RenderCore/FShadowTypes.hpp"
 #include <glm/glm.hpp>
 #include <vector>
 #include <array>

@@ -5,9 +5,9 @@
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
 #include "Core/FProjectPaths.hpp"
-#include "Engine/FMaterialSerializer.hpp"
-#include "Renderer/FMaterial.hpp"
-#include "Renderer/FVertexLayout.hpp"
+#include "Assets/FMaterialSerializer.hpp"
+#include "Assets/FMaterial.hpp"
+#include "RenderCore/FVertexLayout.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/IRenderDriver.hpp"
 

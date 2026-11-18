@@ -18,7 +18,7 @@
 #include "Platform/FInput.hpp"
 #include "Platform/FInputSettings.hpp"
 #include "UMG/FUIRenderer.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 
 #include <algorithm>
 #include <cmath>

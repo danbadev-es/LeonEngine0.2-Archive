@@ -15,8 +15,8 @@
 #include "RHI/IRHIDevice.hpp"
 #include "RHI/IRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
-#include "Renderer/FShaderConstants.hpp"
-#include "Renderer/FShaderLibrary.hpp"
+#include "RenderCore/FShaderConstants.hpp"
+#include "RenderCore/FShaderLibrary.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>

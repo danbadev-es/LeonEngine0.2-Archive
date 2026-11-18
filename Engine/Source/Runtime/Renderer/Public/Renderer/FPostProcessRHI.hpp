@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RHI/IRHIDevice.hpp"
-#include "Renderer/FPostProcessSettings.hpp"
+#include "RenderCore/FPostProcessSettings.hpp"
 
 #include <glm/glm.hpp>
 

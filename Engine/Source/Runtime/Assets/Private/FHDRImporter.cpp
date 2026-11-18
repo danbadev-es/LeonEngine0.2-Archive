@@ -1,6 +1,6 @@
 #include "Assets/FHDRImporter.hpp"
 #include "Core/FLog.hpp"
-#include "Renderer/FIBLMath.hpp"
+#include "RenderCore/FIBLMath.hpp"
 
 #include <stb_image.h>
 #include <filesystem>

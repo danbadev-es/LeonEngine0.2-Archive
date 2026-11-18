@@ -1,7 +1,7 @@
 #include "Renderer/FDebugRenderer.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
-#include "Renderer/FShadowMath.hpp"
+#include "RenderCore/FShadowMath.hpp"
 #include "Core/FLog.hpp"
 
 #include <cmath>

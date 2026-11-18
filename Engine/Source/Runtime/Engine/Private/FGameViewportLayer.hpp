@@ -14,7 +14,7 @@
 #include "Gameplay/FOnScreenDebugMessage.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Renderer/FDebugRenderer.hpp"
-#include "Renderer/FPerspectiveCamera.hpp"
+#include "RenderCore/FPerspectiveCamera.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 #include "Renderer/FRenderDebugHotkeys.hpp"
 #include "UMG/FUIRenderer.hpp"

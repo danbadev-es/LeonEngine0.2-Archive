@@ -262,7 +262,7 @@ namespace Leon {
         InWorld.SetProjectOmniShadowDefaults(preset.SpotResolution, preset.PointShadowResolution,
                                              preset.MaxShadowedPointLights);
         FRenderer::SetMaxTextureResolution(preset.MaxTextureResolution);
-        UAssetManager::ReloadAllTextures(&InWorld);
+        InWorld.ReloadTextures();
         SyncEngineProjectDefaults(preset);
     }
 
