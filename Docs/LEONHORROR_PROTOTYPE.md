@@ -106,8 +106,8 @@ the feel of movement and combat. Those need a person playing.
   through the player by itself.
 - **Flat floors only.** Slopes and stair meshes are out of scope; steps up to 0.4 m work.
 - Lightmaps are baked at Draft quality.
-- **The flashlight casts no shadows.** On Intel UHD graphics the spot shadow map comes out empty
-  (everything reads as shadowed), so the flashlight opts out with `FSpotLightComponent::bCastShadows`.
-  The cause in the renderer is still to be found.
+- **The flashlight casts shadows since the move to Direct3D 12.** On the OpenGL renderer its shadow map
+  came out empty on Intel UHD graphics and it had opted out. The start room, with the flashlight on and
+  off, is now compared with reference pictures in `Games/LeonHorror/Tests/RenderTests.cpp`.
 - **Light intensities look large** (a room light is 6 to 16, the flashlight 40) because the engine
   attenuates as `1 / (distance^2 + 1)`.
