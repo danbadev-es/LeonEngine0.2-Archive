@@ -13,6 +13,9 @@ namespace Leon {
     class ALeonHorrorNote;
     class ALeonHorrorPickup;
 
+    /** The one full-screen state the player is in, highest priority first when several apply. */
+    enum class ELeonHorrorScreen : uint8_t { None, Inventory, Pause, Note, Dead, Completed };
+
     /** Lock and open state of a door, as stored in a save. */
     struct FLeonHorrorDoorState {
         bool bLocked = false;
@@ -60,6 +63,21 @@ namespace Leon {
         void NotifySliceCompleted();
         bool IsSliceCompleted() const { return bSliceCompleted; }
 
+        // --- Screens. The world is paused while a note, the inventory, the pause menu or the end
+        //     screen is up; death keeps running so the fall plays out. ---
+        ELeonHorrorScreen GetActiveScreen() const;
+        void SetInventoryOpen(bool bInOpen);
+        bool IsInventoryOpen() const { return bInventoryOpen; }
+        void SetPauseMenuOpen(bool bInOpen);
+        bool IsPauseMenuOpen() const { return bPauseMenuOpen; }
+        /** Confirm on the death or completion screen. */
+        void ConfirmEndScreen();
+        int32_t GetEndScreenConfirmCount() const { return EndScreenConfirms; }
+
+        /** Spends one first aid kit to restore health. False when none is held or it is not needed. */
+        bool UseMedkit(ALeonHorrorCharacter& InPlayer);
+        static constexpr float MedkitHealAmount = 50.0f;
+
     private:
         void TickSmokeRun();
 
@@ -75,6 +93,11 @@ namespace Leon {
         std::string NoteText;
         int32_t SaveCount = 0;
         bool bSliceCompleted = false;
+        bool bInventoryOpen = false;
+        bool bPauseMenuOpen = false;
+        int32_t EndScreenConfirms = 0;
+
+        void RefreshPause();
     };
 
 } // namespace Leon

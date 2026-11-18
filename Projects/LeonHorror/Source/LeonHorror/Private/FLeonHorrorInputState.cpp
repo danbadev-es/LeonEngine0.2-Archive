@@ -23,8 +23,6 @@ namespace Leon {
         bool bPadInteract = false;
         bool bPadReload = false;
         bool bPadFlashlight = false;
-        bool bPadInventory = false;
-        bool bPadPause = false;
         bool bPadSprint = false;
         if (settings.bEnableGamepad && FInput::IsGamepadConnected(settings.GamepadId)) {
             const int pad = settings.GamepadId;
@@ -37,8 +35,6 @@ namespace Leon {
             bPadInteract = FInput::IsGamepadButtonPressed(GamepadButton::A, pad);
             bPadReload = FInput::IsGamepadButtonPressed(GamepadButton::X, pad);
             bPadFlashlight = FInput::IsGamepadButtonPressed(GamepadButton::Y, pad);
-            bPadInventory = FInput::IsGamepadButtonPressed(GamepadButton::Back, pad);
-            bPadPause = FInput::IsGamepadButtonPressed(GamepadButton::Start, pad);
             bPadSprint = FInput::IsGamepadButtonPressed(GamepadButton::LeftBumper, pad);
         }
 
@@ -48,8 +44,6 @@ namespace Leon {
         state.bInteractPressed = Interact.Update(FInput::IsKeyPressed(Key::E) || bPadInteract);
         state.bFlashlightPressed = Flashlight.Update(FInput::IsKeyPressed(Key::F) || bPadFlashlight);
         state.bReloadPressed = Reload.Update(FInput::IsKeyPressed(Key::R) || bPadReload);
-        state.bInventoryPressed = Inventory.Update(FInput::IsKeyPressed(Key::Tab) || bPadInventory);
-        state.bPausePressed = Pause.Update(FInput::IsKeyPressed(Key::Escape) || bPadPause);
         state.bSelectMeleePressed = SelectMelee.Update(FInput::IsKeyPressed(Key::D1));
         state.bSelectPistolPressed = SelectPistol.Update(FInput::IsKeyPressed(Key::D2));
         return state;

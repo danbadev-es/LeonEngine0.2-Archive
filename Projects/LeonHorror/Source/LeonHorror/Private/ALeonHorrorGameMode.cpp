@@ -2,6 +2,7 @@
 
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
+#include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
 
 #include "Core/FApplication.hpp"
@@ -16,7 +17,7 @@ namespace Leon {
         : AGameModeBase(InHandle, InWorld, InName) {
         SetClass("ALeonHorrorGameMode");
         DefaultPawnClass = "ALeonHorrorCharacter";
-        PlayerControllerClass = "APlayerController";
+        PlayerControllerClass = "ALeonHorrorPlayerController";
         HUDClass = "AHUD";
         GameStateClass = "AGameStateBase";
         PlayerStateClass = "APlayerState";
@@ -54,16 +55,60 @@ namespace Leon {
         NoteText = InNote.GetText();
         bNoteOpen = true;
         ReadNotes.insert(InNote.GetActorGuid().ToString());
-        if (World)
-            World->SetPaused(true); // reading takes no game time
+        RefreshPause(); // reading takes no game time
     }
 
     void ALeonHorrorGameMode::DismissNote() {
         if (!bNoteOpen)
             return;
         bNoteOpen = false;
+        RefreshPause();
+    }
+
+    ELeonHorrorScreen ALeonHorrorGameMode::GetActiveScreen() const {
+        if (bSliceCompleted)
+            return ELeonHorrorScreen::Completed;
+        if (bPlayerDied)
+            return ELeonHorrorScreen::Dead;
+        if (bNoteOpen)
+            return ELeonHorrorScreen::Note;
+        if (bPauseMenuOpen)
+            return ELeonHorrorScreen::Pause;
+        if (bInventoryOpen)
+            return ELeonHorrorScreen::Inventory;
+        return ELeonHorrorScreen::None;
+    }
+
+    void ALeonHorrorGameMode::RefreshPause() {
         if (World)
-            World->SetPaused(false);
+            World->SetPaused(bNoteOpen || bInventoryOpen || bPauseMenuOpen || bSliceCompleted);
+    }
+
+    void ALeonHorrorGameMode::SetInventoryOpen(bool bInOpen) {
+        bInventoryOpen = bInOpen && !bPlayerDied && !bSliceCompleted;
+        RefreshPause();
+    }
+
+    void ALeonHorrorGameMode::SetPauseMenuOpen(bool bInOpen) {
+        bPauseMenuOpen = bInOpen && !bSliceCompleted;
+        RefreshPause();
+    }
+
+    void ALeonHorrorGameMode::ConfirmEndScreen() {
+        ++EndScreenConfirms;
+    }
+
+    bool ALeonHorrorGameMode::UseMedkit(ALeonHorrorCharacter& InPlayer) {
+        auto* inventory = InPlayer.GetInventory();
+        UHealthComponent* health = InPlayer.GetHealth();
+        if (!inventory || !health || InPlayer.IsDead())
+            return false;
+        if (health->GetHealth() >= health->GetMaxHealth())
+            return false; // do not waste one at full health
+        if (!inventory->RemoveItem(LeonHorrorItems::Medkit))
+            return false;
+        health->Heal(MedkitHealAmount);
+        return true;
     }
 
     bool ALeonHorrorGameMode::RequestSave(ALeonHorrorCharacter& InPlayer) {
@@ -74,6 +119,7 @@ namespace Leon {
 
     void ALeonHorrorGameMode::NotifySliceCompleted() {
         bSliceCompleted = true;
+        RefreshPause();
         LE_CORE_INFO("LeonHorror: slice completed.");
     }
 

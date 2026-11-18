@@ -22,8 +22,6 @@ namespace Leon {
         bool bInteractPressed = false;
         bool bFlashlightPressed = false;
         bool bReloadPressed = false;
-        bool bInventoryPressed = false;
-        bool bPausePressed = false;
         bool bSelectMeleePressed = false;
         bool bSelectPistolPressed = false;
     };
@@ -42,7 +40,7 @@ namespace Leon {
                 return bPressed;
             }
         };
-        FEdge Attack, Interact, Flashlight, Reload, Inventory, Pause, SelectMelee, SelectPistol;
+        FEdge Attack, Interact, Flashlight, Reload, SelectMelee, SelectPistol;
     };
 
 } // namespace Leon
