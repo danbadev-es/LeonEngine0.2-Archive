@@ -55,6 +55,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Core/FrameProfilerTests.cpp
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
+    GPU/WorldRendererTests.cpp
     Core/WindowDisplayPolicyTests.cpp
     Performance/ScalingBenchmarkTests.cpp
 )

@@ -96,6 +96,13 @@ namespace Leon {
         /** Rebuilds the image-based lighting environment on the next frame (e.g. after a quality change). */
         void InvalidateEnvironment();
 
+        /**
+         * Off: surfaces are lit by the sky's three colours instead of an environment map, and the
+         * environment is not generated at all (it takes seconds on the CPU).
+         */
+        void SetImageBasedLightingEnabled(bool bEnabled) { bUseIBL = bEnabled; }
+        bool IsImageBasedLightingEnabled() const { return bUseIBL; }
+
     private:
         /** The part of a frame that needs no device: everything Render promises to keep up to date. */
         void UpdateViewState(const FPerspectiveCamera& InCamera);

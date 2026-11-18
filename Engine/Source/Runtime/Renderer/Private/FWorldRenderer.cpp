@@ -107,7 +107,7 @@ namespace Leon {
         }
 
         // The environment follows the world's sky; a world without one still gets a default.
-        {
+        if (bUseIBL) {
             FFrameProfiler::FScope timer(&FFrameProfiler::Working().IBLMs);
             const auto skyView = registry.view<FSkyboxComponent>();
             if (skyView.begin() != skyView.end())
