@@ -26,6 +26,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <iostream>
 #include <sstream>
 
@@ -44,6 +45,8 @@ namespace Leon {
             uint32_t Height = 0;
             uint32_t Channels = 4;
             bool bSRGB = true;
+            /** Mean colour of the whole texture, linear. */
+            glm::vec3 Average{1.0f};
         };
 
         struct FBakeMaterialSample {
@@ -78,28 +81,30 @@ namespace Leon {
             OutTex.Height = mip.Height;
             OutTex.Channels = std::max(1u, tex.Header.Channels);
             OutTex.bSRGB = tex.Header.ColorSpace == 1 && !IsLinearDataTexturePath(resolved.string());
+            // The smallest level of the chain is the texture's mean, already filtered in linear space.
+            const FTextureMipData& smallest = tex.Mips.back();
+            if (smallest.Pixels.size() >= 3) {
+                const size_t texels = smallest.Pixels.size() / 4;
+                glm::vec3 sum(0.0f);
+                for (size_t i = 0; i < std::max<size_t>(texels, 1); ++i) {
+                    const glm::vec3 encoded(smallest.Pixels[i * 4 + 0] / 255.0f, smallest.Pixels[i * 4 + 1] / 255.0f,
+                                            smallest.Pixels[i * 4 + 2] / 255.0f);
+                    sum += OutTex.bSRGB ? SRGBToLinear(encoded) : encoded;
+                }
+                OutTex.Average = sum / static_cast<float>(std::max<size_t>(texels, 1));
+            }
             return OutTex.Width > 0 && OutTex.Height > 0;
         }
 
-        glm::vec3 SampleAlbedoAtUV(const FBakeMaterialSample& InMat, const glm::vec2& InUV) {
+        /**
+         * The colour a surface bounces. With a texture it is the texture's mean: one texel read at a
+         * vertex and stretched over the triangle says nothing about a tiled wall.
+         */
+        glm::vec3 BounceAlbedo(const FBakeMaterialSample& InMat) {
             const FBakeAlbedoTexture& tex = InMat.AlbedoMap;
             if (tex.Pixels.empty() || tex.Width == 0 || tex.Height == 0)
                 return InMat.Albedo;
-
-            float u = InUV.x - std::floor(InUV.x);
-            float v = InUV.y - std::floor(InUV.y);
-            int x = std::clamp(static_cast<int>(u * static_cast<float>(tex.Width)), 0, static_cast<int>(tex.Width) - 1);
-            int y =
-                std::clamp(static_cast<int>(v * static_cast<float>(tex.Height)), 0, static_cast<int>(tex.Height) - 1);
-            size_t i = (static_cast<size_t>(y) * tex.Width + static_cast<size_t>(x)) * tex.Channels;
-            if (i + tex.Channels - 1 >= tex.Pixels.size())
-                return InMat.Albedo;
-
-            glm::vec3 encoded(tex.Pixels[i + 0] / 255.0f,
-                              (tex.Channels > 1 ? tex.Pixels[i + 1] : tex.Pixels[i + 0]) / 255.0f,
-                              (tex.Channels > 2 ? tex.Pixels[i + 2] : tex.Pixels[i + 0]) / 255.0f);
-            glm::vec3 linear = tex.bSRGB ? SRGBToLinear(encoded) : encoded;
-            return linear * InMat.Albedo;
+            return tex.Average * InMat.Albedo;
         }
 
         FBakeMaterialSample SampleMaterialInstance(const TRef<FMaterialInstance>& InMatInst) {
@@ -431,8 +436,13 @@ namespace Leon {
             }
         }
 
+        /**
+         * InMat is the material of the whole mesh. When InSubmeshMaterials is given, each part of the
+         * mesh bounces the colour of its own material instead.
+         */
         void AppendStaticMesh(FLightBakerScene& Scene, uint32_t ChartIndex, UStaticMesh& Mesh, const glm::mat4& M,
-                              const FBakeMaterialSample& Mat, bool bCastShadow) {
+                              const FBakeMaterialSample& Mat, bool bCastShadow,
+                              const std::vector<TRef<FMaterialInstance>>* InSubmeshMaterials = nullptr) {
             auto& verts = Mesh.GetVertices();
             const auto& indices = Mesh.GetIndices();
             if (verts.empty() || indices.size() < 3)
@@ -447,11 +457,35 @@ namespace Leon {
                 v.Position = glm::vec3(M * glm::vec4(sv.Position, 1.0f));
                 v.Normal = glm::normalize(normalMat * sv.Normal);
                 v.LightmapUV = sv.LightmapUV;
-                v.Albedo = SampleAlbedoAtUV(Mat, sv.TexCoord);
+                v.Albedo = BounceAlbedo(Mat);
                 v.Metallic = Mat.Metallic;
                 v.Roughness = Mat.Roughness;
                 v.Emissive = Mat.Emissive;
                 Scene.Vertices.push_back(v);
+            }
+            if (InSubmeshMaterials) {
+                std::map<const FMaterialInstance*, FBakeMaterialSample> sampled;
+                for (const FStaticSubmesh& submesh : Mesh.GetSubmeshes()) {
+                    const TRef<FMaterialInstance> material =
+                        ResolveStaticSubmeshMaterial(Mesh, submesh, *InSubmeshMaterials);
+                    if (!material)
+                        continue;
+                    auto found = sampled.find(material.get());
+                    if (found == sampled.end())
+                        found = sampled.emplace(material.get(), SampleMaterialInstance(material)).first;
+                    const FBakeMaterialSample& part = found->second;
+                    const glm::vec3 albedo = BounceAlbedo(part);
+                    const size_t end = std::min<size_t>(submesh.IndexOffset + submesh.IndexCount, indices.size());
+                    for (size_t i = submesh.IndexOffset; i < end; ++i) {
+                        if (indices[i] >= verts.size())
+                            continue;
+                        FBakeVertex& v = Scene.Vertices[base + indices[i]];
+                        v.Albedo = albedo;
+                        v.Metallic = part.Metallic;
+                        v.Roughness = part.Roughness;
+                        v.Emissive = part.Emissive;
+                    }
+                }
             }
             for (size_t i = 0; i + 2 < indices.size(); i += 3) {
                 Scene.Triangles.push_back(
@@ -783,7 +817,11 @@ namespace Leon {
 
             if (instances[i].bIsStaticMeshAsset) {
                 auto& smc = actor->GetComponent<FStaticMeshComponent>();
-                AppendStaticMesh(scene, chartIndex, *smc.StaticMesh, M, mat, smc.bCastShadows);
+                // A material set on the actor covers the whole mesh; otherwise each part has its own.
+                const bool bWholeMeshMaterial = actor->HasComponent<FMaterialComponent>() &&
+                                                actor->GetComponent<FMaterialComponent>().MaterialInstance;
+                AppendStaticMesh(scene, chartIndex, *smc.StaticMesh, M, mat, smc.bCastShadows,
+                                 bWholeMeshMaterial ? nullptr : &smc.MaterialOverrides);
                 smc.LightmapIndex = static_cast<int32_t>(i);
                 smc.LightmapScale = charts[i].Scale;
                 smc.LightmapBias = charts[i].Bias;

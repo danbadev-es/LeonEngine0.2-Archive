@@ -56,6 +56,7 @@ set(LEON_ENGINE_TEST_SOURCES
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
+    Lightmass/BakerAccelerationTests.cpp
     Asset/TextureCompressionTests.cpp
     Core/MulticastDelegateTests.cpp
     Lightmass/BakeHashTests.cpp

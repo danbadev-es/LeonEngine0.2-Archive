@@ -4,8 +4,10 @@
 #include "RenderCore/FIBLMath.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
+#include <thread>
 
 namespace Leon {
     namespace {
@@ -74,37 +76,240 @@ namespace Leon {
         return ::Leon::CosineSampleHemisphere(glm::vec2(InU1, InU2), InNormal);
     }
 
+    /**
+     * A bounding volume hierarchy over the scene's triangles. A node with a count is a leaf holding
+     * that many entries of Order; otherwise its two children are Nodes[First] and Nodes[First + 1].
+     */
+    struct FBakeAcceleration {
+        struct FNode {
+            glm::vec3 Min{0.0f};
+            uint32_t First = 0;
+            glm::vec3 Max{0.0f};
+            uint32_t Count = 0;
+        };
+        std::vector<FNode> Nodes;
+        std::vector<uint32_t> Order;
+        size_t TriangleCount = 0;
+        size_t VertexCount = 0;
+    };
+
+    namespace {
+
+        constexpr uint32_t kLeafTriangles = 4;
+        constexpr int kTreeStack = 64;
+
+        void BuildNode(FBakeAcceleration& InOutTree, uint32_t InNode, const std::vector<glm::vec3>& InCentroids,
+                       const std::vector<glm::vec3>& InMins, const std::vector<glm::vec3>& InMaxs) {
+            const uint32_t first = InOutTree.Nodes[InNode].First;
+            const uint32_t count = InOutTree.Nodes[InNode].Count;
+            glm::vec3 low(1.0e30f);
+            glm::vec3 high(-1.0e30f);
+            glm::vec3 centroidLow(1.0e30f);
+            glm::vec3 centroidHigh(-1.0e30f);
+            for (uint32_t i = first; i < first + count; ++i) {
+                const uint32_t tri = InOutTree.Order[i];
+                low = glm::min(low, InMins[tri]);
+                high = glm::max(high, InMaxs[tri]);
+                centroidLow = glm::min(centroidLow, InCentroids[tri]);
+                centroidHigh = glm::max(centroidHigh, InCentroids[tri]);
+            }
+            InOutTree.Nodes[InNode].Min = low;
+            InOutTree.Nodes[InNode].Max = high;
+            if (count <= kLeafTriangles)
+                return;
+
+            // Split in two halves along the axis the centres spread most.
+            const glm::vec3 extent = centroidHigh - centroidLow;
+            int axis = 0;
+            if (extent.y > extent.x)
+                axis = 1;
+            if (extent.z > extent[axis])
+                axis = 2;
+            if (extent[axis] <= 0.0f)
+                return; // every centre in one place: nothing to gain from splitting
+            const uint32_t middle = first + count / 2;
+            std::nth_element(
+                InOutTree.Order.begin() + first, InOutTree.Order.begin() + middle,
+                InOutTree.Order.begin() + first + count,
+                [&](uint32_t InA, uint32_t InB) { return InCentroids[InA][axis] < InCentroids[InB][axis]; });
+
+            const uint32_t left = static_cast<uint32_t>(InOutTree.Nodes.size());
+            InOutTree.Nodes.emplace_back();
+            InOutTree.Nodes.emplace_back();
+            InOutTree.Nodes[left].First = first;
+            InOutTree.Nodes[left].Count = middle - first;
+            InOutTree.Nodes[left + 1].First = middle;
+            InOutTree.Nodes[left + 1].Count = first + count - middle;
+            InOutTree.Nodes[InNode].First = left;
+            InOutTree.Nodes[InNode].Count = 0;
+            BuildNode(InOutTree, left, InCentroids, InMins, InMaxs);
+            BuildNode(InOutTree, left + 1, InCentroids, InMins, InMaxs);
+        }
+
+        /** Distance at which the ray enters the box, or a negative number when it misses before InMaxT. */
+        float RayBox(const FBakeAcceleration::FNode& InNode, const glm::vec3& InOrigin, const glm::vec3& InInvDir,
+                     float InMaxT) {
+            const glm::vec3 t0 = (InNode.Min - InOrigin) * InInvDir;
+            const glm::vec3 t1 = (InNode.Max - InOrigin) * InInvDir;
+            const glm::vec3 nearT = glm::min(t0, t1);
+            const glm::vec3 farT = glm::max(t0, t1);
+            const float enter = std::max(std::max(nearT.x, nearT.y), std::max(nearT.z, 0.0f));
+            const float exit = std::min(std::min(farT.x, farT.y), std::min(farT.z, InMaxT));
+            // A little slack: a triangle lying in the face of its box must not be missed by rounding.
+            return enter <= exit * 1.00001f + 1.0e-5f ? enter : -1.0f;
+        }
+
+        glm::vec3 SafeInverse(const glm::vec3& InDir) {
+            const auto inverse = [](float InValue) {
+                return std::abs(InValue) > 1.0e-12f ? 1.0f / InValue : (InValue < 0.0f ? -1.0e12f : 1.0e12f);
+            };
+            return {inverse(InDir.x), inverse(InDir.y), inverse(InDir.z)};
+        }
+
+        const FBakeAcceleration* CurrentTree(const FLightBakerScene& InScene) {
+            const FBakeAcceleration* tree = InScene.Acceleration.get();
+            if (tree && tree->TriangleCount == InScene.Triangles.size() &&
+                tree->VertexCount == InScene.Vertices.size() && !tree->Nodes.empty())
+                return tree;
+            return nullptr;
+        }
+
+    } // namespace
+
+    void FLightBaker::BuildAcceleration(const FLightBakerScene& InScene) {
+        auto tree = std::make_shared<FBakeAcceleration>();
+        const size_t count = InScene.Triangles.size();
+        tree->TriangleCount = count;
+        tree->VertexCount = InScene.Vertices.size();
+        tree->Order.resize(count);
+        std::vector<glm::vec3> centroids(count);
+        std::vector<glm::vec3> mins(count);
+        std::vector<glm::vec3> maxs(count);
+        for (size_t i = 0; i < count; ++i) {
+            const FBakeTriangle& tri = InScene.Triangles[i];
+            const glm::vec3& a = InScene.Vertices[tri.I0].Position;
+            const glm::vec3& b = InScene.Vertices[tri.I1].Position;
+            const glm::vec3& c = InScene.Vertices[tri.I2].Position;
+            tree->Order[i] = static_cast<uint32_t>(i);
+            mins[i] = glm::min(glm::min(a, b), c);
+            maxs[i] = glm::max(glm::max(a, b), c);
+            centroids[i] = (a + b + c) / 3.0f;
+        }
+        if (count > 0) {
+            tree->Nodes.reserve(count / 2 + 2);
+            tree->Nodes.emplace_back();
+            tree->Nodes[0].First = 0;
+            tree->Nodes[0].Count = static_cast<uint32_t>(count);
+            BuildNode(*tree, 0, centroids, mins, maxs);
+        }
+        InScene.Acceleration = std::move(tree);
+    }
+
     bool FLightBaker::IntersectScene(const FLightBakerScene& InScene, const glm::vec3& InOrigin, const glm::vec3& InDir,
                                      float InMaxT, float& OutT, uint32_t& OutTri, glm::vec3& OutBary) {
         bool hit = false;
         float bestT = InMaxT;
-        for (uint32_t ti = 0; ti < InScene.Triangles.size(); ++ti) {
-            const auto& tri = InScene.Triangles[ti];
-            const auto& v0 = InScene.Vertices[tri.I0];
-            const auto& v1 = InScene.Vertices[tri.I1];
-            const auto& v2 = InScene.Vertices[tri.I2];
+        const auto testTriangle = [&](uint32_t InIndex) {
+            const auto& tri = InScene.Triangles[InIndex];
             float t = 0.0f;
             glm::vec3 bary;
-            if (!RayTriangle(InOrigin, InDir, v0.Position, v1.Position, v2.Position, t, bary))
-                continue;
-            if (t < bestT) {
+            if (!RayTriangle(InOrigin, InDir, InScene.Vertices[tri.I0].Position, InScene.Vertices[tri.I1].Position,
+                             InScene.Vertices[tri.I2].Position, t, bary))
+                return;
+            // On a tie the lower index wins, as when every triangle is tried in order.
+            if (t < bestT || (hit && t == bestT && InIndex < OutTri)) {
                 bestT = t;
                 OutT = t;
-                OutTri = ti;
+                OutTri = InIndex;
                 OutBary = bary;
                 hit = true;
+            }
+        };
+
+        const FBakeAcceleration* tree = CurrentTree(InScene);
+        if (!tree) {
+            for (uint32_t ti = 0; ti < InScene.Triangles.size(); ++ti)
+                testTriangle(ti);
+            return hit;
+        }
+
+        const glm::vec3 invDir = SafeInverse(InDir);
+        uint32_t stack[kTreeStack];
+        int top = 0;
+        stack[top++] = 0;
+        while (top > 0) {
+            const FBakeAcceleration::FNode& node = tree->Nodes[stack[--top]];
+            if (RayBox(node, InOrigin, invDir, bestT) < 0.0f)
+                continue;
+            if (node.Count > 0) {
+                for (uint32_t i = node.First; i < node.First + node.Count; ++i)
+                    testTriangle(tree->Order[i]);
+                continue;
+            }
+            if (top + 2 > kTreeStack)
+                continue; // deeper than any balanced tree gets
+            // The nearer child goes on last, so it is looked at first and shortens the ray.
+            const float left = RayBox(tree->Nodes[node.First], InOrigin, invDir, bestT);
+            const float right = RayBox(tree->Nodes[node.First + 1], InOrigin, invDir, bestT);
+            if (left >= 0.0f && right >= 0.0f) {
+                stack[top++] = left < right ? node.First + 1 : node.First;
+                stack[top++] = left < right ? node.First : node.First + 1;
+            } else if (left >= 0.0f) {
+                stack[top++] = node.First;
+            } else if (right >= 0.0f) {
+                stack[top++] = node.First + 1;
             }
         }
         return hit;
     }
 
-    static bool IsShadowed(const FLightBakerScene& Scene, const glm::vec3& Origin, const glm::vec3& Dir, float MaxT) {
-        float t;
-        uint32_t tri;
-        glm::vec3 bary;
-        if (!FLightBaker::IntersectScene(Scene, Origin, Dir, MaxT, t, tri, bary))
+    bool FLightBaker::IsOccluded(const FLightBakerScene& InScene, const glm::vec3& InOrigin, const glm::vec3& InDir,
+                                 float InMaxT) {
+        const auto blocks = [&](uint32_t InIndex) {
+            const auto& tri = InScene.Triangles[InIndex];
+            if (!tri.bCastShadow)
+                return false;
+            float t = 0.0f;
+            glm::vec3 bary;
+            return RayTriangle(InOrigin, InDir, InScene.Vertices[tri.I0].Position, InScene.Vertices[tri.I1].Position,
+                               InScene.Vertices[tri.I2].Position, t, bary) &&
+                   t < InMaxT;
+        };
+
+        const FBakeAcceleration* tree = CurrentTree(InScene);
+        if (!tree) {
+            for (uint32_t ti = 0; ti < InScene.Triangles.size(); ++ti) {
+                if (blocks(ti))
+                    return true;
+            }
             return false;
-        return Scene.Triangles[tri].bCastShadow;
+        }
+
+        const glm::vec3 invDir = SafeInverse(InDir);
+        uint32_t stack[kTreeStack];
+        int top = 0;
+        stack[top++] = 0;
+        while (top > 0) {
+            const FBakeAcceleration::FNode& node = tree->Nodes[stack[--top]];
+            if (RayBox(node, InOrigin, invDir, InMaxT) < 0.0f)
+                continue;
+            if (node.Count > 0) {
+                for (uint32_t i = node.First; i < node.First + node.Count; ++i) {
+                    if (blocks(tree->Order[i]))
+                        return true;
+                }
+            } else if (top + 2 <= kTreeStack) {
+                stack[top++] = node.First;
+                stack[top++] = node.First + 1;
+            }
+        }
+        return false;
+    }
+
+    static bool IsShadowed(const FLightBakerScene& Scene, const glm::vec3& Origin, const glm::vec3& Dir, float MaxT) {
+        // Any caster on the way to the light, not only the nearest surface: a surface that casts no
+        // shadow in front of one that does used to let the light through.
+        return FLightBaker::IsOccluded(Scene, Origin, Dir, MaxT);
     }
 
     static glm::vec3 SampleBakeEnvironment(const FLightBakerScene& Scene, const glm::vec3& Dir) {
@@ -181,14 +386,25 @@ namespace Leon {
         return irradiance;
     }
 
+    /** The normal of the side a ray arriving along InRayDir sees. */
+    static glm::vec3 FacingNormal(const glm::vec3& InNormal, const glm::vec3& InRayDir) {
+        return glm::dot(InNormal, InRayDir) > 0.0f ? -InNormal : InNormal;
+    }
+
+    /**
+     * What the surface sends back towards a ray that reached it along InRayDir. A thin surface is lit
+     * on the side the ray sees: the light that falls on its other face does not come through.
+     */
     static glm::vec3 SurfaceOutgoingRadiance(const FLightBakerScene& Scene, const FBakeVertex& V0,
-                                             const FBakeVertex& V1, const FBakeVertex& V2, const glm::vec3& Bary) {
+                                             const FBakeVertex& V1, const FBakeVertex& V2, const glm::vec3& Bary,
+                                             const glm::vec3& InRayDir) {
         glm::vec3 albedo = FLightmapUV::Interpolate(V0.Albedo, V1.Albedo, V2.Albedo, Bary);
         float metallic = V0.Metallic * Bary.x + V1.Metallic * Bary.y + V2.Metallic * Bary.z;
         albedo *= (1.0f - metallic);
         glm::vec3 emissive = FLightmapUV::Interpolate(V0.Emissive, V1.Emissive, V2.Emissive, Bary);
         glm::vec3 pos = FLightmapUV::Interpolate(V0.Position, V1.Position, V2.Position, Bary);
-        glm::vec3 n = glm::normalize(FLightmapUV::Interpolate(V0.Normal, V1.Normal, V2.Normal, Bary));
+        glm::vec3 n =
+            FacingNormal(glm::normalize(FLightmapUV::Interpolate(V0.Normal, V1.Normal, V2.Normal, Bary)), InRayDir);
         glm::vec3 E = EvaluateDirectIrradiance(Scene, pos, n, false);
         return emissive + (albedo / kPI) * E;
     }
@@ -257,7 +473,11 @@ namespace Leon {
         std::vector<glm::vec3> direct(static_cast<size_t>(W) * H, glm::vec3(0.0f));
         std::vector<glm::vec3> indirect(static_cast<size_t>(W) * H, glm::vec3(0.0f));
 
-        for (uint32_t y = 0; y < H; ++y) {
+        BuildAcceleration(InScene);
+
+        // Every texel is worked out from the scene alone and written to its own slot, so rows can be
+        // shared out between threads and the picture is the same however many there are.
+        const auto bakeRow = [&](uint32_t y) {
             for (uint32_t x = 0; x < W; ++x) {
                 size_t idx = static_cast<size_t>(y) * W + x;
                 if (coverage[idx] <= 0.0f)
@@ -298,12 +518,13 @@ namespace Leon {
                     const auto& hv1 = InScene.Vertices[tri.I1];
                     const auto& hv2 = InScene.Vertices[tri.I2];
                     glm::vec3 hitPos = FLightmapUV::Interpolate(hv0.Position, hv1.Position, hv2.Position, bary);
-                    glm::vec3 hitN = glm::normalize(FLightmapUV::Interpolate(hv0.Normal, hv1.Normal, hv2.Normal, bary));
+                    glm::vec3 hitN = FacingNormal(
+                        glm::normalize(FLightmapUV::Interpolate(hv0.Normal, hv1.Normal, hv2.Normal, bary)), dir);
                     glm::vec3 hitAlbedo =
                         FLightmapUV::Interpolate(hv0.Albedo, hv1.Albedo, hv2.Albedo, bary) *
                         (1.0f - (hv0.Metallic * bary.x + hv1.Metallic * bary.y + hv2.Metallic * bary.z));
 
-                    glm::vec3 LoHit = SurfaceOutgoingRadiance(InScene, hv0, hv1, hv2, bary);
+                    glm::vec3 LoHit = SurfaceOutgoingRadiance(InScene, hv0, hv1, hv2, bary, dir);
                     glm::vec3 Epath = kPI * LoHit;
                     glm::vec3 curPos = hitPos;
                     glm::vec3 curN = hitN;
@@ -324,10 +545,11 @@ namespace Leon {
                         const auto& w0 = InScene.Vertices[tref.I0];
                         const auto& w1 = InScene.Vertices[tref.I1];
                         const auto& w2 = InScene.Vertices[tref.I2];
-                        glm::vec3 LoNext = SurfaceOutgoingRadiance(InScene, w0, w1, w2, bary2);
+                        glm::vec3 LoNext = SurfaceOutgoingRadiance(InScene, w0, w1, w2, bary2, dir2);
                         Epath += throughput * LoNext;
                         curPos = FLightmapUV::Interpolate(w0.Position, w1.Position, w2.Position, bary2);
-                        curN = glm::normalize(FLightmapUV::Interpolate(w0.Normal, w1.Normal, w2.Normal, bary2));
+                        curN = FacingNormal(
+                            glm::normalize(FLightmapUV::Interpolate(w0.Normal, w1.Normal, w2.Normal, bary2)), dir2);
                         float met = w0.Metallic * bary2.x + w1.Metallic * bary2.y + w2.Metallic * bary2.z;
                         glm::vec3 nextAlbedo =
                             FLightmapUV::Interpolate(w0.Albedo, w1.Albedo, w2.Albedo, bary2) * (1.0f - met);
@@ -364,37 +586,67 @@ namespace Leon {
                     indirect[idx] *= vis;
                 }
             }
-        }
+        };
 
-        // Dilate empty border texels once for filtering
+        uint32_t threadCount = InSettings.NumThreads > 0 ? InSettings.NumThreads : std::thread::hardware_concurrency();
+        threadCount = std::clamp(threadCount, 1u, std::max(H, 1u));
+        std::atomic<uint32_t> nextRow{0};
+        const auto worker = [&]() {
+            for (uint32_t y = nextRow.fetch_add(1); y < H; y = nextRow.fetch_add(1))
+                bakeRow(y);
+        };
+        std::vector<std::thread> threads;
+        threads.reserve(threadCount - 1);
+        for (uint32_t i = 1; i < threadCount; ++i)
+            threads.emplace_back(worker);
+        worker();
+        for (std::thread& thread : threads)
+            thread.join();
+
+        // Texels outside the charts take the light of their neighbours, a few texels deep: bilinear
+        // filtering reads past the edge of a chart, and would otherwise fetch black.
         std::vector<glm::vec3> filtered(static_cast<size_t>(W) * H, glm::vec3(0.0f));
-        for (uint32_t y = 0; y < H; ++y) {
-            for (uint32_t x = 0; x < W; ++x) {
-                size_t idx = static_cast<size_t>(y) * W + x;
-                glm::vec3 irradiance = direct[idx] + indirect[idx];
-                filtered[idx] = irradiance;
-
-                if (coverage[idx] <= 0.0f) {
-                    // pull from neighbors
+        std::vector<uint8_t> filled(static_cast<size_t>(W) * H, 0);
+        for (size_t idx = 0; idx < filtered.size(); ++idx) {
+            filtered[idx] = direct[idx] + indirect[idx];
+            filled[idx] = coverage[idx] > 0.0f ? 1 : 0;
+        }
+        constexpr int kDilationPasses = 4;
+        for (int pass = 0; pass < kDilationPasses; ++pass) {
+            std::vector<uint8_t> nextFilled = filled;
+            std::vector<glm::vec3> nextColors = filtered;
+            bool bChanged = false;
+            for (uint32_t y = 0; y < H; ++y) {
+                for (uint32_t x = 0; x < W; ++x) {
+                    const size_t idx = static_cast<size_t>(y) * W + x;
+                    if (filled[idx])
+                        continue;
                     glm::vec3 sum(0.0f);
                     float wsum = 0.0f;
                     for (int dy = -1; dy <= 1; ++dy) {
                         for (int dx = -1; dx <= 1; ++dx) {
-                            int nx = static_cast<int>(x) + dx;
-                            int ny = static_cast<int>(y) + dy;
+                            const int nx = static_cast<int>(x) + dx;
+                            const int ny = static_cast<int>(y) + dy;
                             if (nx < 0 || ny < 0 || nx >= static_cast<int>(W) || ny >= static_cast<int>(H))
                                 continue;
-                            size_t nidx = static_cast<size_t>(ny) * W + static_cast<size_t>(nx);
-                            if (coverage[nidx] <= 0.0f)
+                            const size_t nidx = static_cast<size_t>(ny) * W + static_cast<size_t>(nx);
+                            if (!filled[nidx])
                                 continue;
                             sum += filtered[nidx];
                             wsum += 1.0f;
                         }
                     }
-                    if (wsum > 0.0f)
-                        filtered[idx] = sum / wsum;
+                    if (wsum > 0.0f) {
+                        nextColors[idx] = sum / wsum;
+                        nextFilled[idx] = 1;
+                        bChanged = true;
+                    }
                 }
             }
+            filtered = std::move(nextColors);
+            filled = std::move(nextFilled);
+            if (!bChanged)
+                break;
         }
 
         for (uint32_t i = 0; i < W * H; ++i) {

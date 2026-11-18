@@ -4,6 +4,7 @@
 #include "RenderCore/FLight.hpp"
 
 #include <glm/glm.hpp>
+#include <memory>
 #include <vector>
 
 namespace Leon {
@@ -51,6 +52,8 @@ namespace Leon {
         int HDRHeight = 0;
     };
 
+    struct FBakeAcceleration;
+
     struct FLightBakerScene {
         std::vector<FBakeVertex> Vertices;
         std::vector<FBakeTriangle> Triangles;
@@ -61,6 +64,9 @@ namespace Leon {
         FBakeEnvironment Environment;
         uint32_t AtlasWidth = 0;
         uint32_t AtlasHeight = 0;
+
+        /** Built by FLightBaker::BuildAcceleration for the triangles above; rebuild after changing them. */
+        mutable std::shared_ptr<const FBakeAcceleration> Acceleration;
     };
 
     struct FLightBakerSettings {
@@ -71,6 +77,8 @@ namespace Leon {
         float AOIntensity = 1.0f;
         float AORadius = 1.0f;
         uint64_t Seed = 0x4C454F4E4C4D4153ull;
+        /** Worker threads; 0 uses every core. The result does not depend on it. */
+        uint32_t NumThreads = 0;
     };
 
     /**
@@ -87,8 +95,18 @@ namespace Leon {
         static float SpotConeFactor(const glm::vec3& InLightDir, const glm::vec3& InToLight, float InCutOffDeg,
                                     float InOuterCutOffDeg);
 
+        /**
+         * Sorts the scene's triangles into a tree of boxes so a ray visits a handful of them instead
+         * of all. Bake calls it; call it yourself before using IntersectScene on a large scene.
+         */
+        static void BuildAcceleration(const FLightBakerScene& InScene);
+
+        /** The closest triangle the ray hits before InMaxT. Uses the acceleration when it is current. */
         static bool IntersectScene(const FLightBakerScene& InScene, const glm::vec3& InOrigin, const glm::vec3& InDir,
                                    float InMaxT, float& OutT, uint32_t& OutTri, glm::vec3& OutBary);
+        /** Whether any shadow-casting triangle lies on the ray before InMaxT. */
+        static bool IsOccluded(const FLightBakerScene& InScene, const glm::vec3& InOrigin, const glm::vec3& InDir,
+                               float InMaxT);
 
         static glm::vec3 CosineSampleHemisphere(const glm::vec3& InNormal, float InU1, float InU2);
     };
