@@ -10,6 +10,7 @@ namespace Leon {
 
     class ALeonHorrorCharacter;
     class ALeonHorrorDoor;
+    class ALeonHorrorEnemy;
     class ALeonHorrorNote;
     class ALeonHorrorPickup;
 
@@ -48,6 +49,10 @@ namespace Leon {
         const std::set<std::string>& GetCollectedPickups() const { return CollectedPickups; }
         const std::map<std::string, FLeonHorrorDoorState>& GetDoorStates() const { return DoorStates; }
         const std::set<std::string>& GetReadNotes() const { return ReadNotes; }
+        /** Enemies are recorded by the GUID of the spawner that created them. */
+        void NotifyEnemyKilled(const ALeonHorrorEnemy& InEnemy);
+        void MarkEnemyDead(const std::string& InSpawnerGuid) { DeadEnemies.insert(InSpawnerGuid); }
+        const std::set<std::string>& GetDeadEnemies() const { return DeadEnemies; }
 
         /** Opens a note for reading; the HUD shows it and the world pauses until it is dismissed. */
         void ShowNote(const ALeonHorrorNote& InNote);
@@ -88,6 +93,7 @@ namespace Leon {
         std::set<std::string> CollectedPickups;
         std::map<std::string, FLeonHorrorDoorState> DoorStates;
         std::set<std::string> ReadNotes;
+        std::set<std::string> DeadEnemies;
         bool bNoteOpen = false;
         std::string NoteTitle;
         std::string NoteText;

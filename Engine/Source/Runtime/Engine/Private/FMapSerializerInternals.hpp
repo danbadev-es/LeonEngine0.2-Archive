@@ -178,8 +178,9 @@ namespace Leon {
     }
 
     inline bool IsRuntimeFrameworkActor(const AActor& InActor) {
+        // Any controller, not only the player's: AI controllers are created at runtime to drive pawns.
         return dynamic_cast<const AGameModeBase*>(&InActor) || dynamic_cast<const AGameStateBase*>(&InActor) ||
-               dynamic_cast<const APlayerController*>(&InActor) || dynamic_cast<const APlayerState*>(&InActor) ||
+               dynamic_cast<const AController*>(&InActor) || dynamic_cast<const APlayerState*>(&InActor) ||
                dynamic_cast<const AHUD*>(&InActor) || dynamic_cast<const APlayerCameraManager*>(&InActor) ||
                dynamic_cast<const ADefaultPawn*>(&InActor) || dynamic_cast<const ACharacter*>(&InActor) ||
                dynamic_cast<const AWorldSettings*>(&InActor);

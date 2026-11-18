@@ -1,6 +1,7 @@
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
+#include "LeonHorror/ALeonHorrorEnemy.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
@@ -44,6 +45,11 @@ namespace Leon {
 
     void ALeonHorrorGameMode::NotifyPickupCollected(const ALeonHorrorPickup& InPickup) {
         CollectedPickups.insert(InPickup.GetActorGuid().ToString());
+    }
+
+    void ALeonHorrorGameMode::NotifyEnemyKilled(const ALeonHorrorEnemy& InEnemy) {
+        if (!InEnemy.GetSpawnerGuid().empty())
+            DeadEnemies.insert(InEnemy.GetSpawnerGuid());
     }
 
     void ALeonHorrorGameMode::NotifyDoorChanged(const ALeonHorrorDoor& InDoor) {
