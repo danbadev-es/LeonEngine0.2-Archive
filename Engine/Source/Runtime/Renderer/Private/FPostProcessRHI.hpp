@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RHI/IRHIDevice.hpp"
-#include "Renderer/FPostProcessPipeline.hpp"
+#include "Renderer/FPostProcessSettings.hpp"
 
 #include <glm/glm.hpp>
 
@@ -28,9 +28,6 @@ namespace Leon {
      * Turns the HDR scene into the final image on the RHI: ambient occlusion, bloom, tone mapping and
      * anti-aliasing, in that order. Owns the intermediate targets and recreates them when the output
      * changes size.
-     *
-     * Replaces FPostProcessPipeline, which is written against the old interfaces; the settings
-     * structure is shared with it.
      */
     class FPostProcessRHI {
     public:

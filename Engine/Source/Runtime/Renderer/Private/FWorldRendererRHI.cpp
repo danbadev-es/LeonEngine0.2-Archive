@@ -1,5 +1,4 @@
-// The world renderer on the new RHI. Passes are moved here one at a time from the files written
-// against the old interfaces (FWorldRendererGeometry.cpp, FWorldRendererLighting.cpp, ...).
+// How a world is drawn.
 //
 // Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
 // lightmaps, image-based lighting, fog and shadows (sun cascades, one spot light, point lights), plus
@@ -8,9 +7,8 @@
 // submitted through FSceneBatchesRHI are drawn at the end of the scene pass. Surfaces that ask for it
 // reflect a capture of the scene mirrored in the floor or in a wall mirror.
 //
-// The old Render() still runs first each frame; this code relies on it for work that is not drawing:
-// the image-based lighting environment, level-of-detail selection, light/transform syncing and
-// choosing which skinned meshes cast shadows.
+// Order of a frame: view state (FWorldRenderer::UpdateViewState) -> collect what is visible -> shadow
+// maps -> reflection captures -> scene pass -> post-processing.
 
 #include "Renderer/FWorldRenderer.hpp"
 
@@ -25,18 +23,29 @@
 #include "Core/FLog.hpp"
 #include "Engine/Components.hpp"
 #include "Engine/UWorld.hpp"
+#include "Gameplay/FGameplayDebugger.hpp"
+#include "Physics/FCollisionQuery.hpp"
+#include "RHI/FFrameProfiler.hpp"
+#include "RHI/FFramebuffer.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
+#include "RHI/FRenderer.hpp"
+#include "RHI/FTexture.hpp"
 #include "RHI/FTextureCube.hpp"
+#include "RHI/FVertexArray.hpp"
 #include "RHI/IRHIDevice.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
+#include "Renderer/FDebugRenderer.hpp"
 #include "Renderer/FLight.hpp"
 #include "Renderer/FMaterialInstance.hpp"
+#include "Renderer/FParticleRenderer.hpp"
 #include "Renderer/FShaderLibrary.hpp"
 #include "Renderer/FShadowMath.hpp"
+#include "Renderer/FTextRenderer.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -401,12 +410,40 @@ namespace Leon {
 
     void FWorldRenderer::RenderRHI(const FPerspectiveCamera& InCamera, IRHICommandList& InCommands,
                                    IRHITexture& InTarget) {
+        UpdateViewState(InCamera);
         IRHIDevice* device = FRHI::GetDevice();
         if (!device || !World)
             return;
         if (!RHIState)
             RHIState = std::make_shared<FWorldRendererRHIState>();
         FWorldRendererRHIState& state = *RHIState;
+        // CPU time of each stage, for the on-screen profiler.
+        std::optional<FFrameProfiler::FScope> stageTimer;
+
+        // World-space text, particles and gameplay debug shapes are queued here and drawn at the end
+        // of the scene pass.
+        {
+            auto textView = World->GetRegistry().view<FTransformComponent, FTextComponent>();
+            FTextRenderer::BeginScene(InCamera);
+            for (auto entity : textView) {
+                auto [transform, text] = textView.get<FTransformComponent, FTextComponent>(entity);
+                if (!text.Text.empty())
+                    FTextRenderer::DrawString(text.Text, transform.GetTransform(), text.Color, text.Size,
+                                              text.Alignment, text.bDoubleSided);
+            }
+            FTextRenderer::EndScene();
+
+            FFrameProfiler::FScope particleTimer(&FFrameProfiler::Working().ParticlesMs);
+            FParticleRenderer::Render(World, InCamera);
+        }
+        if (FGameplayDebugger::IsEnabled()) {
+            FDebugRenderer::BeginScene(InCamera);
+            if (FGameplayDebugger::ShowPhysics())
+                DrawDebugWorldColliders(*World);
+            FDebugRenderer::DrawQueuedTraces();
+            FDebugRenderer::EndScene(true);
+            FDebugRenderer::ClearQueuedTraces();
+        }
 
         // --- Targets ---
         const uint32_t width = InTarget.GetDesc().Width;
@@ -506,6 +543,7 @@ namespace Leon {
             desc.VertexLayout = GetRHIVertexLayout(InVertexArray);
             desc.Raster.Cull =
                 cull == ECullMode::Back ? ERHICull::Back : (cull == ECullMode::Front ? ERHICull::Front : ERHICull::None);
+            desc.Raster.bWireframe = bWireframeEnabled;
             desc.Depth.bWrite = !bInTransparent;
             desc.Depth.Compare = ToRHICompare(materialState.DepthFunc);
             desc.Blend.bEnabled = bInTransparent;
@@ -515,7 +553,8 @@ namespace Leon {
             std::string key = std::to_string(desc.VertexLayout.Stride);
             for (const FRHIVertexAttribute& attribute : desc.VertexLayout.Attributes)
                 key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
-            key += std::string(bInSkinned ? "|skinned" : "") + "|c" + std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
+            key += std::string(bInSkinned ? "|skinned" : "") + (bWireframeEnabled ? "|wire" : "") + "|c" +
+                   std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
                    std::to_string(static_cast<int>(desc.Depth.Compare)) + (bInTransparent ? "t" : "o") +
                    std::to_string(static_cast<int>(desc.Blend.SrcColor)) + "," +
                    std::to_string(static_cast<int>(desc.Blend.DstColor));
@@ -673,7 +712,7 @@ namespace Leon {
             if (mesh.bCastShadows)
                 submitCaster(staticCasters, *mesh.VertexArray, material.get(), model, indexCount, 0, -extent, extent,
                              nullptr);
-            if (IsProceduralMeshOutsideLightFrustum(model, mesh, frustum))
+            if (IsProceduralMeshCulled(model, mesh, frustum))
                 continue;
             submit(*mesh.VertexArray, material.get(), model, indexCount, 0,
                    lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
@@ -700,9 +739,11 @@ namespace Leon {
                     }
                 }
             }
-            if (IsStaticMeshOutsideLightFrustum(world, component, frustum))
+            if (IsStaticMeshCulled(world, component, frustum))
                 continue;
             const uint32_t lod = std::min(component.CurrentLOD, lodCount - 1);
+            RecordStaticMeshLODStats(lod, component.StaticMesh->GetSourceTriangleCount(),
+                                     component.StaticMesh->GetLODTriangleCount(lod));
             const TRef<FVertexArray> vertexArray = component.StaticMesh->GetLODVertexArray(lod);
             if (!vertexArray)
                 continue;
@@ -737,7 +778,7 @@ namespace Leon {
                                  skinned.SkeletalMesh->GetBoundsMax(), &skinned.BonePalette);
                 }
             }
-            if (IsSkeletalMeshOutsideLightFrustum(world, skinned, frustum))
+            if (IsSkeletalMeshCulled(world, skinned, frustum))
                 continue;
             for (const auto& submesh : skinned.SkeletalMesh->GetSubmeshes()) {
                 if (submesh.IndexCount == 0)
@@ -840,6 +881,8 @@ namespace Leon {
         lighting.Constants.PassFlags = glm::ivec4(bIBL ? 1 : 0, DebugMode, 0, 0);
 
         // --- Shadow maps ---
+        stageTimer.emplace(&FFrameProfiler::Working().ShadowMs);
+        const uint32_t drawsBeforeShadows = FRenderer::GetStats().DrawCalls;
         FLitPassConstants& lit = lighting.Constants;
         lit.ShadowParams = glm::vec4(ShadowSettings.ConstantBias, ShadowSettings.SlopeBias, ShadowSettings.NormalBias,
                                      ShadowSettings.CascadeBlendWidth);
@@ -898,6 +941,7 @@ namespace Leon {
                     InCommands.SetVertexBuffer(caster.Vertices);
                     InCommands.SetIndexBuffer(caster.Indices);
                     InCommands.DrawIndexed(caster.IndexCount, caster.FirstIndex);
+                    ++FRenderer::GetStatsMutable().DrawCalls;
                 }
             };
             drawCasters(staticCasters);
@@ -983,6 +1027,9 @@ namespace Leon {
         lit.ShadowFlags.z = shadowedPointCount > 0 ? 1 : 0;
         lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), shadowedSpot,
                                         static_cast<int>(ShadowSettings.CascadeCount), 0);
+
+        FFrameProfiler::Working().ShadowDrawCalls = FRenderer::GetStats().DrawCalls - drawsBeforeShadows;
+        stageTimer.reset();
 
         // --- Sky ---
         const bool bDrawSky = lighting.bHasSkybox && lighting.Skybox.bEnabled && skyVS && skyPS;
@@ -1078,6 +1125,9 @@ namespace Leon {
                                                  (draw.bPlanar && !bInCapture) ? 1 : 0);
                 InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
                 InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex);
+                FRenderStats& stats = FRenderer::GetStatsMutable();
+                ++stats.DrawCalls;
+                stats.TriangleCount += draw.IndexCount / 3;
             }
             InCommands.PopMarker();
         };
@@ -1107,21 +1157,21 @@ namespace Leon {
         };
 
         // --- Planar reflections: the scene again, mirrored in a plane ---
-        // Only when something on screen shows them. The planes and the mirrored cameras were chosen by
-        // the old Render() this frame (floor always; a wall mirror when the camera faces one).
+        // Only when something on screen shows them. The planes and the mirrored cameras were chosen in
+        // UpdateViewState (floor always; a wall mirror when the camera faces one).
+        stageTimer.emplace(&FFrameProfiler::Working().PlanarMs);
         const auto wantsPlanar = [](const FSceneDraw& InDraw) { return InDraw.bPlanar; };
-        const bool bPlanar = bEnablePlanarReflection && PlanarReflectionFramebuffer &&
-                             (std::any_of(opaque.begin(), opaque.end(), wantsPlanar) ||
-                              std::any_of(transparent.begin(), transparent.end(), wantsPlanar));
+        const bool bPlanar = bEnablePlanarReflection && (std::any_of(opaque.begin(), opaque.end(), wantsPlanar) ||
+                                                         std::any_of(transparent.begin(), transparent.end(), wantsPlanar));
         bool bPlanarCaptured[2] = {false, false};
         if (bPlanar) {
-            const FFramebufferSpecification& spec = PlanarReflectionFramebuffer->GetSpecification();
-            const uint32_t captureWidth = std::max(spec.Width > 0 ? spec.Width : PlanarCaptureWidth(), 1u);
-            const uint32_t captureHeight = std::max(spec.Height > 0 ? spec.Height : PlanarCaptureHeight(), 1u);
+            // Sized as a fraction of the view; the quality setting decides how many blur levels it has.
+            const uint32_t captureWidth = PlanarCaptureWidth();
+            const uint32_t captureHeight = PlanarCaptureHeight();
             uint32_t maxLevels = 1;
             for (uint32_t size = std::max(captureWidth, captureHeight); size > 1; size /= 2)
                 ++maxLevels;
-            const uint32_t levels = std::clamp(spec.ColorMipLevels, 1u, maxLevels);
+            const uint32_t levels = std::clamp(PlanarReflectionMipLevelsFor(PlanarQuality), 1u, maxLevels);
             if (!state.PlanarColor[0] || state.PlanarColor[0]->GetDesc().Width != captureWidth ||
                 state.PlanarColor[0]->GetDesc().Height != captureHeight ||
                 state.PlanarColor[0]->GetDesc().MipLevels != levels) {
@@ -1293,8 +1343,10 @@ namespace Leon {
                 capture(1, WallPlanarPlaneNormal, WallPlanarPlaneDistance, WallPlanarViewProjection, "PlanarWall");
         }
         lit.PlanarFlags = glm::ivec4(bPlanarCaptured[0] ? 1 : 0, bPlanarCaptured[1] ? 1 : 0, 0, 0);
+        stageTimer.reset();
 
         // --- Scene pass: linear HDR colour ---
+        stageTimer.emplace(&FFrameProfiler::Working().OpaqueMs);
         FRHIRenderPassDesc scenePass;
         scenePass.NumColorTargets = 1;
         scenePass.Color[0].Texture = state.SceneColor.get();
@@ -1331,6 +1383,7 @@ namespace Leon {
         drawAll(transparent, "Transparent", false);
         FSceneBatchesRHI::Flush(InCommands, ERHIFormat::RGBA16_Float, ERHIFormat::D32_Float);
         InCommands.EndRenderPass();
+        stageTimer.reset();
 
         // --- HDR scene to the output ---
         FPostProcessInputs post;
@@ -1339,7 +1392,18 @@ namespace Leon {
         post.Output = &InTarget;
         post.Projection = ClipDepthZeroToOne() * InCamera.GetProjectionMatrix();
         post.Exposure = lighting.Exposure;
+        stageTimer.emplace(&FFrameProfiler::Working().PostProcessMs);
+        // Exposure is a property of the sky; the stored settings follow it so tools show the value in use.
+        PostProcessSettings.Exposure = lighting.Exposure;
         state.PostProcess.Render(InCommands, post, PostProcessSettings);
+        stageTimer.reset();
+
+        const FRenderStats& stats = FRenderer::GetStats();
+        FFrameTiming& profile = FFrameProfiler::Working();
+        profile.VisibleActors = static_cast<int32_t>(stats.MeshesDrawn);
+        profile.CulledActors = static_cast<int32_t>(stats.MeshesCulled);
+        profile.DrawCalls = stats.DrawCalls;
+        profile.TriangleCount = stats.TriangleCount;
     }
 
 } // namespace Leon

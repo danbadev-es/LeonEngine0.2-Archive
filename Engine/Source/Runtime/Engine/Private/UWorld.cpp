@@ -579,7 +579,6 @@ namespace Leon {
             sh.SpotResolution = PendingSpotResolution;
             sh.PointShadowResolution = PendingPointShadowResolution;
             sh.MaxShadowedPointLights = PendingMaxShadowedPointLights;
-            Renderer->EnsureShadowFramebuffers();
         }
     }
 

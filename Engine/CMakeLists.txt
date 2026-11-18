@@ -118,9 +118,6 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Assets/Private/FAssetExporter.cpp
     Source/Runtime/Assets/Private/FLightmapAsset.cpp
     Source/Runtime/Renderer/Private/FWorldRenderer.cpp
-    Source/Runtime/Renderer/Private/FWorldRendererLighting.cpp
-    Source/Runtime/Renderer/Private/FWorldRendererGeometry.cpp
-    Source/Runtime/Renderer/Private/FWorldRendererPostProcess.cpp
     Source/Runtime/Renderer/Private/FWorldRendererRHI.cpp
     Source/Runtime/Renderer/Private/FPostProcessRHI.cpp
     Source/Runtime/Renderer/Private/FImmediateDrawRHI.cpp
@@ -129,7 +126,6 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Renderer/Private/FMaterialInstance.cpp
     Source/Runtime/Renderer/Private/FMeshPrimitives.cpp
     Source/Runtime/Renderer/Private/FPerspectiveCamera.cpp
-    Source/Runtime/Renderer/Private/FPostProcessPipeline.cpp
     Source/Runtime/Renderer/Private/FIBLGenerator.cpp
     Source/Runtime/Renderer/Private/FRenderDebugHotkeys.cpp
     Source/Runtime/Renderer/Private/FDebugOverlay.cpp
