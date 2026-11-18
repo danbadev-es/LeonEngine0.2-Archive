@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace Leon;
@@ -8,10 +8,10 @@ using namespace Leon::TestGPU;
 TEST_SUITE("Shader GPU - Shadow Multi-Term Depth & Normal Offset Bias") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Multi-Term Bias Mechanics") {
-        auto& gl = FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -21,14 +21,14 @@ TEST_SUITE("Shader GPU - Shadow Multi-Term Depth & Normal Offset Bias") {
         SetMat4(shader, "u_Model", glm::mat4(1.0f));
         SetMat3(shader, "u_NormalMatrix", glm::mat3(1.0f));
 
-        FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 2.0f, 1.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         camData.CascadeSplits = glm::vec4(5.0f, 15.0f, 35.0f, 100.0f);
         camData.ShadowSettings = glm::ivec4(0, 16, 0, 24); // Hard shadow (1 tap), DebugMode = 24 (Shadow factor)
 
-        FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
         shader->SetInt("u_UseShadows", 1);
@@ -36,8 +36,7 @@ TEST_SUITE("Shader GPU - Shadow Multi-Term Depth & Normal Offset Bias") {
 
         // Clear layer 0 depth to 0.5f (occluder plane at Z = 0.5)
         float halfDepth = 0.5f;
-        glClearTexSubImage(gl.GetDefaultShadowArrayTex(), 0, 0, 0, 0, 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT,
-                           &halfDepth);
+        gl.FillDepth(gl.GetDefaultShadowArrayTex(), halfDepth, 0);
 
         SUBCASE("Constant Bias Boundary Shifting") {
             // Light head-on (NdotL = 1.0, slopeFactor = 0.0)
@@ -124,6 +123,6 @@ TEST_SUITE("Shader GPU - Shadow Multi-Term Depth & Normal Offset Bias") {
 
         // Restore layer 0 to 1.0f depth
         float oneDepth = 1.0f;
-        glClearTexSubImage(gl.GetDefaultShadowArrayTex(), 0, 0, 0, 0, 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &oneDepth);
+        gl.FillDepth(gl.GetDefaultShadowArrayTex(), oneDepth, 0);
     }
 }

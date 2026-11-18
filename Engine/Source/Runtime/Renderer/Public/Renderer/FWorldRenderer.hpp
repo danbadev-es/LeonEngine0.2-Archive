@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Base.hpp"
+#include "RHI/RHITypes.hpp"
 #include "Renderer/FIBLGenerator.hpp"
 #include "Renderer/FPerspectiveCamera.hpp"
 #include "Renderer/FPlanarReflectionTypes.hpp"
@@ -80,6 +81,17 @@ namespace Leon {
             glm::vec3 Normal{0.0f, 1.0f, 0.0f};
             float Distance = 0.0f;
         };
+
+        /** What a reflection capture looks like with the current settings and view size. */
+        struct FPlanarCaptureDesc {
+            uint32_t Width = 0;
+            uint32_t Height = 0;
+            /** Each level is a blurrier copy; rough surfaces read the smaller ones. */
+            uint32_t MipLevels = 1;
+            /** Always a float format: captures hold scene light, which goes well above 1. */
+            ERHIFormat Format = ERHIFormat::RGBA16_Float;
+        };
+        FPlanarCaptureDesc GetPlanarCaptureDesc() const;
 
         /**
          * The planes that can be mirrored. The first horizontal one is the floor and is always

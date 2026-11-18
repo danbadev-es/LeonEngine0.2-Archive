@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FMeshPrimitives.hpp"
 #include "RHI/FFramebuffer.hpp"
 #include "RHI/FRenderCommand.hpp"
@@ -13,7 +13,7 @@
 
 namespace {
 
-    void UploadHemisphereKernel(const Leon::TRef<Leon::FShader>& InShader) {
+    void UploadHemisphereKernel(const Leon::TRef<Leon::TestGPU::FTestShader>& InShader) {
         const glm::vec3 samples[16] = {
             {0.12f, 0.04f, 0.22f},   {-0.18f, 0.09f, 0.31f}, {0.05f, -0.21f, 0.28f}, {-0.08f, -0.11f, 0.42f},
             {0.27f, 0.15f, 0.36f},   {-0.31f, 0.02f, 0.48f}, {0.14f, 0.33f, 0.41f},  {-0.22f, -0.29f, 0.55f},
@@ -31,7 +31,7 @@ namespace {
 TEST_SUITE("Shader GPU - SSAO") {
 
     TEST_CASE("SSAO leaves a perspective floor unoccluded") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const uint32_t width = 64;
@@ -44,7 +44,7 @@ TEST_SUITE("Shader GPU - SSAO") {
         auto sceneFBO = Leon::FFramebuffer::Create(sceneSpec);
         REQUIRE(sceneFBO != nullptr);
 
-        auto depthShader = Leon::FShader::Create("Engine/Resources/Shaders/ShadowDepth.glsl");
+        auto depthShader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ShadowDepth.glsl");
         REQUIRE(depthShader != nullptr);
         auto plane = Leon::FMeshPrimitives::CreatePlane(80.0f, 80.0f, 8, 8);
         REQUIRE(plane != nullptr);
@@ -76,7 +76,7 @@ TEST_SUITE("Shader GPU - SSAO") {
         auto aoFBO = Leon::FFramebuffer::Create(aoSpec);
         REQUIRE(aoFBO != nullptr);
 
-        auto ssao = Leon::FShader::Create("Engine/Resources/Shaders/SSAO.glsl");
+        auto ssao = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/SSAO.glsl");
         REQUIRE(ssao != nullptr);
 
         aoFBO->Bind();
@@ -117,10 +117,10 @@ TEST_SUITE("Shader GPU - SSAO") {
     }
 
     TEST_CASE("SSAO composite keeps bright specular when AO is dark") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/SSAOComposite.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/SSAOComposite.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -136,8 +136,8 @@ TEST_SUITE("Shader GPU - SSAO") {
         unsigned char ao[4] = {25, 25, 25, 255};
         glTextureSubImage2D(hdrTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, hdr);
         glTextureSubImage2D(aoTex, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, ao);
-        glBindTextureUnit(0, hdrTex);
-        glBindTextureUnit(1, aoTex);
+        gl.BindTexture(0, hdrTex);
+        gl.BindTexture(1, aoTex);
         shader->SetInt("u_HDRSceneTexture", 0);
         shader->SetInt("u_SSAOTexture", 1);
         shader->SetFloat("u_Intensity", 1.0f);

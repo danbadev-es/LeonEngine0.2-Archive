@@ -1,17 +1,17 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Fresnel Evaluation") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Fresnel Schlick (cosTheta in {1.0, 0.5, 0.0})") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
         REQUIRE(std::filesystem::exists(shaderPath));
 
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -19,14 +19,14 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Fresnel Evaluation") {
         gl.BindFramebuffer(1, 1);
 
         // Setup Orthogonal Camera looking directly at origin from (0, 0, 1)
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f); // Identity maps Quad [-1, 1] directly to NDC
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
         // Lighting UBO: Directional Light towards -Z (L = +Z, parallel to V)
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f); // xyz = -L, w = enabled
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);      // radiance = 1.0
         lightData.LightCounts.x = 0;                                       // No point lights

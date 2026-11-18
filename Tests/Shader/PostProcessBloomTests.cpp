@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FPostProcessPipeline.hpp"
 #include <vector>
 #include <cmath>
@@ -7,10 +7,10 @@
 TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
 
     TEST_CASE("Bloom Bright-Pass GPU Thresholding & Soft-Knee Invariants") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/BloomBrightPass.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/BloomBrightPass.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -21,7 +21,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         GLuint hdrTex = 0;
         glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
         glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
-        glBindTextureUnit(0, hdrTex);
+        gl.BindTexture(0, hdrTex);
         shader->SetInt("u_HDRTexture", 0);
 
         shader->SetFloat("u_Threshold", 1.0f);
@@ -75,11 +75,11 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
     }
 
     TEST_CASE("Bloom Downsampling & Upsampling Filter Mathematical Energy Bounds") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto downShader = Leon::FShader::Create("Engine/Resources/Shaders/BloomDownsample.glsl");
-        auto upShader = Leon::FShader::Create("Engine/Resources/Shaders/BloomUpsample.glsl");
+        auto downShader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/BloomDownsample.glsl");
+        auto upShader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/BloomUpsample.glsl");
         REQUIRE(downShader != nullptr);
         REQUIRE(upShader != nullptr);
 
@@ -93,7 +93,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         std::vector<float> constData(4 * 4 * 4, 2.0f);
         glTextureSubImage2D(srcTex, 0, 0, 0, 4, 4, GL_RGBA, GL_FLOAT, constData.data());
 
-        glBindTextureUnit(0, srcTex);
+        gl.BindTexture(0, srcTex);
 
         // Downsample constant input -> must preserve average value ~2.0
         downShader->Bind();

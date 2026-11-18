@@ -1,29 +1,29 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 #include <vector>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl IBL Integration") {
 
     TEST_CASE("PBR_Lit.glsl Real Hardware GPU Image-Based Lighting Pipeline") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
         // Disable all direct lights so output is 100% pure indirect IBL ambient
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction.w = 0.0f;
         lightData.LightCounts.x = 0;
         lightData.LightCounts.y = 0;
@@ -49,42 +49,20 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl IBL Integration") {
         shader->SetFloat("u_Roughness", 0.5f);
 
         // 1. Create and Bind Constant White Irradiance Cubemap (L = PI = 3.14159)
-        GLuint irradTex = 0;
-        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &irradTex);
-        glTextureStorage2D(irradTex, 1, GL_RGBA16F, 1, 1);
-        std::vector<float> piFace(4, 3.14159265f);
-        for (int f = 0; f < 6; ++f) {
-            glTextureSubImage3D(irradTex, 0, 0, 0, f, 1, 1, 1, GL_RGBA, GL_FLOAT, piFace.data());
-        }
+        auto irradTex = gl.CreateFloatCube(3.14159265f, 3.14159265f, 3.14159265f, 3.14159265f);
 
-        // 2. Create and Bind Constant Prefilter Cubemap (L = 1.0)
-        GLuint prefTex = 0;
-        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &prefTex);
-        glTextureStorage2D(prefTex, 5, GL_RGBA16F, 16, 16);
-        for (int m = 0; m < 5; ++m) {
-            int s = 16 >> m;
-            std::vector<float> oneFace(s * s * 4, 1.0f);
-            for (int f = 0; f < 6; ++f) {
-                glTextureSubImage3D(prefTex, m, 0, 0, f, s, s, 1, GL_RGBA, GL_FLOAT, oneFace.data());
-            }
-        }
+        // 2. Constant prefilter cubemap (L = 1.0). One level is enough: every level held the same value.
+        auto prefTex = gl.CreateFloatCube(1.0f, 1.0f, 1.0f, 1.0f);
 
-        // 3. Create and Bind BRDF LUT (A = 0.8, B = 0.1)
-        GLuint lutTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &lutTex);
-        glTextureStorage2D(lutTex, 1, GL_RG16F, 1, 1);
-        float lutData[2] = {0.8f, 0.1f};
-        glTextureSubImage2D(lutTex, 0, 0, 0, 1, 1, GL_RG, GL_FLOAT, lutData);
+        // 3. BRDF LUT (A = 0.8, B = 0.1)
+        auto lutTex = gl.Create1x1FloatTexture(0.8f, 0.1f, 0.0f, 1.0f);
 
         // Bind to respective texture units
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, lutTex);
+        gl.BindTexture(6, lutTex);
 
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, irradTex);
+        gl.BindTexture(7, irradTex);
 
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, prefTex);
+        gl.BindTexture(8, prefTex);
 
         shader->SetInt("u_DebugMode", 35);
         gl.DrawQuad();
@@ -111,15 +89,10 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl IBL Integration") {
         CHECK(pixelMetalIBL.b == doctest::Approx(0.90f).epsilon(0.02f));
 
         // 5. Black HDR Test (Zero Irradiance -> Zero IBL)
-        std::vector<float> zeroFace(4, 0.0f);
-        for (int f = 0; f < 6; ++f) {
-            glTextureSubImage3D(irradTex, 0, 0, 0, f, 1, 1, 1, GL_RGBA, GL_FLOAT, zeroFace.data());
-            for (int m = 0; m < 5; ++m) {
-                int s = 16 >> m;
-                std::vector<float> zMFace(s * s * 4, 0.0f);
-                glTextureSubImage3D(prefTex, m, 0, 0, f, s, s, 1, GL_RGBA, GL_FLOAT, zMFace.data());
-            }
-        }
+        irradTex = gl.CreateFloatCube(0.0f, 0.0f, 0.0f, 0.0f);
+        prefTex = gl.CreateFloatCube(0.0f, 0.0f, 0.0f, 0.0f);
+        gl.BindTexture(7, irradTex);
+        gl.BindTexture(8, prefTex);
 
         gl.DrawQuad();
         glm::vec4 pixelBlackIBL = gl.ReadPixel(0, 0);
@@ -129,8 +102,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl IBL Integration") {
         CHECK(pixelBlackIBL.b == doctest::Approx(0.0f).epsilon(1e-4f));
 
         // Cleanup
-        glDeleteTextures(1, &irradTex);
-        glDeleteTextures(1, &prefTex);
-        glDeleteTextures(1, &lutTex);
+        gl.DestroyTexture(irradTex);
+        gl.DestroyTexture(prefTex);
+        gl.DestroyTexture(lutTex);
     }
 }

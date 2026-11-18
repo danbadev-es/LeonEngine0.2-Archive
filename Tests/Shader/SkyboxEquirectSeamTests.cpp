@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FMeshPrimitives.hpp"
 #include "RHI/FFramebuffer.hpp"
 #include "RHI/FRenderCommand.hpp"
@@ -14,7 +14,7 @@
 TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
 
     TEST_CASE("HDR skybox looking toward -X has no 1x1-mip vertical seam") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const uint32_t width = 64;
@@ -26,7 +26,7 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
         auto fbo = Leon::FFramebuffer::Create(spec);
         REQUIRE(fbo != nullptr);
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/Skybox.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/Skybox.glsl");
         REQUIRE(shader != nullptr);
         auto cube = Leon::FMeshPrimitives::CreateCube(2.0f);
         REQUIRE(cube != nullptr);
@@ -73,7 +73,7 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
         shader->SetFloat("u_EnvironmentIntensity", 1.0f);
         shader->SetInt("u_UseHDREnvironmentMap", 1);
         shader->SetInt("u_HDREnvironmentMap", 0);
-        glBindTextureUnit(0, hdrTex);
+        gl.BindTexture(0, hdrTex);
 
         cube->Bind();
         Leon::FRenderCommand::DrawIndexed(cube);

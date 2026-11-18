@@ -1,29 +1,29 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FColorSpace.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Emissive Radiance") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Emissive Intensity and Color Output") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
         // Turn OFF all scene lights and IBL completely
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f); // Disabled
         lightData.DirLight.Color = glm::vec4(0.0f);
         lightData.LightCounts = glm::ivec4(0);
@@ -81,9 +81,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Emissive Radiance") {
         CHECK(hdrEmissive.b == doctest::Approx(0.8f).epsilon(0.01f));
 
         // 4. Emissive Texture Map
-        GLuint emissiveTex = gl.Create1x1SRGBTexture(255, 128, 0, 255);
-        glActiveTexture(GL_TEXTURE9);
-        glBindTexture(GL_TEXTURE_2D, emissiveTex);
+        auto emissiveTex = gl.Create1x1SRGBTexture(255, 128, 0, 255);
+        gl.BindTexture(9, emissiveTex);
         shader->SetInt("u_UseEmissiveMap", 1);
         shader->SetFloat("u_EmissiveIntensity", 1.0f);
         Leon::TestGPU::SetFloat3(shader, "u_EmissiveColor", glm::vec3(1.0f));

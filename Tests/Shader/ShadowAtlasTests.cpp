@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 
 using namespace Leon;
 using namespace Leon::TestGPU;
@@ -7,10 +7,10 @@ using namespace Leon::TestGPU;
 TEST_SUITE("Shader GPU - Shadow Layer & Atlas Mapping") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU 4-Layer Cascade Array Depth Sampling") {
-        auto& gl = FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -20,7 +20,7 @@ TEST_SUITE("Shader GPU - Shadow Layer & Atlas Mapping") {
         SetMat4(shader, "u_Model", glm::mat4(1.0f));
         SetMat3(shader, "u_NormalMatrix", glm::mat3(1.0f));
 
-        FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 2.0f, 1.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -31,7 +31,7 @@ TEST_SUITE("Shader GPU - Shadow Layer & Atlas Mapping") {
             camData.LightSpaceMatrices[c] = glm::mat4(1.0f);
         }
 
-        FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 

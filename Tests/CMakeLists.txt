@@ -56,6 +56,28 @@ set(LEON_ENGINE_TEST_SOURCES
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
+    Shader/PBRShaderIBLTests.cpp
+    Shader/PBRShaderPlanarReflectionTests.cpp
+    Shader/PBRShaderPlanarHDRTests.cpp
+    Shader/ShadowBiasTests.cpp
+    Shader/ShadowPCFTests.cpp
+    Shader/PBRShaderEmissiveTests.cpp
+    Shader/ShadowSelectionTests.cpp
+    Shader/PBRShaderAlphaTests.cpp
+    Shader/ShadowPointTests.cpp
+    Shader/PBRShaderNormalMappingTests.cpp
+    Shader/PBRShaderColorSpaceTests.cpp
+    Shader/PBRShaderMaterialTextureTests.cpp
+    Shader/PBRShaderFresnelTests.cpp
+    Shader/PBRShaderShadowTests.cpp
+    Shader/PBRShaderFogTests.cpp
+    Shader/ShadowCascadeTests.cpp
+    Shader/PBRShaderGGXSmithTests.cpp
+    Shader/PBRShaderDirectLightsTests.cpp
+    Shader/ShadowAtlasTests.cpp
+    Shader/PBRShaderDeterminismTests.cpp
+    Shader/PBRShaderUVTransformTests.cpp
+    Shader/PBRShaderCookTorranceTests.cpp
     Core/WindowDisplayPolicyTests.cpp
     Performance/ScalingBenchmarkTests.cpp
 )

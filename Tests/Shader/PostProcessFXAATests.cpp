@@ -1,15 +1,15 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <vector>
 #include <cmath>
 
 TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
 
     TEST_CASE("FXAA Uniform Color Field Zero Distortion Invariant") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/FXAA.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/FXAA.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -34,7 +34,7 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         std::vector<uint8_t> uniformData(16 * 16 * 4, static_cast<uint8_t>(0.6f * 255.0f));
         glTextureSubImage2D(ldrTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, uniformData.data());
 
-        glBindTextureUnit(0, ldrTex);
+        gl.BindTexture(0, ldrTex);
         shader->SetInt("u_LDRTexture", 0);
         shader->SetFloat2("u_InverseScreenSize", 1.0f / 16.0f, 1.0f / 16.0f);
         shader->SetInt("u_FXAAEnabled", 1);
@@ -88,10 +88,10 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
     }
 
     TEST_CASE("FXAA High-Contrast Edge Anti-Aliasing Response") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/FXAA.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/FXAA.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -129,7 +129,7 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         }
         glTextureSubImage2D(edgeTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, edgeData.data());
 
-        glBindTextureUnit(0, edgeTex);
+        gl.BindTexture(0, edgeTex);
         shader->SetInt("u_LDRTexture", 0);
         shader->SetFloat2("u_InverseScreenSize", 1.0f / 16.0f, 1.0f / 16.0f);
 
@@ -164,10 +164,10 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
     }
 
     TEST_CASE("FXAA Subpixel Anti-Aliasing on Isolated High-Frequency Feature") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/FXAA.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/FXAA.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -201,7 +201,7 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
 
         glTextureSubImage2D(pointTex, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, pointData.data());
 
-        glBindTextureUnit(0, pointTex);
+        gl.BindTexture(0, pointTex);
         shader->SetInt("u_LDRTexture", 0);
         shader->SetFloat2("u_InverseScreenSize", 1.0f / 16.0f, 1.0f / 16.0f);
 

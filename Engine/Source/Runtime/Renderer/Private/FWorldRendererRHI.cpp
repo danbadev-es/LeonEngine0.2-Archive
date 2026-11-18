@@ -37,6 +37,7 @@
 #include "Renderer/FLight.hpp"
 #include "Renderer/FMaterialInstance.hpp"
 #include "Renderer/FParticleRenderer.hpp"
+#include "Renderer/FShaderConstants.hpp"
 #include "Renderer/FShaderLibrary.hpp"
 #include "Renderer/FShadowMath.hpp"
 #include "Renderer/FTextRenderer.hpp"
@@ -51,152 +52,6 @@
 namespace Leon {
 
     namespace {
-
-        constexpr uint32_t kMaxPointLights = 16;
-        constexpr uint32_t kMaxSpotLights = 8;
-
-        // Texture registers of PBR_Lit.hlsl.
-        constexpr uint32_t kSlotAlbedo = 0;
-        constexpr uint32_t kSlotNormal = 1;
-        constexpr uint32_t kSlotMetallic = 2;
-        constexpr uint32_t kSlotAO = 3;
-        constexpr uint32_t kSlotRoughness = 4;
-        constexpr uint32_t kSlotPlanarFloor = 5;
-        constexpr uint32_t kSlotBRDFLUT = 6;
-        constexpr uint32_t kSlotIrradiance = 7;
-        constexpr uint32_t kSlotPrefilter = 8;
-        constexpr uint32_t kSlotEmissive = 9;
-        constexpr uint32_t kSlotCascadeShadow = 10;
-        constexpr uint32_t kSlotSpotShadow = 11;
-        constexpr uint32_t kSlotLightmap = 12;
-        constexpr uint32_t kSlotPlanarWall = 13;
-        constexpr uint32_t kSlotPointShadow = 14;
-
-        // The structures below mirror constant buffers in Engine/Shaders. Keep field order and types
-        // identical; every field is a multiple of 16 bytes so C++ and HLSL agree on the layout.
-
-        struct FFrameConstants { // Common.hlsli
-            glm::mat4 ViewProjection;
-            glm::mat4 View;
-            glm::vec4 ViewPosition;
-            glm::vec4 CameraForward;
-            glm::vec4 ViewportSize;
-        };
-
-        struct FDirectionalLightConstants {
-            glm::vec4 Direction{0.0f, -1.0f, 0.0f, 0.0f};
-            glm::vec4 Color{1.0f, 1.0f, 1.0f, 0.0f};
-        };
-
-        struct FPointLightConstants {
-            glm::vec4 Position{0.0f};
-            glm::vec4 Color{0.0f};
-            glm::vec4 Params{0.0f, -1.0f, 0.0f, 0.0f};
-        };
-
-        struct FSpotLightConstants {
-            glm::vec4 Position{0.0f};
-            glm::vec4 Direction{0.0f};
-            glm::vec4 Color{0.0f};
-            glm::vec4 Params{0.0f};
-        };
-
-        struct FLitPassConstants { // PBR_Common.hlsli
-            FDirectionalLightConstants DirLight;
-            FPointLightConstants PointLights[kMaxPointLights];
-            FSpotLightConstants SpotLights[kMaxSpotLights];
-            glm::ivec4 LightCounts{0};
-            glm::vec4 EnvSkyColor{0.0f};
-            glm::vec4 EnvHorizonColor{0.0f};
-            glm::vec4 EnvGroundColor{0.0f};
-            glm::vec4 FogColorDensity{0.0f};
-            glm::vec4 FogParams{0.0f};
-            glm::ivec4 PassFlags{0};
-            glm::mat4 LightSpaceMatrices[4]{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f)};
-            glm::mat4 SpotLightSpaceMatrix{1.0f};
-            glm::vec4 CascadeSplits{0.0f};
-            glm::vec4 ShadowParams{0.0f};
-            glm::ivec4 ShadowSettings{0, -1, 0, 0};
-            glm::ivec4 ShadowFlags{0};
-            glm::mat4 PlanarMatrix[2]{glm::mat4(1.0f), glm::mat4(1.0f)};
-            glm::vec4 PlanarPlane[2]{glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)};
-            glm::vec4 ClipPlane{0.0f, 1.0f, 0.0f, 0.0f};
-            glm::ivec4 PlanarFlags{0};
-        };
-
-        struct FShadowPassConstants { // ShadowDepth.hlsl
-            glm::mat4 LightViewProjection;
-            glm::vec4 PointLight;
-        };
-
-        struct FShadowMaterialConstants { // ShadowDepth.hlsl
-            glm::vec4 UVTransform;
-            glm::vec4 AlphaTest;
-        };
-
-        struct FMaterialConstants { // PBR_Lit.hlsl
-            glm::vec4 AlbedoColor;
-            glm::vec4 EmissiveColor;
-            glm::vec4 SurfaceParams;
-            glm::vec4 SurfaceParams2;
-            glm::vec4 UVTransform;
-            glm::ivec4 MaterialFlags;
-        };
-
-        struct FDrawConstants { // PBR_Lit.hlsl
-            glm::mat4 Model;
-            glm::mat4 NormalMatrix;
-            glm::vec4 LightmapScaleBias;
-            glm::ivec4 DrawFlags;
-        };
-
-        struct FOutlineConstants { // Outline_Skinned.hlsl
-            glm::vec4 ColorWidth;
-        };
-
-        struct FSkyConstants { // Skybox.hlsl
-            glm::mat4 ClipToDirection;
-            glm::vec4 SunDirection;
-            glm::vec4 SkyColor;
-            glm::vec4 HorizonColor;
-            glm::vec4 GroundColor;
-            glm::vec4 SunColor;
-            glm::ivec4 SkyFlags;
-        };
-
-        /**
-         * The engine's projection matrices produce clip depth in -1..1; Direct3D expects 0..1.
-         * Applied here until the cameras build 0..1 projections themselves.
-         */
-        glm::mat4 ClipDepthZeroToOne() {
-            glm::mat4 fix(1.0f);
-            fix[2][2] = 0.5f;
-            fix[3][2] = 0.5f;
-            return fix;
-        }
-
-        /**
-         * Takes a light's clip space (x, y and z in -1..1) to shadow-map space: xy = texture coordinates
-         * with the origin at the top left, z = stored depth in 0..1.
-         */
-        glm::mat4 ClipToShadowMap() {
-            glm::mat4 bias(1.0f);
-            bias[0][0] = 0.5f;
-            bias[1][1] = -0.5f;
-            bias[2][2] = 0.5f;
-            bias[3] = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-            return bias;
-        }
-
-        /**
-         * Mirrors clip space vertically. Cube map faces are drawn with the view matrices the engine
-         * already had, which assume the image origin at the bottom left; Direct3D puts it at the top.
-         */
-        glm::mat4 ClipFlipY() {
-            glm::mat4 flip(1.0f);
-            flip[1][1] = -1.0f;
-            return flip;
-        }
 
         ERHIBlend ToRHIBlend(EBlendFactor InFactor) {
             switch (InFactor) {
@@ -1165,12 +1020,10 @@ namespace Leon {
         bool bPlanarCaptured[2] = {false, false};
         if (bPlanar) {
             // Sized as a fraction of the view; the quality setting decides how many blur levels it has.
-            const uint32_t captureWidth = PlanarCaptureWidth();
-            const uint32_t captureHeight = PlanarCaptureHeight();
-            uint32_t maxLevels = 1;
-            for (uint32_t size = std::max(captureWidth, captureHeight); size > 1; size /= 2)
-                ++maxLevels;
-            const uint32_t levels = std::clamp(PlanarReflectionMipLevelsFor(PlanarQuality), 1u, maxLevels);
+            const FPlanarCaptureDesc captureDesc = GetPlanarCaptureDesc();
+            const uint32_t captureWidth = captureDesc.Width;
+            const uint32_t captureHeight = captureDesc.Height;
+            const uint32_t levels = captureDesc.MipLevels;
             if (!state.PlanarColor[0] || state.PlanarColor[0]->GetDesc().Width != captureWidth ||
                 state.PlanarColor[0]->GetDesc().Height != captureHeight ||
                 state.PlanarColor[0]->GetDesc().MipLevels != levels) {
@@ -1178,7 +1031,7 @@ namespace Leon {
                 colorDesc.Width = captureWidth;
                 colorDesc.Height = captureHeight;
                 colorDesc.MipLevels = levels;
-                colorDesc.Format = ERHIFormat::RGBA16_Float;
+                colorDesc.Format = captureDesc.Format;
                 colorDesc.Usage = RHITextureUsage_Sampled | RHITextureUsage_RenderTarget;
                 colorDesc.ClearColor = {0.04f, 0.05f, 0.07f, 1.0f};
                 colorDesc.DebugName = "PlanarFloor";

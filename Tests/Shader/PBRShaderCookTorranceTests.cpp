@@ -1,30 +1,30 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Cook-Torrance Evaluation") {
 
     TEST_CASE("PBR_Lit.glsl Exact Hardware GPU Numerical Output vs Analytical Formula") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
         REQUIRE(std::filesystem::exists(shaderPath));
 
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f); // L = +Z
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);      // radiance = 1.0
         lightData.LightCounts.x = 0;

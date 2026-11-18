@@ -1,24 +1,24 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
 
     TEST_CASE("Directional Light Angle Response (NdotL in {1.0, 0.5, 0.0})") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
         REQUIRE(std::filesystem::exists(shaderPath));
 
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -42,7 +42,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
         shader->SetFloat("u_Metallic", 0.0f);
         shader->SetFloat("u_Roughness", 0.5f);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.LightCounts.x = 0;
         lightData.LightCounts.y = 0;
         lightData.EnvSkyColor = glm::vec4(0.0f); // Zero ambient for pure direct light test
@@ -78,17 +78,17 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
     }
 
     TEST_CASE("Point Light UE4 Inverse-Square Radius Attenuation Response") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -112,7 +112,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
         shader->SetFloat("u_Metallic", 0.0f);
         shader->SetFloat("u_Roughness", 0.5f);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction.w = 0.0f; // Disable directional light
         lightData.LightCounts.x = 1;           // 1 Point Light
         lightData.LightCounts.y = 0;
@@ -147,17 +147,17 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
     }
 
     TEST_CASE("Spot Light Conical Cutoff and Smoothstep Penumbra Response") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -182,7 +182,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
         shader->SetFloat("u_Metallic", 0.0f);
         shader->SetFloat("u_Roughness", 0.5f);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction.w = 0.0f;
         lightData.LightCounts.x = 0;
         lightData.LightCounts.y = 1;             // 1 Spot Light

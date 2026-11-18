@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 
 using namespace Leon;
 using namespace Leon::TestGPU;
@@ -7,10 +7,10 @@ using namespace Leon::TestGPU;
 TEST_SUITE("Shader GPU - Shadow Cascade Slice Selection & False-Color Debug") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Cascade Slice Selection by Depth") {
-        auto& gl = FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -24,7 +24,7 @@ TEST_SUITE("Shader GPU - Shadow Cascade Slice Selection & False-Color Debug") {
         shader->SetInt("u_UseShadows", 1);
         shader->SetInt("u_DebugMode", 25); // Mode 25: Cascade Index False-Color
 
-        FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         camData.CascadeSplits = glm::vec4(5.0f, 15.0f, 35.0f, 100.0f);
@@ -34,7 +34,7 @@ TEST_SUITE("Shader GPU - Shadow Cascade Slice Selection & False-Color Debug") {
         for (int c = 0; c < 4; ++c)
             camData.LightSpaceMatrices[c] = glm::mat4(1.0f);
 
-        FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         gl.UpdateLightingUBO(lightData);
@@ -123,8 +123,7 @@ TEST_SUITE("Shader GPU - Shadow Cascade Slice Selection & False-Color Debug") {
 
             // Layer 0 is lit (depth 1.0). Set layer 1 depth to 0.0f (occluded).
             float zeroDepth = 0.0f;
-            glClearTexSubImage(gl.GetDefaultShadowArrayTex(), 0, 0, 0, 1, 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT,
-                               &zeroDepth);
+            gl.FillDepth(gl.GetDefaultShadowArrayTex(), zeroDepth, 1);
 
             // Both cascade matrices map (0,0,0) to z = 0.5
             camData.LightSpaceMatrices[0] = glm::mat4(1.0f);
@@ -136,14 +135,13 @@ TEST_SUITE("Shader GPU - Shadow Cascade Slice Selection & False-Color Debug") {
             camData.CameraPosition = glm::vec4(0.0f, 0.0f, 3.5f, 1.0f);
             gl.UpdateCameraUBO(camData);
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            gl.Clear();
             gl.DrawQuad();
             glm::vec4 pix = gl.ReadPixel(0, 0);
 
             // Restore layer 1 to 1.0f
             float oneDepth = 1.0f;
-            glClearTexSubImage(gl.GetDefaultShadowArrayTex(), 0, 0, 0, 1, 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT,
-                               &oneDepth);
+            gl.FillDepth(gl.GetDefaultShadowArrayTex(), oneDepth, 1);
 
             // 50% interpolated blend factor = 0.5
             CHECK(pix.r == doctest::Approx(0.5f).epsilon(0.05f));

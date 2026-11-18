@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FShadowMath.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>

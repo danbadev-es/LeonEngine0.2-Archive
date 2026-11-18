@@ -1,30 +1,30 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Normal Mapping") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Flat Normal Map Invariance") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
         REQUIRE(std::filesystem::exists(shaderPath));
 
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         lightData.LightCounts = glm::ivec4(0);
@@ -66,9 +66,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Normal Mapping") {
         CHECK(geomNorm.b == doctest::Approx(1.0f).epsilon(0.02f));
 
         // 2. With Flat Normal Map (128, 128, 255): N must remain identical (0.5, 0.5, 1.0)
-        GLuint flatTex = gl.Create1x1Texture(128, 128, 255, 255);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, flatTex);
+        auto flatTex = gl.Create1x1Texture(128, 128, 255, 255);
+        gl.BindTexture(1, flatTex);
         shader->SetInt("u_UseNormalMap", 1);
         gl.DrawQuad();
         glm::vec4 mapNorm = gl.ReadPixel();
@@ -81,23 +80,23 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Normal Mapping") {
     }
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Normal Map Perturbation and NormalScale") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         lightData.LightCounts = glm::ivec4(0);
@@ -121,9 +120,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Normal Mapping") {
 
         // Create +X tilted normal map: (255, 128, 255) -> TS normal ~= (1.0, 0.0, 1.0) normalized -> (+0.707, 0,
         // +0.707)
-        GLuint tiltXTex = gl.Create1x1Texture(255, 128, 255, 255);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, tiltXTex);
+        auto tiltXTex = gl.Create1x1Texture(255, 128, 255, 255);
+        gl.BindTexture(1, tiltXTex);
         shader->SetInt("u_UseNormalMap", 1);
 
         // Scale = 1.0: N.x must be significantly positive (> 0.5)

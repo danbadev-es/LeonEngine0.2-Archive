@@ -1,28 +1,28 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FColorSpace.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Albedo Map & Scalar Combination") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         lightData.LightCounts = glm::ivec4(0);
@@ -59,9 +59,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
 
         // 2. Albedo map enabled with 0.5 sRGB (188/255 -> 0.51 linear)
         // 255 in 8-bit = 1.0 linear, 128 in 8-bit ~= (128/255)^2.2 ~= 0.218 linear
-        GLuint albedoTex = gl.Create1x1SRGBTexture(128, 255, 0, 255);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, albedoTex);
+        auto albedoTex = gl.Create1x1SRGBTexture(128, 255, 0, 255);
+        gl.BindTexture(0, albedoTex);
         shader->SetInt("u_UseAlbedoMap", 1);
         Leon::TestGPU::SetFloat3(shader, "u_AlbedoColor", glm::vec3(1.0f));
 
@@ -83,23 +82,23 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
     }
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Metallic, Roughness and AO Map Channels") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         lightData.LightCounts = glm::ivec4(0);
@@ -120,9 +119,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
 
         // Test Metallic (Mode 15)
         shader->SetInt("u_DebugMode", 15);
-        GLuint metTex = gl.Create1x1Texture(178, 0, 0, 255); // 178/255 ~= 0.70
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, metTex);
+        auto metTex = gl.Create1x1Texture(178, 0, 0, 255); // 178/255 ~= 0.70
+        gl.BindTexture(2, metTex);
         shader->SetInt("u_UseMetallicMap", 1);
         shader->SetFloat("u_Metallic", 1.0f);
         gl.DrawQuad();
@@ -131,9 +129,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
 
         // Test Roughness (Mode 16)
         shader->SetInt("u_DebugMode", 16);
-        GLuint roughTex = gl.Create1x1Texture(89, 0, 0, 255); // 89/255 ~= 0.35
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, roughTex);
+        auto roughTex = gl.Create1x1Texture(89, 0, 0, 255); // 89/255 ~= 0.35
+        gl.BindTexture(4, roughTex);
         shader->SetInt("u_UseRoughnessMap", 1);
         shader->SetFloat("u_Roughness", 1.0f);
         gl.DrawQuad();
@@ -142,9 +139,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
 
         // Test AO & Occlusion Strength (Mode 18)
         shader->SetInt("u_DebugMode", 18);
-        GLuint aoTex = gl.Create1x1Texture(51, 0, 0, 255); // 51/255 ~= 0.20
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, aoTex);
+        auto aoTex = gl.Create1x1Texture(51, 0, 0, 255); // 51/255 ~= 0.20
+        gl.BindTexture(3, aoTex);
         shader->SetInt("u_UseAOMap", 1);
         shader->SetFloat("u_AO", 1.0f);
 

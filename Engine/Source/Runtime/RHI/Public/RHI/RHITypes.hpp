@@ -40,7 +40,7 @@ namespace Leon {
         LinearClamp = 1,   ///< Trilinear, clamp. Render targets, lookup tables, cubemaps.
         PointClamp = 2,    ///< Nearest, clamp. Exact texel reads.
         PointWrap = 3,     ///< Nearest, repeat. Noise.
-        ShadowCompare = 4, ///< Linear comparison (less-equal), white border. Shadow maps.
+        ShadowCompare = 4, ///< Linear comparison (less-equal), clamp. Shadow maps.
     };
 
     enum class ERHIFormat : uint8_t {
@@ -52,6 +52,7 @@ namespace Leon {
         RG16_Float,
         RGBA16_Float,
         RGBA32_Float,
+        R32_Float,
         R32_SInt,
         D32_Float,
         D24_UNorm_S8_UInt,

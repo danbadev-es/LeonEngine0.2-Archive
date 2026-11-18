@@ -1,6 +1,7 @@
 #include "Renderer/FImmediateDrawRHI.hpp"
 
 #include "RHI/FRHIFrame.hpp"
+#include "Renderer/FShaderConstants.hpp"
 #include "Renderer/FShaderLibrary.hpp"
 
 #include <cstring>
@@ -11,11 +12,6 @@
 namespace Leon {
 
     namespace {
-
-        struct FCanvasConstants { // Canvas.hlsl
-            glm::mat4 Projection{1.0f};
-            glm::ivec4 CanvasFlags{0};
-        };
 
         constexpr uint32_t kLineVertexSize = 28; // vec3 + vec4
         constexpr uint32_t kTextVertexSize = 36; // vec3 + vec2 + vec4

@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 
 #include <cmath>
 
@@ -12,12 +12,12 @@ namespace {
     const glm::vec3 kFogColor(0.1f, 0.2f, 0.3f);
 
     struct FFogScene {
-        Leon::TestGPU::FHeadlessGLContext& GL;
-        Leon::TRef<Leon::FShader> Shader;
-        Leon::FLightingBufferData Light;
+        Leon::TestGPU::FHeadlessDevice& GL;
+        Leon::TRef<Leon::TestGPU::FTestShader> Shader;
+        Leon::TestGPU::FLightingBufferData Light;
 
-        explicit FFogScene(Leon::TestGPU::FHeadlessGLContext& InGL, const char* InShaderPath) : GL(InGL) {
-            Shader = Leon::FShader::Create(InShaderPath);
+        explicit FFogScene(Leon::TestGPU::FHeadlessDevice& InGL, const char* InShaderPath) : GL(InGL) {
+            Shader = Leon::TestGPU::FTestShader::Create(InShaderPath);
             Shader->Bind();
             GL.BindDefaultTextures();
             GL.BindFramebuffer(1, 1);
@@ -55,7 +55,7 @@ namespace {
 
         /** Renders the quad seen from InCameraDistance metres along +Z and returns the HDR pixel. */
         glm::vec4 Render(float InCameraDistance) {
-            Leon::FCameraBufferData cam;
+            Leon::TestGPU::FCameraBufferData cam;
             cam.ViewProjection = glm::mat4(1.0f);
             cam.CameraPosition = glm::vec4(0.0f, 0.0f, InCameraDistance, 0.0f);
             cam.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
@@ -78,7 +78,7 @@ namespace {
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
 
     TEST_CASE("default lighting data has fog off and leaves the colour untouched") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
         FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
         CHECK(scene.Light.FogColorDensity.a == 0.0f);
@@ -87,7 +87,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
     }
 
     TEST_CASE("fog blends toward the fog colour exponentially with distance") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
         FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
         scene.Light.FogColorDensity = glm::vec4(kFogColor, 0.5f);
@@ -100,7 +100,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
     }
 
     TEST_CASE("start distance delays the fog and max opacity caps it") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
         FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
         scene.Light.FogColorDensity = glm::vec4(kFogColor, 0.5f);
@@ -114,7 +114,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
     }
 
     TEST_CASE("height falloff thins the fog above the base height") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
         FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
         scene.Light.FogColorDensity = glm::vec4(kFogColor, 0.5f);

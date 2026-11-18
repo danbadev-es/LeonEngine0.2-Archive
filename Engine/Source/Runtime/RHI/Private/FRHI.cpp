@@ -15,6 +15,7 @@ namespace Leon {
         case ERHIFormat::RGBA8_UNorm_sRGB:
         case ERHIFormat::BGRA8_UNorm:
         case ERHIFormat::RG16_Float:
+        case ERHIFormat::R32_Float:
         case ERHIFormat::R32_SInt:
         case ERHIFormat::D32_Float:
         case ERHIFormat::D24_UNorm_S8_UInt:

@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <cmath>
 #include <filesystem>
 #include <glm/gtc/matrix_transform.hpp>
@@ -8,22 +8,22 @@
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
 
     TEST_CASE("PBR_Lit.glsl Real-Time Planar Reflection Integration (Toggle 0 vs 1)") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         Leon::TestGPU::ApplyFloorView(camData);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction.w = 0.0f;
         lightData.LightCounts.x = 0;
         lightData.LightCounts.y = 0;
@@ -50,14 +50,10 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         shader->SetFloat("u_Roughness", 0.05f);
 
         // HDR planar sample on unit 5 (strong blue channel)
-        GLuint planarTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &planarTex);
-        glTextureStorage2D(planarTex, 1, GL_RGBA16F, 1, 1);
         float blueHdr[4] = {0.2f, 0.2f, 6.0f, 1.0f};
-        glTextureSubImage2D(planarTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, blueHdr);
+        auto planarTex = gl.Create2D(1, 1, Leon::ERHIFormat::RGBA32_Float, blueHdr);
 
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, planarTex);
+        gl.BindTexture(5, planarTex);
 
         // 1. Planar reflection disabled
         shader->SetInt("u_UsePlanarReflection", 0);
@@ -76,25 +72,25 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         CHECK(pixelEnabled.b > pixelDisabled.b);
         CHECK(pixelEnabled.b > 1.0f);
 
-        glDeleteTextures(1, &planarTex);
+        gl.DestroyTexture(planarTex);
     }
 
     TEST_CASE("planar UV is projected world position, not screen UV") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         Leon::TestGPU::ApplyFloorView(camData);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData{};
+        Leon::TestGPU::FLightingBufferData lightData{};
         gl.UpdateLightingUBO(lightData);
 
         Leon::TestGPU::SetMat4(shader, "u_Model", glm::mat4(1.0f));
@@ -109,17 +105,9 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         shader->SetFloat("u_Roughness", 0.04f);
         Leon::TestGPU::SetFloat3(shader, "u_AlbedoColor", glm::vec3(1.0f));
 
-        GLuint planarTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &planarTex);
-        glTextureStorage2D(planarTex, 1, GL_RGBA16F, 2, 1);
         float texels[8] = {8.0f, 0.1f, 0.1f, 1.0f, 0.1f, 0.1f, 8.0f, 1.0f};
-        glTextureSubImage2D(planarTex, 0, 0, 0, 2, 1, GL_RGBA, GL_FLOAT, texels);
-        glTextureParameteri(planarTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTextureParameteri(planarTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTextureParameteri(planarTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(planarTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, planarTex);
+        auto planarTex = gl.Create2D(2, 1, Leon::ERHIFormat::RGBA32_Float, texels);
+        gl.BindTexture(5, planarTex);
 
         // Origin maps to NDC x=-0.5 → UV.x=0.25 (left / red). Screen UV of this 1x1 FBO is 0.5 (right / blue).
         glm::mat4 planarVP(1.0f);
@@ -131,26 +119,26 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         CHECK(pixel.r > 4.0f);
         CHECK(pixel.b < 2.0f);
 
-        glDeleteTextures(1, &planarTex);
+        gl.DestroyTexture(planarTex);
     }
 
     TEST_CASE("planar Li does not replace IBL on meshes lifted off the capture plane") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         Leon::TestGPU::ApplyFloorView(camData);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction.w = 0.0f;
         lightData.LightCounts.x = 0;
         lightData.LightCounts.y = 0;
@@ -177,13 +165,9 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         shader->SetFloat("u_Metallic", 1.0f);
         shader->SetFloat("u_Roughness", 0.05f);
 
-        GLuint planarTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &planarTex);
-        glTextureStorage2D(planarTex, 1, GL_RGBA16F, 1, 1);
         float blueHdr[4] = {0.2f, 0.2f, 6.0f, 1.0f};
-        glTextureSubImage2D(planarTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, blueHdr);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, planarTex);
+        auto planarTex = gl.Create2D(1, 1, Leon::ERHIFormat::RGBA32_Float, blueHdr);
+        gl.BindTexture(5, planarTex);
 
         shader->SetInt("u_UsePlanarReflection", 0);
         gl.DrawQuad();
@@ -196,6 +180,6 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         CHECK(std::abs(pixelLifted.b - pixelIbl.b) < 0.15f);
         CHECK(pixelLifted.b < 2.0f);
 
-        glDeleteTextures(1, &planarTex);
+        gl.DestroyTexture(planarTex);
     }
 }

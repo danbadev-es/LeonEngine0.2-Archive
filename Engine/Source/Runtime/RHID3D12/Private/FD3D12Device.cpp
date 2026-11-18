@@ -151,6 +151,8 @@ namespace Leon {
             return DXGI_FORMAT_R16G16B16A16_FLOAT;
         case ERHIFormat::RGBA32_Float:
             return DXGI_FORMAT_R32G32B32A32_FLOAT;
+        case ERHIFormat::R32_Float:
+            return DXGI_FORMAT_R32_FLOAT;
         case ERHIFormat::R32_SInt:
             return DXGI_FORMAT_R32_SINT;
         // Depth resources are typeless so the same memory can be a depth target and a shader input.
@@ -437,7 +439,9 @@ namespace Leon {
         address(samplers[3], D3D12_TEXTURE_ADDRESS_MODE_WRAP);
         samplers[4].Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; // ShadowCompare
         samplers[4].ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-        address(samplers[4], D3D12_TEXTURE_ADDRESS_MODE_BORDER);
+        // Clamped, not bordered: shaders reject lookups outside the map themselves, and a lit border
+        // would bleed into the filtered samples next to the map's edge.
+        address(samplers[4], D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
         D3D12_ROOT_SIGNATURE_DESC desc{};
         desc.NumParameters = static_cast<UINT>(std::size(parameters));

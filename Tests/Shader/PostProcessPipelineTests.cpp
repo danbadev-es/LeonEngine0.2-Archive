@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FPostProcessPipeline.hpp"
 #include "Renderer/FMeshPrimitives.hpp"
 #include "RHI/FRenderCommand.hpp"
@@ -9,7 +9,7 @@
 TEST_SUITE("Shader GPU - End-to-End Post-Processing Pipeline") {
 
     TEST_CASE("End-to-End Pipeline Synthetic Scene (HDR -> Bloom -> Tone Mapping -> FXAA -> Output)") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         gl.BindDefaultTextures();
@@ -105,7 +105,7 @@ TEST_SUITE("Shader GPU - End-to-End Post-Processing Pipeline") {
     }
 
     TEST_CASE("Pipeline Dynamic Viewport Resize & FFramebuffer Lifetime Invariants") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         Leon::FPostProcessPipeline pipeline;

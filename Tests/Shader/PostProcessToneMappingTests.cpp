@@ -1,5 +1,5 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include "Renderer/FColorSpace.hpp"
 #include <vector>
 #include <cmath>
@@ -7,10 +7,10 @@
 TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
 
     TEST_CASE("ACES Hardware Curve Numerical Accuracy & Strict Monotonicity") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -22,8 +22,8 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
         glTextureParameteri(hdrTex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTextureParameteri(hdrTex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glBindTextureUnit(0, hdrTex);
-        glBindTextureUnit(1, 0);
+        gl.BindTexture(0, hdrTex);
+        gl.BindTexture(1, 0);
         shader->SetInt("u_HDRSceneTexture", 0);
         shader->SetInt("u_BloomTexture", 1);
         shader->SetInt("u_UseBloom", 0);
@@ -75,10 +75,10 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
     }
 
     TEST_CASE("Tone Mapping Exposure Scaling & Multi-Operator Support") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -88,7 +88,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         GLuint hdrTex = 0;
         glCreateTextures(GL_TEXTURE_2D, 1, &hdrTex);
         glTextureStorage2D(hdrTex, 1, GL_RGBA16F, 1, 1);
-        glBindTextureUnit(0, hdrTex);
+        gl.BindTexture(0, hdrTex);
         shader->SetInt("u_HDRSceneTexture", 0);
         shader->SetInt("u_UseBloom", 0);
         shader->SetFloat("u_Gamma", 2.2f);

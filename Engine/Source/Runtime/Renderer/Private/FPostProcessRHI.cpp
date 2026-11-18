@@ -1,5 +1,6 @@
 #include "FPostProcessRHI.hpp"
 
+#include "Renderer/FShaderConstants.hpp"
 #include "Renderer/FShaderLibrary.hpp"
 
 #include <algorithm>
@@ -10,31 +11,6 @@ namespace Leon {
     namespace {
 
         constexpr uint32_t kBloomLevels = 5;
-
-        // The structures below mirror constant buffers in Engine/Shaders. Keep field order and types
-        // identical.
-
-        struct FBloomConstants { // Bloom.hlsl
-            glm::vec4 BloomParams{0.0f};
-            glm::vec4 TexelSize{0.0f};
-        };
-
-        struct FSSAOConstants { // SSAO.hlsl
-            glm::mat4 Projection{1.0f};
-            glm::mat4 InverseProjection{1.0f};
-            glm::vec4 Samples[16]{};
-            glm::vec4 SSAOParams{0.0f};
-            glm::vec4 BlurParams{0.0f};
-        };
-
-        struct FToneMappingConstants { // ToneMapping.hlsl
-            glm::vec4 ToneParams{0.0f};
-            glm::ivec4 ToneFlags{0};
-        };
-
-        struct FFXAAConstants { // FXAA.hlsl
-            glm::vec4 FXAAParams{0.0f};
-        };
 
         TRef<IRHITexture> MakeTarget(IRHIDevice& InDevice, uint32_t InWidth, uint32_t InHeight, ERHIFormat InFormat,
                                      const char* InName) {

@@ -15,7 +15,7 @@ SamplerState s_LinearWrap : register(s0);            // trilinear, anisotropic, 
 SamplerState s_LinearClamp : register(s1);           // trilinear, clamp
 SamplerState s_PointClamp : register(s2);            // nearest, clamp
 SamplerState s_PointWrap : register(s3);             // nearest, repeat
-SamplerComparisonState s_ShadowCompare : register(s4); // linear, less-equal, white border
+SamplerComparisonState s_ShadowCompare : register(s4); // linear, less-equal, clamp
 
 // Mirrors FFrameConstants in FWorldRendererRHI.cpp.
 cbuffer FrameConstants : register(b0) {

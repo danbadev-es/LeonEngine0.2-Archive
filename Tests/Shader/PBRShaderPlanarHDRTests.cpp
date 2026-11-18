@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
-#include "RHI/FFramebuffer.hpp"
+#include "GPU/HeadlessDevice.hpp"
+#include "Renderer/FWorldRenderer.hpp"
 #include "Engine/UWorld.hpp"
 
 #include <cmath>
@@ -8,57 +8,46 @@
 
 TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
 
-    TEST_CASE("WorldRenderer planar FBO attachment is RGBA16F (not LDR RGBA8)") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
-        REQUIRE(gl.IsValid());
-
+    TEST_CASE("WorldRenderer planar capture is a float target (not LDR RGBA8) sized by quality") {
         auto world = Leon::UWorld::Create("PlanarFormatWorld");
         REQUIRE(world != nullptr);
         auto* renderer = world->GetWorldRenderer();
         REQUIRE(renderer != nullptr);
 
-        auto planar = renderer->GetPlanarReflectionFramebuffer();
-        REQUIRE(planar != nullptr);
-        const auto& spec = planar->GetSpecification();
-        REQUIRE(spec.Attachments.Attachments.size() >= 1);
-        CHECK(spec.Attachments.Attachments[0].TextureFormat == Leon::EFramebufferTextureFormat::RGBA16F);
-        CHECK(spec.ColorMipLevels == 5); // roughness * 4 LOD blur chain
+        const auto epic = renderer->GetPlanarCaptureDesc();
+        CHECK(epic.Format == Leon::ERHIFormat::RGBA16_Float);
+        CHECK(epic.MipLevels == 5); // roughness * 4 LOD blur chain
         CHECK(renderer->GetPlanarReflectionQuality() == Leon::EPlanarReflectionQuality::Epic);
         CHECK(renderer->GetPlanarReflectionResolutionScale() == doctest::Approx(1.0f));
 
         renderer->SetPlanarReflectionQuality(Leon::EPlanarReflectionQuality::Low);
         renderer->OnViewportResize(1280, 720);
-        auto low = renderer->GetPlanarReflectionFramebuffer();
-        REQUIRE(low != nullptr);
-        CHECK(low->GetSpecification().Width == 320);
-        CHECK(low->GetSpecification().Height == 180);
-        CHECK(low->GetSpecification().ColorMipLevels == 3);
+        const auto low = renderer->GetPlanarCaptureDesc();
+        CHECK(low.Width == 320);
+        CHECK(low.Height == 180);
+        CHECK(low.MipLevels == 3);
+        CHECK(low.Format == Leon::ERHIFormat::RGBA16_Float);
         renderer->SetPlanarReflectionQuality(Leon::EPlanarReflectionQuality::Epic);
-
-        auto wall = renderer->GetWallPlanarReflectionFramebuffer();
-        REQUIRE(wall != nullptr);
-        CHECK(wall->GetSpecification().Attachments.Attachments[0].TextureFormat ==
-              Leon::EFramebufferTextureFormat::RGBA16F);
     }
 
     TEST_CASE("Planar Karis HDR: metallic mirror keeps HDR Li after BRDF scale") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
         gl.BindDefaultTextures();
-        // Float HDR readback target (HeadlessGLContext uses GL_RGBA32F)
+        // Float HDR readback target
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         Leon::TestGPU::ApplyFloorView(camData);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction.w = 0.0f;
         lightData.LightCounts.x = 0;
         lightData.LightCounts.y = 0;
@@ -85,13 +74,9 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         shader->SetFloat("u_Roughness", 0.04f);
 
         // HDR planar sample: radiance 8 (would clamp to 1.0 on RGBA8)
-        GLuint planarTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &planarTex);
-        glTextureStorage2D(planarTex, 1, GL_RGBA16F, 1, 1);
         float hdrPixel[4] = {8.0f, 8.0f, 8.0f, 1.0f};
-        glTextureSubImage2D(planarTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, hdrPixel);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, planarTex);
+        auto planarTex = gl.Create2D(1, 1, Leon::ERHIFormat::RGBA32_Float, hdrPixel);
+        gl.BindTexture(5, planarTex);
 
         shader->SetInt("u_UsePlanarReflection", 1);
         gl.DrawQuad();
@@ -103,26 +88,26 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         CHECK(pixel.r > 2.0f);
         CHECK(pixel.r < 30.0f);
 
-        glDeleteTextures(1, &planarTex);
+        gl.DestroyTexture(planarTex);
     }
 
     TEST_CASE("Dielectric wet floor: HDR planar emissive is BRDF-scaled (not raw Li white stamp)") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
         // Floor-facing N (+Y) with camera above → near-normal incidence (low dielectric Fresnel)
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         Leon::TestGPU::ApplyFloorView(camData);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData{};
+        Leon::TestGPU::FLightingBufferData lightData{};
         lightData.EnvSkyColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
         gl.UpdateLightingUBO(lightData);
 
@@ -142,14 +127,10 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         shader->SetFloat("u_Metallic", 0.08f);
         shader->SetFloat("u_Roughness", 0.18f);
 
-        GLuint planarTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &planarTex);
-        glTextureStorage2D(planarTex, 1, GL_RGBA16F, 1, 1);
         // FWindow-like HDR emissive stamp (intensity 6)
         float windowHdr[4] = {6.0f, 5.1f, 2.7f, 1.0f};
-        glTextureSubImage2D(planarTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, windowHdr);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, planarTex);
+        auto planarTex = gl.Create2D(1, 1, Leon::ERHIFormat::RGBA32_Float, windowHdr);
+        gl.BindTexture(5, planarTex);
 
         shader->SetInt("u_UsePlanarReflection", 1);
         gl.DrawQuad();
@@ -164,25 +145,25 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         CHECK(peak < 2.5f);
         CHECK(peak > 0.01f);
 
-        glDeleteTextures(1, &planarTex);
+        gl.DestroyTexture(planarTex);
     }
 
     TEST_CASE("IBL ON + Planar OFF vs Planar ON matrix — planar adds specular without NaN") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::FShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         Leon::TestGPU::ApplyFloorView(camData);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData{};
+        Leon::TestGPU::FLightingBufferData lightData{};
         lightData.EnvSkyColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         gl.UpdateLightingUBO(lightData);
 
@@ -200,13 +181,9 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         shader->SetFloat("u_Metallic", 0.0f);
         shader->SetFloat("u_Roughness", 0.18f);
 
-        GLuint planarTex = 0;
-        glCreateTextures(GL_TEXTURE_2D, 1, &planarTex);
-        glTextureStorage2D(planarTex, 1, GL_RGBA16F, 1, 1);
         float bright[4] = {4.0f, 3.5f, 2.5f, 1.0f};
-        glTextureSubImage2D(planarTex, 0, 0, 0, 1, 1, GL_RGBA, GL_FLOAT, bright);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, planarTex);
+        auto planarTex = gl.Create2D(1, 1, Leon::ERHIFormat::RGBA32_Float, bright);
+        gl.BindTexture(5, planarTex);
 
         auto drawCombo = [&](int useIbl, int usePlanar) {
             shader->SetInt("u_UseIBL", useIbl);
@@ -231,6 +208,6 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         CHECK(C.r + C.g + C.b > A.r + A.g + A.b);
         CHECK(D.r + D.g + D.b >= B.r + B.g + B.b - 1e-3f);
 
-        glDeleteTextures(1, &planarTex);
+        gl.DestroyTexture(planarTex);
     }
 }

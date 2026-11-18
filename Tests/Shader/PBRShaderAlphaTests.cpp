@@ -1,27 +1,27 @@
 #include <doctest/doctest.h>
-#include "GPU/HeadlessGLContext.hpp"
+#include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Alpha Modes & Cutoff") {
 
     TEST_CASE("PBR_Lit.glsl Hardware GPU Alpha Masking and Discard") {
-        auto& gl = Leon::TestGPU::FHeadlessGLContext::Get();
+        Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
         const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        auto shader = Leon::FShader::Create(shaderPath);
+        auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
         gl.BindDefaultTextures();
         gl.BindFramebuffer(1, 1);
 
-        Leon::FCameraBufferData camData;
+        Leon::TestGPU::FCameraBufferData camData;
         camData.ViewProjection = glm::mat4(1.0f);
         camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
         camData.CameraForward = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         gl.UpdateCameraUBO(camData);
 
-        Leon::FLightingBufferData lightData;
+        Leon::TestGPU::FLightingBufferData lightData;
         lightData.DirLight.Direction = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         lightData.DirLight.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         lightData.LightCounts = glm::ivec4(0);
@@ -51,9 +51,8 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Alpha Modes & Cutoff") {
         shader->SetInt("u_DebugMode", 14); // Mode 14: BaseColor
 
         // Create texture with alpha = 0.3 (76/255)
-        GLuint lowAlphaTex = gl.Create1x1Texture(255, 255, 255, 76);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, lowAlphaTex);
+        auto lowAlphaTex = gl.Create1x1Texture(255, 255, 255, 76);
+        gl.BindTexture(0, lowAlphaTex);
         shader->SetInt("u_UseAlbedoMap", 1);
 
         // 1. Opaque Mode (AlphaMode = 0): low alpha must NOT discard fragment

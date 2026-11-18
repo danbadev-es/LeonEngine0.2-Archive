@@ -77,6 +77,17 @@ namespace Leon {
         return std::max(8u, static_cast<uint32_t>(static_cast<float>(height) * PlanarResolutionScale + 0.5f));
     }
 
+    FWorldRenderer::FPlanarCaptureDesc FWorldRenderer::GetPlanarCaptureDesc() const {
+        FPlanarCaptureDesc desc;
+        desc.Width = PlanarCaptureWidth();
+        desc.Height = PlanarCaptureHeight();
+        uint32_t maxLevels = 1;
+        for (uint32_t size = std::max(desc.Width, desc.Height); size > 1; size /= 2)
+            ++maxLevels;
+        desc.MipLevels = std::clamp(PlanarReflectionMipLevelsFor(PlanarQuality), 1u, maxLevels);
+        return desc;
+    }
+
     void FWorldRenderer::OnViewportResize(uint32_t InWidth, uint32_t InHeight) {
         ViewportWidth = InWidth;
         ViewportHeight = InHeight;
