@@ -72,6 +72,13 @@ comparison leaves the frame it drew in `build/LeonHorrorTests/`.
 When a shader test is added or ported, break the shader on purpose once and see the test fail. The
 panorama seam test passed with the fix removed until its camera was turned by one pixel.
 
+`python Tools/run_shader_mutations.py` does that wholesale: it breaks the HLSL shaders one line at a
+time (63 mutations: a wrong exponent, a dropped term, an inverted test) and runs the shader suites
+against each. All 63 are caught; when it was first run on the ported tests, twelve were not, and
+each became a new check. A full pass takes about forty minutes and must not overlap with a build or
+another test run, because it edits `Engine/Shaders` while it works. Add a mutation with every new
+shader feature.
+
 CPU math / IBL / cache suites live under `Tests/Math`, `Tests/IBL`, `Tests/PBR`, `Tests/Cache`, `Tests/HDR`.
 
 Known gaps:

@@ -122,4 +122,40 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
 
         gl.DestroyTexture(hdrTex);
     }
+
+    TEST_CASE("Tone mapping applies a custom gamma and scales bloom by its intensity") {
+        Leon::TestGPU::FHeadlessDevice gl;
+        REQUIRE(gl.IsValid());
+
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        REQUIRE(shader != nullptr);
+        shader->Bind();
+        gl.BindDefaultTextures();
+        gl.BindFramebuffer(1, 1);
+
+        auto scene = gl.Create1x1FloatTexture(0.5f, 0.5f, 0.5f, 1.0f);
+        auto black = gl.Create1x1FloatTexture(0.0f, 0.0f, 0.0f, 1.0f);
+        auto bloom = gl.Create1x1FloatTexture(1.0f, 1.0f, 1.0f, 1.0f);
+        shader->SetInt("u_ToneMapper", 2); // clamp only: the output is the encoding of the input
+        shader->SetFloat("u_Exposure", 1.0f);
+        shader->SetInt("u_DebugMode", 0);
+
+        // Gamma 1.8 is a plain power curve: 0.5 ^ (1 / 1.8).
+        gl.BindTexture(0, scene);
+        gl.BindTexture(1, black);
+        shader->SetInt("u_UseBloom", 0);
+        shader->SetFloat("u_Gamma", 1.8f);
+        gl.DrawQuad();
+        CHECK(gl.ReadPixel(0, 0).r == doctest::Approx(std::pow(0.5f, 1.0f / 1.8f)).epsilon(0.01f));
+
+        // Bloom of 1 at intensity 0.25 over a black scene is 0.25 before encoding (sRGB: 0.5371).
+        gl.BindTexture(0, black);
+        gl.BindTexture(1, bloom);
+        shader->SetInt("u_UseBloom", 1);
+        shader->SetFloat("u_BloomIntensity", 0.25f);
+        shader->SetFloat("u_Gamma", 2.2f);
+        gl.DrawQuad();
+        CHECK(gl.ReadPixel(0, 0).r == doctest::Approx(0.5371f).epsilon(0.01f));
+        CHECK(gl.ValidationErrors() == 0);
+    }
 }

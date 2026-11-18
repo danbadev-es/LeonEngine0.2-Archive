@@ -66,6 +66,12 @@ TEST_SUITE("Shader GPU - Post-Processing FXAA Pipeline") {
         REQUIRE(readSub.size() == 16 * 16 * 4);
         CHECK(readSub[(8 * 16 + 7) * 4] == 100); // Must not blur sub-threshold differences
         CHECK(readSub[(8 * 16 + 8) * 4] == 108);
+        // Exactly, not to the nearest 8-bit value: on a step this small the filter would move the
+        // pixel by less than half a level.
+        const std::vector<float> exactSub = gl.ReadPixels();
+        REQUIRE(exactSub.size() == 16 * 16 * 4);
+        CHECK(exactSub[(8 * 16 + 7) * 4] == doctest::Approx(100.0f / 255.0f).epsilon(0.0005f));
+        CHECK(exactSub[(8 * 16 + 8) * 4] == doctest::Approx(108.0f / 255.0f).epsilon(0.0005f));
 
         gl.DestroyTexture(ldrTex);
     }

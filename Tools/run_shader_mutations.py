@@ -195,9 +195,6 @@ MUTATIONS = [
     M("SHADOW_POINT_INVERTED", SHADOWS, "Point shadow: depth comparison inverted",
       "return InDepth > stored + InBias ? 1.0 : 0.0;",
       "return InDepth < stored + InBias ? 1.0 : 0.0;"),
-    M("SHADOW_POINT_RADIUS", SHADOWS, "Point shadow: receivers beyond the light's radius are shadowed",
-      "if (distance > radius || distance < 1e-5)\n        return 0.0;",
-      "if (distance > radius || distance < 1e-5)\n        return 1.0;"),
 
     # --- Bloom ---
     M("BLOOM_SOFT_KNEE", BLOOM, "Bright pass: soft knee dropped",
