@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-// Distance/height fog in PBR_Lit.glsl, checked on real pixels: an unlit emissive quad at the origin
+// Distance/height fog in PBR_Lit.hlsl, checked on real pixels: an unlit emissive quad at the origin
 // viewed from a known distance must blend toward the fog colour by 1 - exp(-distance * density).
 
 namespace {
@@ -75,12 +75,12 @@ namespace {
 
 } // namespace
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Distance Fog") {
 
     TEST_CASE("default lighting data has fog off and leaves the colour untouched") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
-        FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
+        FFogScene scene(gl, "PBR_Lit");
         CHECK(scene.Light.FogColorDensity.a == 0.0f);
         CheckBlend(scene.Render(2.0f), 0.0f);
         CheckBlend(scene.Render(500.0f), 0.0f);
@@ -89,7 +89,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
     TEST_CASE("fog blends toward the fog colour exponentially with distance") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
-        FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
+        FFogScene scene(gl, "PBR_Lit");
         scene.Light.FogColorDensity = glm::vec4(kFogColor, 0.5f);
         scene.Light.FogParams = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -102,7 +102,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
     TEST_CASE("start distance delays the fog and max opacity caps it") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
-        FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
+        FFogScene scene(gl, "PBR_Lit");
         scene.Light.FogColorDensity = glm::vec4(kFogColor, 0.5f);
 
         scene.Light.FogParams = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // starts 1 m from the camera
@@ -116,7 +116,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Distance Fog") {
     TEST_CASE("height falloff thins the fog above the base height") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
-        FFogScene scene(gl, "Engine/Resources/Shaders/PBR_Lit.glsl");
+        FFogScene scene(gl, "PBR_Lit");
         scene.Light.FogColorDensity = glm::vec4(kFogColor, 0.5f);
         // The quad sits at y = 0, two metres above the fog base, with a falloff of 1 per metre.
         scene.Light.FogParams = glm::vec4(0.0f, 1.0f, -2.0f, 1.0f);

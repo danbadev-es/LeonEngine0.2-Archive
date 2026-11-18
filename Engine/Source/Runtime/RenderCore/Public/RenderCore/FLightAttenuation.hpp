@@ -7,7 +7,7 @@
 namespace Leon {
 
     /**
-     * UE4/Filament windowed inverse-square. Shared by PBR_Lit.glsl and FLightBaker.
+     * UE4/Filament windowed inverse-square. Shared by PBR_Lit.hlsl and FLightBaker.
      *   atten = saturate(1 - (d/R)^4)^2 / (d^2 + 1)
      */
     inline float DistanceAttenuationUE4(float InDistance, float InRadius) {
@@ -25,7 +25,7 @@ namespace Leon {
     }
 
     /**
-     * Spot angular attenuation matching PBR_Lit.glsl:
+     * Spot angular attenuation matching PBR_Lit.hlsl:
      *   t = saturate((cosTheta - cosOuter) / (cosInner - cosOuter))
      *   factor = t^2 * (3 - 2t)   // Hermite smoothstep
      * Inner/outer are cone half-angles in degrees.

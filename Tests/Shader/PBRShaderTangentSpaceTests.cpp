@@ -2,13 +2,13 @@
 #include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Tangent Space & TBN Orthonormality") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Tangent Space & TBN Orthonormality") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Tangent and Bitangent Reconstruction") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Tangent and Bitangent Reconstruction") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
@@ -73,11 +73,11 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Tangent Space & TBN Orthonormality") {
         CHECK(glm::length(B) == doctest::Approx(1.0f).epsilon(0.05f));
     }
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Gram-Schmidt Orthogonalization on Skewed Inputs") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Gram-Schmidt Orthogonalization on Skewed Inputs") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 

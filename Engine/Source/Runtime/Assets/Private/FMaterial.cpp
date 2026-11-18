@@ -4,14 +4,10 @@
 
 namespace Leon {
 
-    FMaterial::FMaterial(const std::string& InName, const TRef<FShader>& InShader) : Name(InName), Shader(InShader) {
-        if (!Shader) {
-            Shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        }
-    }
+    FMaterial::FMaterial(const std::string& InName) : Name(InName) {}
 
-    TRef<FMaterial> FMaterial::Create(const std::string& InName, const TRef<FShader>& InShader) {
-        return MakeRef<FMaterial>(InName, InShader);
+    TRef<FMaterial> FMaterial::Create(const std::string& InName) {
+        return CreateRef<FMaterial>(InName);
     }
 
     TRef<FMaterialInstance> FMaterial::CreateInstance(const std::string& InInstanceName) {

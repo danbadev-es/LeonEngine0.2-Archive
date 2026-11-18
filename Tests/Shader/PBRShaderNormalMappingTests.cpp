@@ -2,14 +2,13 @@
 #include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Normal Mapping") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Normal Mapping") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Flat Normal Map Invariance") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Flat Normal Map Invariance") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        REQUIRE(std::filesystem::exists(shaderPath));
+        const std::string shaderPath = "PBR_Lit";
 
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);
@@ -79,11 +78,11 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Normal Mapping") {
         gl.DestroyTexture(flatTex);
     }
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Normal Map Perturbation and NormalScale") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Normal Map Perturbation and NormalScale") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 

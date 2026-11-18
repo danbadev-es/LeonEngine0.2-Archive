@@ -109,24 +109,6 @@ namespace Leon {
             TRef<FIndexBuffer> IndexBuffer;
         };
 
-        class FNullShader final : public FShader {
-        public:
-            explicit FNullShader(std::string InName) : Name(std::move(InName)) {}
-            void Bind() const override {}
-            void Unbind() const override {}
-            void SetInt(const std::string&, int) override {}
-            void SetFloat(const std::string&, float) override {}
-            void SetFloat2(const std::string&, float, float) override {}
-            void SetFloat3(const std::string&, float, float, float) override {}
-            void SetFloat4(const std::string&, float, float, float, float) override {}
-            void SetMat3(const std::string&, const float*) override {}
-            void SetMat4(const std::string&, const float*) override {}
-            const std::string& GetName() const override { return Name; }
-
-        private:
-            std::string Name;
-        };
-
         uint32_t NextNullId() {
             static uint32_t next = 1;
             return next++;
@@ -370,12 +352,6 @@ namespace Leon {
                 return CreateRef<FLegacyIndexBuffer>(InIndices, InCount);
             }
             TRef<FVertexArray> CreateVertexArray() override { return CreateRef<FNullVertexArray>(); }
-            TRef<FShader> CreateShader(const std::string& InFilePath) override {
-                return CreateRef<FNullShader>(InFilePath);
-            }
-            TRef<FShader> CreateShader(const std::string& InName, const std::string&, const std::string&) override {
-                return CreateRef<FNullShader>(InName);
-            }
             TRef<FTexture2D> CreateTexture2D(uint32_t InWidth, uint32_t InHeight) override {
                 return CreateRef<FLegacyTexture2D>(InWidth, InHeight, ETextureFormat::RGBA8);
             }

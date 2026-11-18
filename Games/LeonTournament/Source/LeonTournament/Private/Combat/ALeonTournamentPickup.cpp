@@ -85,10 +85,9 @@ namespace Leon {
         if (HasComponent<FMeshComponent>() || !FApplication::HasInstance())
             return;
         auto va = FMeshPrimitives::CreatePyramid(0.42f, 0.72f, 0.42f);
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        if (!va || !shader)
+        if (!va)
             return;
-        auto& mesh = AddComponent<FMeshComponent>(va, shader);
+        auto& mesh = AddComponent<FMeshComponent>(va);
         mesh.MeshType = "Pyramid";
         mesh.MeshWidth = 0.42f;
         mesh.MeshHeight = 0.72f;
@@ -117,10 +116,9 @@ namespace Leon {
         if (HasComponent<FMeshComponent>() || !FApplication::HasInstance())
             return;
         auto va = FMeshPrimitives::CreateCube(0.42f);
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        if (!va || !shader)
+        if (!va)
             return;
-        auto& mesh = AddComponent<FMeshComponent>(va, shader);
+        auto& mesh = AddComponent<FMeshComponent>(va);
         mesh.MeshType = "Box";
         mesh.MeshSize = 0.42f;
         ConfigurePickupMesh(mesh, IsPickupActive());
@@ -150,10 +148,9 @@ namespace Leon {
         if (HasComponent<FMeshComponent>() || !FApplication::HasInstance())
             return;
         auto va = FMeshPrimitives::CreateCube(1.6f);
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        if (!va || !shader)
+        if (!va)
             return;
-        auto& mesh = AddComponent<FMeshComponent>(va, shader);
+        auto& mesh = AddComponent<FMeshComponent>(va);
         mesh.MeshType = "Box";
         mesh.MeshSize = 1.6f;
         mesh.Mobility = EComponentMobility::Movable;

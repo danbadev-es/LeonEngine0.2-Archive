@@ -6,11 +6,11 @@ using namespace Leon::TestGPU;
 
 TEST_SUITE("Shader GPU - Shadow Layer & Atlas Mapping") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU 4-Layer Cascade Array Depth Sampling") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU 4-Layer Cascade Array Depth Sampling") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

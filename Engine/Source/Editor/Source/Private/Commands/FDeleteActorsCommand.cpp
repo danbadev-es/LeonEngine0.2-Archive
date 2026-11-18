@@ -31,7 +31,6 @@ namespace Leon::Editor {
             snap.Mesh = InActor.GetComponent<FMeshComponent>();
             // VertexArray/Shader are GPU refs — rebuild on restore from metadata.
             snap.Mesh.VertexArray = nullptr;
-            snap.Mesh.Shader = nullptr;
         }
         if (InActor.HasComponent<FMaterialComponent>()) {
             snap.bHasMaterial = true;
@@ -156,11 +155,6 @@ namespace Leon::Editor {
         if (InSnapshot.bHasMesh) {
             FMeshComponent mesh = InSnapshot.Mesh;
             mesh.VertexArray = RebuildProceduralMesh(mesh);
-            if (FRenderDriverRegistry::GetActiveDriver() && !mesh.ShaderPath.empty()) {
-                mesh.Shader = UAssetManager::GetShader(mesh.ShaderPath);
-                if (!mesh.Shader)
-                    mesh.Shader = FShader::Create(mesh.ShaderPath);
-            }
             actor->AddComponent<FMeshComponent>(mesh);
         }
 

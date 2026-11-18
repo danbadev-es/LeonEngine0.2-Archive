@@ -42,7 +42,7 @@ namespace Leon {
         float SplitLambda = 0.85f;       ///< Weight between Logarithmic (1.0) and Uniform (0.0)
         float ShadowDistance = 100.0f;   ///< Maximum view distance for directional shadow coverage
         float CascadeBlendWidth = 0.25f; ///< Fraction of each cascade length used as a transition [0.0, 0.5]
-        /// Shader also floors the blend to this many metres (keep in sync with PBR_Common.glsl).
+        /// Shader also floors the blend to this many metres (keep in sync with PBR_Common.hlsli).
         static constexpr float kCascadeBlendMinMeters = 3.0f;
 
         float ConstantBias = 0.0010f; ///< Constant depth offset subtracted from light depth

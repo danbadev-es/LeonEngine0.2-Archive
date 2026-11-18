@@ -1,4 +1,5 @@
 #include "Renderer/FParticleRenderer.hpp"
+#include "RHI/IRenderDriver.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Engine/Components.hpp"
@@ -14,12 +15,12 @@
 
 namespace Leon {
 
-    TRef<FShader> FParticleRenderer::Shader = nullptr;
+    bool FParticleRenderer::bReady = false;
     TRef<FVertexArray> FParticleRenderer::VertexArray = nullptr;
     TRef<FVertexBuffer> FParticleRenderer::VertexBuffer = nullptr;
 
     void FParticleRenderer::Init() {
-        Shader = FShader::Create("Engine/Resources/Shaders/DebugLine.glsl");
+        bReady = FRenderDriverRegistry::GetActiveDriver() != nullptr;
         VertexArray = FVertexArray::Create();
         VertexBuffer = FVertexBuffer::Create(MaxVertices * sizeof(FVertex));
         VertexBuffer->SetLayout({{EShaderDataType::Float3, "aPos"}, {EShaderDataType::Float4, "aColor"}});
@@ -27,13 +28,13 @@ namespace Leon {
     }
 
     void FParticleRenderer::Shutdown() {
-        Shader.reset();
+        bReady = false;
         VertexBuffer.reset();
         VertexArray.reset();
     }
 
     void FParticleRenderer::Render(UWorld* InWorld, const FPerspectiveCamera& InCamera) {
-        if (!InWorld || !Shader)
+        if (!InWorld || !bReady)
             return;
 
         std::vector<FVertex> verts;

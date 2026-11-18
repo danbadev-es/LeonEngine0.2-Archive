@@ -347,8 +347,8 @@ TEST_SUITE("Renderer contract - transforms, TBN, PBR, color, shadows") {
         CHECK(paddedMin.x == doctest::Approx(-1.35f));
     }
 
-    TEST_CASE("Point cubemap linear depth shadow contract matches PBR_Common.glsl") {
-        // Keep in sync with CalculatePointShadow / FilterPointCubeShadow in PBR_Common.glsl.
+    TEST_CASE("Point cubemap linear depth shadow contract matches PBR_Common.hlsli") {
+        // Keep in sync with CalculatePointShadow / FilterPointCubeShadow in PBR_Common.hlsli.
         auto linearBias = [](float NdotL) {
             const float slope = std::max(1.0f - NdotL, 0.0f);
             return 0.004f + 0.028f * slope;
@@ -380,7 +380,7 @@ TEST_SUITE("Renderer contract - transforms, TBN, PBR, color, shadows") {
         CHECK(occluded(rawDepth, rawDepth - 0.004f, eps));
         CHECK_FALSE(occluded(refDepth, rawDepth - 0.004f, eps));
 
-        // ShadowDepth.glsl linear write contract: length(world - light) / farPlane.
+        // ShadowDepth.hlsl linear write contract: length(world - light) / farPlane.
         const glm::vec3 lightPos(4.5f, 1.8f, 1.5f);
         const glm::vec3 frag(0.0f, 0.0f, 0.0f);
         const float farPlane = radius;

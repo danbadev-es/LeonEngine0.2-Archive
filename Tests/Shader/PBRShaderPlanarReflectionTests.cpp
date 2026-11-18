@@ -5,13 +5,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Planar Reflections") {
 
-    TEST_CASE("PBR_Lit.glsl Real-Time Planar Reflection Integration (Toggle 0 vs 1)") {
+    TEST_CASE("PBR_Lit.hlsl Real-Time Planar Reflection Integration (Toggle 0 vs 1)") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -79,7 +79,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();
@@ -126,7 +126,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -187,7 +187,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

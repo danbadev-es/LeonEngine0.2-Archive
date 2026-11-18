@@ -1,4 +1,5 @@
 #include "Renderer/FTextRenderer.hpp"
+#include "RHI/IRenderDriver.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Core/FLog.hpp"
@@ -11,7 +12,7 @@
 
 namespace Leon {
 
-    TRef<FShader> FTextRenderer::Shader = nullptr;
+    bool FTextRenderer::bReady = false;
     TRef<FTexture2D> FTextRenderer::FontTexture = nullptr;
     TRef<FVertexArray> FTextRenderer::VertexArray = nullptr;
     TRef<FVertexBuffer> FTextRenderer::VertexBuffer = nullptr;
@@ -27,7 +28,7 @@ namespace Leon {
     void FTextRenderer::Init() {
         LE_CORE_INFO("Initializing 3D In-World TextRenderer Subsystem...");
 
-        Shader = FShader::Create("Engine/Resources/Shaders/WorldText.glsl");
+        bReady = FRenderDriverRegistry::GetActiveDriver() != nullptr;
 
         std::vector<unsigned char> tempBitmap(AtlasDimension * AtlasDimension, 0);
 
@@ -78,7 +79,7 @@ namespace Leon {
     }
 
     void FTextRenderer::Shutdown() {
-        Shader.reset();
+        bReady = false;
         FontTexture.reset();
         VertexBuffer.reset();
         VertexArray.reset();

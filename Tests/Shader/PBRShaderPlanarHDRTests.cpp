@@ -34,7 +34,7 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -95,7 +95,7 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();
@@ -152,7 +152,7 @@ TEST_SUITE("Shader GPU - Planar Reflection HDR Composition") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();

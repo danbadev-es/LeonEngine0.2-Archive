@@ -3,13 +3,13 @@
 #include <filesystem>
 #include <vector>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl IBL Integration") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl IBL Integration") {
 
-    TEST_CASE("PBR_Lit.glsl Real Hardware GPU Image-Based Lighting Pipeline") {
+    TEST_CASE("PBR_Lit.hlsl Real Hardware GPU Image-Based Lighting Pipeline") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

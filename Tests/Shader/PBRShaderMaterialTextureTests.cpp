@@ -3,13 +3,13 @@
 #include "RenderCore/FColorSpace.hpp"
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Material Textures & Fallbacks") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Albedo Map & Scalar Combination") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Albedo Map & Scalar Combination") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
@@ -81,11 +81,11 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Material Textures & Fallbacks") {
         gl.DestroyTexture(albedoTex);
     }
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Metallic, Roughness and AO Map Channels") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Metallic, Roughness and AO Map Channels") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 

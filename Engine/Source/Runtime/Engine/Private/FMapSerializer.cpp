@@ -373,8 +373,6 @@ namespace Leon {
                 Indent(ss, 3);
                 ss << "SubdivisionsZ: " << mc.MeshSubdivZ << "\n";
                 Indent(ss, 3);
-                ss << "Shader: " << QuoteMapString(mc.ShaderPath) << "\n";
-                Indent(ss, 3);
                 ss << "CastShadows: " << (mc.bCastShadows ? "true" : "false") << "\n";
                 Indent(ss, 3);
                 ss << "ReceiveShadows: " << (mc.bReceiveShadows ? "true" : "false") << "\n";

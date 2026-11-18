@@ -118,5 +118,3 @@ shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture 
 - Shader cache on disk, and a check that each C++ constant structure matches its HLSL block.
 - The sun's shadow bias is a fraction of the cascade's depth range, which is eight times its radius;
   with the default settings objects about a metre tall cast no visible sun shadow.
-- Materials and maps still name shaders by the path of the old `.glsl` files, which are kept under
-  `Engine/Resources/Shaders` only for that. `FShader` objects are names; the renderer picks the HLSL.

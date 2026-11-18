@@ -11,7 +11,7 @@
 namespace Leon {
 
     /**
-     * Canonical interleaved mesh vertex. Locations MUST match PBR_Lit.glsl / ShadowDepth.glsl:
+     * Canonical interleaved mesh vertex. Locations MUST match PBR_Lit.hlsl / ShadowDepth.hlsl:
      *   0 Position   vec3
      *   1 Normal     vec3
      *   2 TexCoord   vec2  (UV0)

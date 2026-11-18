@@ -40,8 +40,7 @@ namespace Leon {
 
         const float mpu = InMetersPerUv > 0.0f ? InMetersPerUv : 1.0f;
         auto va = FMeshPrimitives::CreateBox(InScale.x, InScale.y, InScale.z, mpu);
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        if (!va || !shader)
+        if (!va)
             return actor;
 
         // Size is in the mesh; keep collision via previous scale, then clear visual scale.
@@ -49,7 +48,7 @@ namespace Leon {
         if (auto box = actor->FindActorComponent<UBoxComponent>())
             box->SetBoxExtent(InScale * 0.5f);
 
-        auto& mesh = actor->AddComponent<FMeshComponent>(va, shader);
+        auto& mesh = actor->AddComponent<FMeshComponent>(va);
         mesh.MeshType = "Box";
         mesh.MeshSize = 1.0f;
         mesh.MeshWidth = InScale.x;
@@ -152,9 +151,8 @@ namespace Leon {
             else if (InShapeType == "Ramp")
                 va = FMeshPrimitives::CreateRamp(1.0f, 1.0f, 1.0f);
 
-            auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-            if (va && shader) {
-                auto& mesh = actor->AddComponent<FMeshComponent>(va, shader);
+            if (va) {
+                auto& mesh = actor->AddComponent<FMeshComponent>(va);
                 mesh.MeshType = InShapeType;
                 mesh.Mobility = EComponentMobility::Static;
                 mesh.LightmapResolution = 64;
@@ -172,7 +170,6 @@ namespace Leon {
         smc.LightmapResolution = 64;
         smc.bCastShadows = true;
         smc.bReceiveShadows = true;
-        smc.Shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
 
         // Slot default is M_WorldGrid; keep an explicit material component for Details/serialization.
         if (auto matInst = UAssetManager::GetWorldGridMaterialInstance()) {

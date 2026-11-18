@@ -13,7 +13,7 @@ namespace Leon {
      *   MaterialColor  = linear
      *   TextureColor   = hardware-decoded linear (GL_SRGB8_ALPHA8 for sRGB assets)
      *   Lighting       = linear HDR
-     *   Display        = tone map then IEC 61966-2-1 sRGB (ToneMapping.glsl)
+     *   Display        = tone map then IEC 61966-2-1 sRGB (ToneMapping.hlsl)
      *
      * sRGB textures are decoded exactly once by the GPU. Shaders must not pow(rgb, 2.2).
      */

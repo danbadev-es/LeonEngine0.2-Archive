@@ -2,13 +2,13 @@
 #include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Shadow Map Hardware PCF") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Shadow Map Hardware PCF") {
 
-    TEST_CASE("PBR_Lit.glsl Directional Shadow Occlusion (Unshadowed vs Fully Shadowed)") {
+    TEST_CASE("PBR_Lit.hlsl Directional Shadow Occlusion (Unshadowed vs Fully Shadowed)") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -54,11 +54,11 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Shadow Map Hardware PCF") {
         CHECK(pixelUnshadowed.r > 0.1f);
     }
 
-    TEST_CASE("PBR_Lit.glsl Spot Light Shadow Evaluation") {
+    TEST_CASE("PBR_Lit.hlsl Spot Light Shadow Evaluation") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -115,7 +115,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Shadow Map Hardware PCF") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.ResetShaderUniforms(shader);

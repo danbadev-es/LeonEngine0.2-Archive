@@ -1,4 +1,5 @@
 #include "Renderer/FDebugOverlay.hpp"
+#include "RHI/IRenderDriver.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "RHI/FFrameProfiler.hpp"
@@ -17,7 +18,7 @@
 
 namespace Leon {
 
-    TRef<FShader> FDebugOverlay::Shader = nullptr;
+    bool FDebugOverlay::bReady = false;
     TRef<FTexture2D> FDebugOverlay::FontTexture = nullptr;
     TRef<FVertexArray> FDebugOverlay::VertexArray = nullptr;
     TRef<FVertexBuffer> FDebugOverlay::VertexBuffer = nullptr;
@@ -50,7 +51,7 @@ namespace Leon {
     void FDebugOverlay::Init() {
         LE_CORE_INFO("Initializing DebugOverlay HUD Subsystem...");
 
-        Shader = FShader::Create("Engine/Resources/Shaders/DebugFont.glsl");
+        bReady = FRenderDriverRegistry::GetActiveDriver() != nullptr;
 
         constexpr int AtlasDim = 512;
         std::vector<unsigned char> tempBitmap(AtlasDim * AtlasDim, 0);
@@ -99,7 +100,7 @@ namespace Leon {
     }
 
     void FDebugOverlay::Shutdown() {
-        Shader.reset();
+        bReady = false;
         FontTexture.reset();
         VertexBuffer.reset();
         VertexArray.reset();
@@ -157,7 +158,7 @@ namespace Leon {
 
     void FDebugOverlay::Render(unsigned int InViewportWidth, unsigned int InViewportHeight, FTimestep InDeltaTime,
                                const FRenderStats& InRenderStats, bool InbShowGizmos) {
-        if (!Shader)
+        if (!bReady)
             return;
 
         // Smooth frame metrics over time
@@ -196,9 +197,6 @@ namespace Leon {
         glm::vec2 boxMax(600.0f, 330.0f);
 
         // Backdrop quad (untextured solid)
-        Shader->Bind();
-        Shader->SetMat4("u_ViewProjection", glm::value_ptr(ortho));
-        Shader->SetInt("u_UseTexture", 0);
 
         glm::vec4 bgColor(0.05f, 0.06f, 0.09f, 0.82f);
         DrawQuad(boxMin, boxMax, bgColor);

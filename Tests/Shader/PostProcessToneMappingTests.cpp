@@ -10,7 +10,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("ToneMapping");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -74,7 +74,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("ToneMapping");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -127,7 +127,7 @@ TEST_SUITE("Shader GPU - Post-Processing Tone Mapping & ACES Pipeline") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("ToneMapping");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.BindDefaultTextures();

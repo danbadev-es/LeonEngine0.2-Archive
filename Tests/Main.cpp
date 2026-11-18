@@ -13,8 +13,8 @@ int main(int argc, char** argv) {
     // hundreds of unrelated failures when launched from another directory.
     Leon::FProjectPaths::AdoptEngineRoot(argc > 0 ? argv[0] : nullptr);
     std::error_code ec;
-    if (!std::filesystem::exists("Engine/Resources/Shaders", ec)) {
-        std::cerr << "RendererTests must be run from the repository root (Engine/Resources/Shaders not found in '"
+    if (!std::filesystem::exists("Engine/Shaders", ec)) {
+        std::cerr << "RendererTests must be run from the repository root (Engine/Shaders not found in '"
                   << std::filesystem::current_path(ec).string() << "').\n";
         return 2;
     }

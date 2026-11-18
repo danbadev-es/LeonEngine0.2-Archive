@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "RHI/FShader.hpp"
 #include "RHI/FTexture.hpp"
 
 #include <glm/glm.hpp>
@@ -52,11 +51,10 @@ namespace Leon {
      */
     class FMaterial : public std::enable_shared_from_this<FMaterial> {
     public:
-        explicit FMaterial(const std::string& InName = "DefaultMaterial", const TRef<FShader>& InShader = nullptr);
+        explicit FMaterial(const std::string& InName = "DefaultMaterial");
         ~FMaterial() = default;
 
-        static TRef<FMaterial> Create(const std::string& InName = "DefaultMaterial",
-                                      const TRef<FShader>& InShader = nullptr);
+        static TRef<FMaterial> Create(const std::string& InName = "DefaultMaterial");
 
         /** Creates a lightweight instance inheriting all properties of this material */
         TRef<FMaterialInstance> CreateInstance(const std::string& InInstanceName = "");
@@ -69,8 +67,6 @@ namespace Leon {
         void SetAssetPath(const std::string& InPath) { AssetPath = InPath; }
 
         // --- Shader ---
-        TRef<FShader> GetShader() const { return Shader; }
-        void SetShader(const TRef<FShader>& InShader) { Shader = InShader; }
 
         // --- Pipeline State ---
         const FMaterialPipelineState& GetPipelineState() const { return PipelineState; }
@@ -203,7 +199,6 @@ namespace Leon {
     private:
         std::string Name;
         std::string AssetPath;
-        TRef<FShader> Shader;
 
         FMaterialPipelineState PipelineState;
 

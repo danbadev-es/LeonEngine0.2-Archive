@@ -27,7 +27,6 @@ namespace Leon {
     std::unordered_map<std::string, TRef<UAnimSequence>> UAssetManager::AnimSequenceCache;
     std::unordered_map<std::string, TRef<UBlendSpace>> UAssetManager::BlendSpaceCache;
     std::unordered_map<std::string, TRef<FLightmapAsset>> UAssetManager::LightmapCache;
-    std::unordered_map<std::string, TRef<FShader>> UAssetManager::ShaderCache;
     std::unordered_map<std::string, TRef<FMaterial>> UAssetManager::MaterialCache;
     std::unordered_map<std::string, TRef<FMaterialInstance>> UAssetManager::MaterialInstanceCache;
     TRef<FMaterial> UAssetManager::DefaultMaterial = nullptr;
@@ -388,40 +387,6 @@ namespace Leon {
         LightmapCache.clear();
     }
 
-    TRef<FShader> UAssetManager::GetShader(const std::string& InPath) {
-        if (InPath.empty())
-            return nullptr;
-
-        std::string resolved = ResolveVirtualPath(InPath);
-
-        auto it = ShaderCache.find(resolved);
-        if (it != ShaderCache.end() && it->second) {
-            return it->second;
-        }
-
-        TRef<FShader> shader = FShader::Create(resolved);
-        if (shader) {
-            ShaderCache[resolved] = shader;
-            if (resolved != InPath) {
-                ShaderCache[InPath] = shader;
-            }
-            return shader;
-        }
-
-        LE_CORE_WARN("UAssetManager: Failed to load shader from \"{0}\"", InPath);
-        return nullptr;
-    }
-
-    void UAssetManager::AddShader(const std::string& InName, const TRef<FShader>& InShader) {
-        if (!InName.empty() && InShader) {
-            ShaderCache[InName] = InShader;
-        }
-    }
-
-    bool UAssetManager::HasShader(const std::string& InPath) {
-        return ShaderCache.find(InPath) != ShaderCache.end();
-    }
-
     TRef<FMaterial> UAssetManager::GetMaterial(const std::string& InPath) {
         if (InPath.empty())
             return GetDefaultMaterial();
@@ -653,7 +618,6 @@ namespace Leon {
         AnimSequenceCache.clear();
         BlendSpaceCache.clear();
         LightmapCache.clear();
-        ShaderCache.clear();
         MaterialCache.clear();
         MaterialInstanceCache.clear();
         DefaultMaterial = nullptr;

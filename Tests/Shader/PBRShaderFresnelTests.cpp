@@ -2,14 +2,13 @@
 #include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Fresnel Evaluation") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Fresnel Evaluation") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Fresnel Schlick (cosTheta in {1.0, 0.5, 0.0})") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Fresnel Schlick (cosTheta in {1.0, 0.5, 0.0})") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        REQUIRE(std::filesystem::exists(shaderPath));
+        const std::string shaderPath = "PBR_Lit";
 
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);

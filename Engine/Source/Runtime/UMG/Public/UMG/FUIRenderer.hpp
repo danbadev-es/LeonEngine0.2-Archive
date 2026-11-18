@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "RHI/FShader.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FVertexArray.hpp"
 #include "Engine/Components.hpp"
@@ -71,7 +70,8 @@ namespace Leon {
         static void Flush(bool bUseTexture);
         static void FlushTextured(const TRef<FTexture2D>& InTexture, const std::vector<FUIVertex>& InVertices);
 
-        static TRef<FShader> Shader;
+        /** False without a render driver (tests, tools): nothing is drawn. */
+        static bool bReady;
         static TRef<FTexture2D> FontTexture;
         static TRef<FVertexArray> VertexArray;
         static TRef<FVertexBuffer> VertexBuffer;

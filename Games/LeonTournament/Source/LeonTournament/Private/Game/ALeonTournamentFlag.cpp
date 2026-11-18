@@ -117,14 +117,12 @@ namespace Leon {
     void ALeonTournamentFlag::BuildVisual() {
         if (!FApplication::HasInstance())
             return;
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        if (!shader)
-            return;
         auto va = FMeshPrimitives::CreateCylinder(0.12f, 0.12f, 0.9f, 10, true);
+        if (!va)
+            return;
         FMeshComponent& mesh =
-            HasComponent<FMeshComponent>() ? GetComponent<FMeshComponent>() : AddComponent<FMeshComponent>(va, shader);
+            HasComponent<FMeshComponent>() ? GetComponent<FMeshComponent>() : AddComponent<FMeshComponent>(va);
         mesh.VertexArray = va;
-        mesh.Shader = shader;
         mesh.MeshType = "FlagBanner";
         mesh.Mobility = EComponentMobility::Movable;
         mesh.bCastShadows = false;

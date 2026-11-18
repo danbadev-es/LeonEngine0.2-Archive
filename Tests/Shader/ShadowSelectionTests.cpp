@@ -6,11 +6,11 @@ using namespace Leon::TestGPU;
 
 TEST_SUITE("Shader GPU - Shadow Cascade Slice Selection & False-Color Debug") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Cascade Slice Selection by Depth") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Cascade Slice Selection by Depth") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

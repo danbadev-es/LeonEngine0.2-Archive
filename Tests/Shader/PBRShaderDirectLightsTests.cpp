@@ -4,14 +4,13 @@
 #include <cmath>
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Direct Lighting & Attenuation") {
 
     TEST_CASE("Directional Light Angle Response (NdotL in {1.0, 0.5, 0.0})") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
-        REQUIRE(std::filesystem::exists(shaderPath));
+        const std::string shaderPath = "PBR_Lit";
 
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         REQUIRE(shader != nullptr);
@@ -83,7 +82,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -161,7 +160,7 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

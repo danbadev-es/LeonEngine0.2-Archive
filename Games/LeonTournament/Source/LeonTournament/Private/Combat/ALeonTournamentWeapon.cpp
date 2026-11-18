@@ -69,18 +69,16 @@ namespace Leon {
                 va = FMeshPrimitives::CreateCylinder(visual.Radius, visual.TopRadius, visual.Length, 12, true);
                 break;
             }
-            auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-            if (!va || !shader)
+            if (!va)
                 return;
 
             FMeshComponent* meshPtr = nullptr;
             if (InActor.HasComponent<FMeshComponent>())
                 meshPtr = &InActor.GetComponent<FMeshComponent>();
             else
-                meshPtr = &InActor.AddComponent<FMeshComponent>(va, shader);
+                meshPtr = &InActor.AddComponent<FMeshComponent>(va);
 
             meshPtr->VertexArray = va;
-            meshPtr->Shader = shader;
             meshPtr->MeshType = meshTag;
             meshPtr->MeshRadius = visual.Radius;
             meshPtr->MeshHeight = visual.Length;

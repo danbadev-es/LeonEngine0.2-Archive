@@ -3,7 +3,6 @@
 #include "Core/Base.hpp"
 #include "Assets/FMaterial.hpp"
 #include "Assets/FMaterialInstance.hpp"
-#include "RHI/FShader.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/USkeleton.hpp"
 #include "Assets/USkeletalMesh.hpp"
@@ -75,9 +74,6 @@ namespace Leon {
         static void InvalidateLightmaps();
 
         // Shaders
-        static TRef<FShader> GetShader(const std::string& InPath);
-        static void AddShader(const std::string& InName, const TRef<FShader>& InShader);
-        static bool HasShader(const std::string& InPath);
 
         // Materials & Instances (.lmat / .lmi)
         static TRef<FMaterial> GetMaterial(const std::string& InPath);
@@ -123,7 +119,6 @@ namespace Leon {
         static std::unordered_map<std::string, TRef<UAnimSequence>> AnimSequenceCache;
         static std::unordered_map<std::string, TRef<UBlendSpace>> BlendSpaceCache;
         static std::unordered_map<std::string, TRef<FLightmapAsset>> LightmapCache;
-        static std::unordered_map<std::string, TRef<FShader>> ShaderCache;
         static std::unordered_map<std::string, TRef<FMaterial>> MaterialCache;
         static std::unordered_map<std::string, TRef<FMaterialInstance>> MaterialInstanceCache;
         static TRef<FMaterial> DefaultMaterial;
@@ -165,10 +160,6 @@ namespace Leon {
 
     template <> inline TRef<FMaterialInstance> UAssetManager::Load<FMaterialInstance>(const std::string& InPath) {
         return GetMaterialInstance(InPath);
-    }
-
-    template <> inline TRef<FShader> UAssetManager::Load<FShader>(const std::string& InPath) {
-        return GetShader(InPath);
     }
 
 } // namespace Leon

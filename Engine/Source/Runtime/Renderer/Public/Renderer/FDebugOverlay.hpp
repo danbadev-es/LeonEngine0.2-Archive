@@ -4,7 +4,6 @@
 #include "RHI/FPlatformMemory.hpp"
 #include "Core/FTimestep.hpp"
 #include "RHI/FRenderStats.hpp"
-#include "RHI/FShader.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FVertexArray.hpp"
 
@@ -46,7 +45,8 @@ namespace Leon {
                                float InScale = 1.0f);
         static void Flush(const glm::mat4& InOrthoMatrix);
 
-        static TRef<FShader> Shader;
+        /** False without a render driver (tests, tools): nothing is drawn. */
+        static bool bReady;
         static TRef<FTexture2D> FontTexture;
         static TRef<FVertexArray> VertexArray;
         static TRef<FVertexBuffer> VertexBuffer;

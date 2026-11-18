@@ -85,7 +85,6 @@ namespace Leon {
         float MeshMetersPerUv = 1.0f;
         unsigned int MeshSubdivX = 24;
         unsigned int MeshSubdivZ = 24;
-        std::string ShaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
         bool bCastShadows = true;
         bool bReceiveShadows = true;
         bool bVisibleInReflection = true;
@@ -560,8 +559,8 @@ namespace Leon {
                             currentActor.bHasMesh = true;
                             currentActor.MeshSubdivZ = std::stoul(val);
                         } else if (key == "Shader" || key == "ShaderPath") {
+                            // Maps written for the OpenGL renderer name a shader file; nothing reads it now.
                             currentActor.bHasMesh = true;
-                            currentActor.ShaderPath = val;
                         } else if (key == "CastShadows")
                             currentActor.bCastShadows = (val == "true");
                         else if (key == "ReceiveShadows")
@@ -617,8 +616,9 @@ namespace Leon {
                             currentActor.MeshSubdivX = std::stoul(val);
                         else if (key == "SubdivisionsZ" || key == "SubdivZ")
                             currentActor.MeshSubdivZ = std::stoul(val);
-                        else if (key == "Shader" || key == "ShaderPath")
-                            currentActor.ShaderPath = val;
+                        else if (key == "Shader" || key == "ShaderPath") {
+                            // Written by older versions; ignored.
+                        }
                         else if (key == "CastShadows")
                             currentActor.bCastShadows = (val == "true");
                         else if (key == "ReceiveShadows")
@@ -940,15 +940,7 @@ namespace Leon {
                     }
                 }
 
-                TRef<FShader> shader = nullptr;
-                if (FRenderDriverRegistry::GetActiveDriver()) {
-                    shader = UAssetManager::GetShader(actorData.ShaderPath);
-                    if (!shader) {
-                        shader = FShader::Create(actorData.ShaderPath);
-                    }
-                }
-
-                auto& comp = entity->AddComponent<FMeshComponent>(va, shader);
+                auto& comp = entity->AddComponent<FMeshComponent>(va);
                 comp.MeshType = meshType;
                 comp.MeshSize = actorData.MeshSize;
                 comp.MeshWidth = meshWidth;
@@ -958,7 +950,6 @@ namespace Leon {
                 comp.MeshMetersPerUv = meshMetersPerUv;
                 comp.MeshSubdivX = actorData.MeshSubdivX;
                 comp.MeshSubdivZ = actorData.MeshSubdivZ;
-                comp.ShaderPath = actorData.ShaderPath;
                 comp.bCastShadows = actorData.bCastShadows;
                 comp.bReceiveShadows = actorData.bReceiveShadows;
                 comp.bVisibleInReflection = actorData.bVisibleInReflection;

@@ -84,7 +84,7 @@ namespace Leon {
 
                 AActor* floor = World->SpawnActor<AActor>("Floor");
                 floor->SetActorLocation({0.0f, -0.1f, 0.0f});
-                auto& floorMesh = floor->AddComponent<FMeshComponent>(FMeshPrimitives::CreateBox(12.0f, 0.2f, 12.0f), nullptr);
+                auto& floorMesh = floor->AddComponent<FMeshComponent>(FMeshPrimitives::CreateBox(12.0f, 0.2f, 12.0f));
                 floorMesh.MeshWidth = 12.0f;
                 floorMesh.MeshHeight = 0.2f;
                 floorMesh.MeshDepth = 12.0f;
@@ -93,7 +93,7 @@ namespace Leon {
 
                 AActor* box = World->SpawnActor<AActor>("Box");
                 box->SetActorLocation({0.0f, 0.5f, 0.0f});
-                auto& boxMesh = box->AddComponent<FMeshComponent>(FMeshPrimitives::CreateCube(1.0f), nullptr);
+                auto& boxMesh = box->AddComponent<FMeshComponent>(FMeshPrimitives::CreateCube(1.0f));
                 boxMesh.MeshSize = 1.0f;
                 boxMesh.Mobility = EComponentMobility::Static;
                 box->AddComponent<FMaterialComponent>(boxMaterial);

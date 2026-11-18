@@ -36,10 +36,9 @@ namespace Leon {
             IsPellet() ? std::max(0.04f, Config.ProjectileRadius)
                        : std::max(0.08f, Config.ProjectileRadius > 0.0f ? Config.ProjectileRadius * 0.7f : 0.12f);
         auto va = FMeshPrimitives::CreateSphere(radius, IsPellet() ? 8 : 10, IsPellet() ? 8 : 10);
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
-        if (!va || !shader)
+        if (!va)
             return;
-        auto& mesh = AddComponent<FMeshComponent>(va, shader);
+        auto& mesh = AddComponent<FMeshComponent>(va);
         mesh.MeshType = "Sphere";
         mesh.MeshRadius = radius;
         mesh.Mobility = EComponentMobility::Movable;

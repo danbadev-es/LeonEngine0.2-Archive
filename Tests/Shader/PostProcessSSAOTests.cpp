@@ -77,7 +77,7 @@ TEST_SUITE("Shader GPU - SSAO") {
         auto depthTex = gl.Create2D(width, height, Leon::ERHIFormat::R32_Float, depth.data());
         REQUIRE(depthTex != nullptr);
 
-        auto ssao = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/SSAO.glsl");
+        auto ssao = Leon::TestGPU::FTestShader::Create("SSAO");
         REQUIRE(ssao != nullptr);
 
         gl.BindFramebuffer(static_cast<int>(width), static_cast<int>(height));
@@ -115,7 +115,7 @@ TEST_SUITE("Shader GPU - SSAO") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/SSAOComposite.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("SSAOComposite");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

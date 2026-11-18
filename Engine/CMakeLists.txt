@@ -31,7 +31,6 @@ leon_add_module(RHI
     Source/Runtime/RHI/Private/FFrameProfiler.cpp
     Source/Runtime/RHI/Private/IRenderDriver.cpp
     Source/Runtime/RHI/Private/FBuffer.cpp
-    Source/Runtime/RHI/Private/FShader.cpp
     Source/Runtime/RHI/Private/FTexture.cpp
     Source/Runtime/RHI/Private/FVertexArray.cpp
     Source/Runtime/RHI/Private/FRenderer.cpp

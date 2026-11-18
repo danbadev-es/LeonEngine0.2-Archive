@@ -21,7 +21,7 @@ The interfaces that only made sense for OpenGL were deleted: `FRenderCommand`, `
 ## Consequences
 
 - The asset code did not have to change for the port.
-- `FShader` is now only a name. Materials and maps still store the path of a `.glsl` file, which the
-  renderer ignores. Removing `FShader` means changing the map format and its tests.
+- `FShader`, which had become only a name, has since been removed with the `.glsl` files it named. Maps
+  written before still carry a `Shader:` line; it is read and ignored.
 - Pixels stay in memory until a texture is first drawn; a texture that is never drawn keeps its copy.
 - "Legacy" in the names is honest about the intent: new code should use the RHI directly.

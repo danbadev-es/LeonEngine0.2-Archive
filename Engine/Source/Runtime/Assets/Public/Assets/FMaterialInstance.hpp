@@ -2,7 +2,6 @@
 
 #include "Core/Base.hpp"
 #include "Assets/FMaterial.hpp"
-#include "RHI/FShader.hpp"
 #include "RHI/FTexture.hpp"
 
 #include <glm/glm.hpp>
@@ -32,7 +31,6 @@ namespace Leon {
         const std::string& GetName() const { return Name; }
         void SetName(const std::string& InName) { Name = InName; }
 
-        TRef<FShader> GetShader() const { return ParentMaterial ? ParentMaterial->GetShader() : nullptr; }
 
         const FMaterialPipelineState& GetPipelineState() const {
             static FMaterialPipelineState Default;
@@ -120,10 +118,6 @@ namespace Leon {
         void ReloadTextureOverrides();
 
         // --- GPU State Binding ---
-        /**
-         * @brief Binds material parameters and textures to the currently active shader.
-         */
-        void Bind(const TRef<FShader>& InShader) const;
 
     private:
         TRef<FMaterial> ParentMaterial;

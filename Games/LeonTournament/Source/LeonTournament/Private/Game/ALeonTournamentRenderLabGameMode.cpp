@@ -236,9 +236,8 @@ namespace Leon {
         if (!World || !FApplication::HasInstance())
             return;
 
-        auto shader = UAssetManager::GetShader("Engine/Resources/Shaders/PBR_Lit.glsl");
         auto parent = UAssetManager::GetDefaultMaterial();
-        if (!shader || !parent)
+        if (!parent)
             return;
 
         auto spawnMesh = [&](const std::string& InName, const TRef<FVertexArray>& InVA, const glm::vec3& InLoc,
@@ -247,7 +246,7 @@ namespace Leon {
             if (!actor || !InVA || !InMat)
                 return;
             actor->SetActorLocation(InLoc);
-            auto& mesh = actor->AddComponent<FMeshComponent>(InVA, shader);
+            auto& mesh = actor->AddComponent<FMeshComponent>(InVA);
             mesh.MeshType = InMeshType;
             mesh.Mobility = EComponentMobility::Movable;
             mesh.bCastShadows = true;
@@ -298,7 +297,7 @@ namespace Leon {
                 return;
             actor->SetActorLocation(InLoc);
             actor->SetActorScale(InScale);
-            auto& mesh = actor->AddComponent<FMeshComponent>(FMeshPrimitives::CreateCube(1.0f), shader);
+            auto& mesh = actor->AddComponent<FMeshComponent>(FMeshPrimitives::CreateCube(1.0f));
             mesh.MeshType = "Cube";
             mesh.Mobility = EComponentMobility::Movable;
             mesh.bCastShadows = true;

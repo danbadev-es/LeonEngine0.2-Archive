@@ -6,7 +6,7 @@
 
 namespace Leon {
 
-    /** Matches PBR_Lit.glsl. Below this, GGX is a Dirac that float cannot represent. */
+    /** Matches PBR_Lit.hlsl. Below this, GGX is a Dirac that float cannot represent. */
     inline constexpr float kMinPerceptualRoughness = 0.04f;
     /** Floor only for 0/0 at r=0; must stay below π α⁴ at r=kMinPerceptualRoughness (~2e-11). */
     inline constexpr float kGGXDenomEpsilon = 1e-20f;

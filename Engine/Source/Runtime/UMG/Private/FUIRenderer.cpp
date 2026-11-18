@@ -1,4 +1,5 @@
 #include "UMG/FUIRenderer.hpp"
+#include "RHI/IRenderDriver.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Core/FLog.hpp"
@@ -11,7 +12,7 @@
 
 namespace Leon {
 
-    TRef<FShader> FUIRenderer::Shader = nullptr;
+    bool FUIRenderer::bReady = false;
     TRef<FTexture2D> FUIRenderer::FontTexture = nullptr;
     TRef<FVertexArray> FUIRenderer::VertexArray = nullptr;
     TRef<FVertexBuffer> FUIRenderer::VertexBuffer = nullptr;
@@ -36,7 +37,7 @@ namespace Leon {
             return;
 
         LE_CORE_INFO("Initializing UI Renderer Subsystem...");
-        Shader = FShader::Create("Engine/Resources/Shaders/DebugFont.glsl");
+        bReady = FRenderDriverRegistry::GetActiveDriver() != nullptr;
 
         std::vector<unsigned char> tempBitmap(static_cast<size_t>(kUIAtlasDim) * kUIAtlasDim, 0);
 
@@ -91,7 +92,7 @@ namespace Leon {
     }
 
     void FUIRenderer::Shutdown() {
-        Shader.reset();
+        bReady = false;
         FontTexture.reset();
         VertexBuffer.reset();
         VertexArray.reset();

@@ -4,13 +4,13 @@
 #include <cmath>
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Color Space & Gamma") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Color Space & Gamma") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU sRGB Decompression for Albedo and Emissive") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU sRGB Decompression for Albedo and Emissive") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 
@@ -76,11 +76,11 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Color Space & Gamma") {
         gl.DestroyTexture(midGrayTex);
     }
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Linear Preservation for Metallic, Roughness, AO") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Linear Preservation for Metallic, Roughness, AO") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        const std::string shaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
+        const std::string shaderPath = "PBR_Lit";
         auto shader = Leon::TestGPU::FTestShader::Create(shaderPath);
         shader->Bind();
 

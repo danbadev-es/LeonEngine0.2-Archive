@@ -17,12 +17,11 @@ namespace Leon {
 
     /**
      * The objects behind the engine's resource classes: FVertexBuffer, FIndexBuffer, FVertexArray,
-     * FTexture2D, FTextureCube and FShader.
+     * FTexture2D and FTextureCube.
      *
      * Vertex buffers, index buffers and textures created through those interfaces are real RHI
      * resources, so meshes and materials loaded by the asset code can be drawn by the new renderer
-     * without touching the asset code. FShader objects are only names: materials and maps still
-     * refer to shaders by the path of the old GLSL file, and the renderer picks the HLSL shader itself.
+     * without touching the asset code. Which shader draws them is the renderer's business.
      *
      * Without an RHI device (tests, tools) the resources are plain memory.
      */

@@ -9,7 +9,7 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/BloomBrightPass.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("BloomBrightPass");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -75,8 +75,8 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto downShader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/BloomDownsample.glsl");
-        auto upShader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/BloomUpsample.glsl");
+        auto downShader = Leon::TestGPU::FTestShader::Create("BloomDownsample");
+        auto upShader = Leon::TestGPU::FTestShader::Create("BloomUpsample");
         REQUIRE(downShader != nullptr);
         REQUIRE(upShader != nullptr);
 

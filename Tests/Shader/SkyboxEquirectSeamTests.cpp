@@ -7,7 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 
-TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
+TEST_SUITE("Shader GPU - Skybox.hlsl equirect wrap") {
 
     TEST_CASE("HDR skybox looking toward -X has no 1x1-mip vertical seam") {
         Leon::TestGPU::FHeadlessDevice gl;
@@ -15,7 +15,7 @@ TEST_SUITE("Shader GPU - Skybox.glsl equirect wrap") {
 
         const uint32_t width = 64;
         const uint32_t height = 64;
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/Skybox.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("Skybox");
         REQUIRE(shader != nullptr);
 
         const int hdrW = 256;

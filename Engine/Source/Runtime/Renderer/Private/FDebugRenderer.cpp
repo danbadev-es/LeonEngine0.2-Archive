@@ -1,4 +1,5 @@
 #include "Renderer/FDebugRenderer.hpp"
+#include "RHI/IRenderDriver.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "RenderCore/FShadowMath.hpp"
@@ -10,7 +11,7 @@
 
 namespace Leon {
 
-    TRef<FShader> FDebugRenderer::Shader = nullptr;
+    bool FDebugRenderer::bReady = false;
     TRef<FVertexArray> FDebugRenderer::VertexArray = nullptr;
     TRef<FVertexBuffer> FDebugRenderer::VertexBuffer = nullptr;
     std::vector<FDebugRenderer::FDebugVertex> FDebugRenderer::LineVertices;
@@ -26,7 +27,7 @@ namespace Leon {
     void FDebugRenderer::Init() {
         LE_CORE_INFO("Initializing DebugRenderer Subsystem...");
 
-        Shader = FShader::Create("Engine/Resources/Shaders/DebugLine.glsl");
+        bReady = FRenderDriverRegistry::GetActiveDriver() != nullptr;
 
         VertexArray = FVertexArray::Create();
         VertexBuffer = FVertexBuffer::Create(MaxLineVertices * sizeof(FDebugVertex));
@@ -37,7 +38,7 @@ namespace Leon {
     }
 
     void FDebugRenderer::Shutdown() {
-        Shader.reset();
+        bReady = false;
         VertexBuffer.reset();
         VertexArray.reset();
         LineVertices.clear();

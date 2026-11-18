@@ -6,11 +6,11 @@ using namespace Leon::TestGPU;
 
 TEST_SUITE("Shader GPU - Point cubemap shadows") {
 
-    TEST_CASE("PBR_Lit.glsl point shadow factor lit vs occluded") {
+    TEST_CASE("PBR_Lit.hlsl point shadow factor lit vs occluded") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

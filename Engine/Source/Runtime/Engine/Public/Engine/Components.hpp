@@ -10,7 +10,6 @@
 #include "Assets/FMaterial.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
-#include "RHI/FShader.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/FLODSettings.hpp"
 #include "Assets/USkeletalMesh.hpp"
@@ -97,7 +96,6 @@ namespace Leon {
 
     struct FMeshComponent {
         TRef<FVertexArray> VertexArray;
-        TRef<FShader> Shader;
         bool bCastShadows = true;
         bool bReceiveShadows = true;
         bool bVisibleInReflection = true;
@@ -125,12 +123,10 @@ namespace Leon {
         float MeshMetersPerUv = 1.0f;
         unsigned int MeshSubdivX = 24;
         unsigned int MeshSubdivZ = 24;
-        std::string ShaderPath = "Engine/Resources/Shaders/PBR_Lit.glsl";
 
         FMeshComponent() = default;
         FMeshComponent(const FMeshComponent&) = default;
-        FMeshComponent(const TRef<FVertexArray>& InVertexArray, const TRef<FShader>& InShader)
-            : VertexArray(InVertexArray), Shader(InShader) {}
+        explicit FMeshComponent(const TRef<FVertexArray>& InVertexArray) : VertexArray(InVertexArray) {}
     };
 
     /**
@@ -142,7 +138,6 @@ namespace Leon {
         std::vector<TRef<FMaterialInstance>> MaterialOverrides;
         std::vector<std::string> MaterialOverridePaths;
         std::string AssetPath; // Virtual path to .lmesh
-        TRef<FShader> Shader = nullptr;
         bool bCastShadows = true;
         bool bReceiveShadows = true;
         bool bVisibleInReflection = true;
@@ -176,7 +171,6 @@ namespace Leon {
         TRef<USkeletalMesh> SkeletalMesh = nullptr;
         std::vector<TRef<FMaterialInstance>> MaterialOverrides;
         std::string AssetPath;
-        TRef<FShader> Shader = nullptr;
         std::vector<glm::mat4> BonePalette;
         glm::vec3 RelativeLocation{0.0f};
         glm::vec3 RelativeRotation{0.0f};

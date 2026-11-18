@@ -113,7 +113,6 @@ def box_mesh(size, surface: str, *, static: bool) -> list[str]:
         f"      MetersPerUv: {num(metres_per_uv)}",
         "      SubdivisionsX: 24",
         "      SubdivisionsZ: 24",
-        '      Shader: "Engine/Resources/Shaders/PBR_Lit.glsl"',
         "      CastShadows: true",
         "      ReceiveShadows: true",
         "      VisibleInReflection: false",

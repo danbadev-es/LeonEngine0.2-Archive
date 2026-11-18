@@ -8,7 +8,7 @@ TEST_SUITE("Renderer pipeline - viewport / render target resize") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/ToneMapping.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("ToneMapping");
         REQUIRE(shader != nullptr);
         shader->Bind();
         shader->SetInt("u_UseBloom", 0);

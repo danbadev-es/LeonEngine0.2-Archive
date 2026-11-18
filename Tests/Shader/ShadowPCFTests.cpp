@@ -7,11 +7,11 @@ using namespace Leon::TestGPU;
 
 TEST_SUITE("Shader GPU - Shadow Filtering Modes (Hard, PCF 3x3, PCF 5x5, Poisson Disk)") {
 
-    TEST_CASE("PBR_Lit.glsl Hardware GPU Multi-Filter Shadow Evaluation") {
+    TEST_CASE("PBR_Lit.hlsl Hardware GPU Multi-Filter Shadow Evaluation") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 
@@ -131,7 +131,7 @@ TEST_SUITE("Shader GPU - Shadow Filtering Modes (Hard, PCF 3x3, PCF 5x5, Poisson
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
         gl.ResetShaderUniforms(shader);

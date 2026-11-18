@@ -113,7 +113,7 @@ namespace Leon::TestGPU {
             Unknown,
         };
 
-        /** InPath is the path of the old GLSL file; only its name is used to pick the HLSL shader. */
+        /** InPath names the shader as the tests always did ("PBR_Lit", "BloomUpsample"); a folder or extension is ignored. */
         static TRef<FTestShader> Create(const std::string& InPath) {
             static const std::pair<const char*, EKind> kinds[] = {
                 {"PBR_Lit", EKind::Surface},           {"ShadowDepth", EKind::ShadowDepth},

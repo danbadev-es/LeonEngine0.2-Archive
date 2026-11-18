@@ -2,13 +2,13 @@
 #include "GPU/HeadlessDevice.hpp"
 #include <filesystem>
 
-TEST_SUITE("Shader GPU - PBR_Lit.glsl Hardware Determinism") {
+TEST_SUITE("Shader GPU - PBR_Lit.hlsl Hardware Determinism") {
 
     TEST_CASE("Repeatable 100% Deterministic GPU Shading across Multiple Runs") {
         Leon::TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
 
-        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        auto shader = Leon::TestGPU::FTestShader::Create("PBR_Lit");
         REQUIRE(shader != nullptr);
         shader->Bind();
 

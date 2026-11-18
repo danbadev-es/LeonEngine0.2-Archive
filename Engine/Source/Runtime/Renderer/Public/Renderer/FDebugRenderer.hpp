@@ -3,7 +3,6 @@
 #include "Core/Base.hpp"
 #include "RenderCore/FLight.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
-#include "RHI/FShader.hpp"
 #include "RHI/FVertexArray.hpp"
 
 #include <glm/glm.hpp>
@@ -101,7 +100,8 @@ namespace Leon {
             glm::vec4 Color;
         };
 
-        static TRef<FShader> Shader;
+        /** False without a render driver (tests, tools): nothing is drawn. */
+        static bool bReady;
         static TRef<FVertexArray> VertexArray;
         static TRef<FVertexBuffer> VertexBuffer;
         static std::vector<FDebugVertex> LineVertices;
