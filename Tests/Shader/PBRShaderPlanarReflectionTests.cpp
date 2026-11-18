@@ -182,4 +182,60 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Planar Reflections") {
 
         gl.DestroyTexture(planarTex);
     }
+
+    TEST_CASE("planar capture is only used by smooth surfaces that face along the plane") {
+        Leon::TestGPU::FHeadlessDevice gl;
+        REQUIRE(gl.IsValid());
+
+        auto shader = Leon::TestGPU::FTestShader::Create("Engine/Resources/Shaders/PBR_Lit.glsl");
+        REQUIRE(shader != nullptr);
+        shader->Bind();
+
+        gl.BindDefaultTextures();
+        gl.BindFramebuffer(1, 1);
+
+        Leon::TestGPU::FCameraBufferData camData;
+        camData.ViewProjection = glm::mat4(1.0f);
+        Leon::TestGPU::ApplyFloorView(camData);
+        gl.UpdateCameraUBO(camData);
+
+        Leon::TestGPU::FLightingBufferData lightData;
+        lightData.DirLight.Direction.w = 0.0f;
+        lightData.LightCounts.x = 0;
+        lightData.LightCounts.y = 0;
+        lightData.EnvSkyColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        gl.UpdateLightingUBO(lightData);
+
+        gl.ResetShaderUniforms(shader);
+        Leon::TestGPU::SetMat4(shader, "u_Model", glm::mat4(1.0f));
+        Leon::TestGPU::SetMat4(shader, "u_PlanarViewProjection", glm::mat4(1.0f));
+        shader->SetFloat("u_PlanarPlaneDistance", 0.0f);
+        shader->SetFloat("u_Metallic", 1.0f);
+
+        float blueHdr[4] = {0.2f, 0.2f, 6.0f, 1.0f};
+        auto planarTex = gl.Create2D(1, 1, Leon::ERHIFormat::RGBA32_Float, blueHdr);
+        gl.BindTexture(5, planarTex);
+
+        // Blue added by switching the capture on, for a surface on the plane.
+        const auto captureGain = [&](const glm::mat3& InNormalMatrix, float InRoughness) {
+            Leon::TestGPU::SetMat3(shader, "u_NormalMatrix", InNormalMatrix);
+            shader->SetFloat("u_Roughness", InRoughness);
+            shader->SetInt("u_UsePlanarReflection", 0);
+            gl.DrawQuad();
+            const float without = gl.ReadPixel(0, 0).b;
+            shader->SetInt("u_UsePlanarReflection", 1);
+            gl.DrawQuad();
+            return gl.ReadPixel(0, 0).b - without;
+        };
+
+        // A smooth floor: the capture shows.
+        CHECK(captureGain(Leon::TestGPU::FloorFacingNormalMatrix(), 0.05f) > 1.0f);
+        // The same surface, rough: a flat mirror image would be wrong, the environment stays.
+        CHECK(std::abs(captureGain(Leon::TestGPU::FloorFacingNormalMatrix(), 1.0f)) < 0.05f);
+        // A smooth surface standing on the plane, facing sideways: not the floor's reflection.
+        CHECK(std::abs(captureGain(glm::mat3(1.0f), 0.05f)) < 0.05f);
+
+        CHECK(gl.ValidationErrors() == 0);
+        gl.DestroyTexture(planarTex);
+    }
 }

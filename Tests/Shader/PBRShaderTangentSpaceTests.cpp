@@ -143,5 +143,15 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Tangent Space & TBN Orthonormality") {
         CHECK(bitangPix.r == doctest::Approx(0.5f).epsilon(0.02f));
         CHECK(bitangPix.g == doctest::Approx(1.0f).epsilon(0.02f));
         CHECK(bitangPix.b == doctest::Approx(0.5f).epsilon(0.02f));
+
+        // 3. Mirrored UVs: a tangent with w = -1 flips the bitangent to -Y -> (0.5, 0.0, 0.5)
+        for (auto& vertex : skewedVertices)
+            vertex.Tangent.w = -1.0f;
+        gl.SetQuadVertices(skewedVertices.data());
+        gl.DrawQuad();
+        glm::vec4 mirroredPix = gl.ReadPixel();
+        CHECK(mirroredPix.r == doctest::Approx(0.5f).epsilon(0.02f));
+        CHECK(std::abs(mirroredPix.g) < 0.02f);
+        CHECK(mirroredPix.b == doctest::Approx(0.5f).epsilon(0.02f));
     }
 }

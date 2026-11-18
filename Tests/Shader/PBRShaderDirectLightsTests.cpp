@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 #include "GPU/HeadlessDevice.hpp"
+
+#include <cmath>
 #include <filesystem>
 
 TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
@@ -144,6 +146,15 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Direct Lighting & Attenuation") {
         CHECK(pixelDist1.r > pixelDist2.r);
         CHECK(pixelDist2.r > pixelBeyondRadius.r);
         CHECK(pixelBeyondRadius.r == doctest::Approx(0.0f).epsilon(1e-5f));
+
+        // The light is straight above the surface at both distances, so only the falloff changes:
+        // window(d)^2 / (d^2 + 1), with window(d) = 1 - (d / radius)^4.
+        const auto attenuation = [](float InDistance) {
+            const float window = 1.0f - std::pow(InDistance / 10.0f, 4.0f);
+            return window * window / (InDistance * InDistance + 1.0f);
+        };
+        REQUIRE(pixelDist2.r > 0.0f);
+        CHECK(pixelDist1.r / pixelDist2.r == doctest::Approx(attenuation(1.0f) / attenuation(2.0f)).epsilon(0.01f));
     }
 
     TEST_CASE("Spot Light Conical Cutoff and Smoothstep Penumbra Response") {

@@ -80,6 +80,17 @@ TEST_SUITE("Shader GPU - PBR_Lit.glsl Emissive Radiance") {
         CHECK(hdrEmissive.g == doctest::Approx(2.0f).epsilon(0.01f));
         CHECK(hdrEmissive.b == doctest::Approx(0.8f).epsilon(0.01f));
 
+        // Emitted light does not depend on the angle the surface is seen from.
+        camData.CameraPosition = glm::vec4(2.0f, 0.0f, 1.0f, 0.0f);
+        gl.UpdateCameraUBO(camData);
+        gl.DrawQuad();
+        glm::vec4 obliqueEmissive = gl.ReadPixel();
+        CHECK(obliqueEmissive.r == doctest::Approx(4.0f).epsilon(0.01f));
+        CHECK(obliqueEmissive.g == doctest::Approx(2.0f).epsilon(0.01f));
+        CHECK(obliqueEmissive.b == doctest::Approx(0.8f).epsilon(0.01f));
+        camData.CameraPosition = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+        gl.UpdateCameraUBO(camData);
+
         // 4. Emissive Texture Map
         auto emissiveTex = gl.Create1x1SRGBTexture(255, 128, 0, 255);
         gl.BindTexture(9, emissiveTex);
