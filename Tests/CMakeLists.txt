@@ -53,6 +53,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Lightmass/StaticLightingTests.cpp
     Renderer/RenderDebugHotkeysTests.cpp
     Core/FrameProfilerTests.cpp
+    RHI/RHINullTests.cpp
     Core/WindowDisplayPolicyTests.cpp
     Performance/ScalingBenchmarkTests.cpp
 )
@@ -69,6 +70,7 @@ function(leon_configure_test_exe TargetName)
     target_link_libraries(${TargetName} PRIVATE
         LeonEngineCore
         LeonEnginePipeline
+        LeonModule_RHINull
         LeonEngine_Jolt
         LeonEngine_ENet
         doctest

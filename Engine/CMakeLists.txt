@@ -27,6 +27,7 @@ leon_add_module(RHI
     SOURCES
     Source/Runtime/RHI/Private/FPlatformMemory.cpp
     Source/Runtime/RHI/Private/FNullRenderDriver.cpp
+    Source/Runtime/RHI/Private/FRHI.cpp
     Source/Runtime/RHI/Private/FFrameProfiler.cpp
     Source/Runtime/RHI/Private/IGraphicsContext.cpp
     Source/Runtime/RHI/Private/IRenderAPI.cpp
@@ -43,6 +44,13 @@ leon_add_module(RHI
 if(WIN32)
     target_link_libraries(LeonModule_RHI PRIVATE psapi dxgi)
 endif()
+
+# A backend with no GPU behind it, for tests and tools.
+leon_add_module(RHINull
+    SOURCES
+    Source/Runtime/RHINull/Private/FNullRHI.cpp
+    DEPENDS RHI
+)
 
 leon_add_module(Platform
     SOURCES
