@@ -19,7 +19,6 @@ namespace Leon {
 
     void FRenderer::Init() {
         LE_CORE_INFO("Initializing Renderer Subsystem...");
-        FRenderCommand::Init();
 
         // Default swapchain allocation accounting: Front Color (4) + Back Color (4) + Depth/Stencil (4) = 12 bytes/px
         SwapchainBytes = 1280 * 720 * 12;
@@ -30,12 +29,9 @@ namespace Leon {
         LE_CORE_INFO("Shutting down Renderer Subsystem...");
         OnGPUFree(SwapchainBytes, EGPUMemoryCategory::Swapchain);
         SwapchainBytes = 0;
-        FRenderCommand::Shutdown();
     }
 
     void FRenderer::OnWindowResize(unsigned int InWidth, unsigned int InHeight) {
-        FRenderCommand::SetViewport(0, 0, InWidth, InHeight);
-
         OnGPUFree(SwapchainBytes, EGPUMemoryCategory::Swapchain);
         SwapchainBytes = static_cast<size_t>(InWidth * InHeight * 12);
         OnGPUAlloc(SwapchainBytes, EGPUMemoryCategory::Swapchain);

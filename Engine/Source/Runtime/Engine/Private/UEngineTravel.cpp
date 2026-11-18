@@ -20,7 +20,6 @@
 #include "Assets/UAssetManager.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 #include "Renderer/FPerspectiveCamera.hpp"
-#include "RHI/FRenderCommand.hpp"
 #include "Renderer/FWorldRenderer.hpp"
 #include "UMG/FUIRenderer.hpp"
 #include "Audio/FAudioDevice.hpp"
@@ -90,7 +89,6 @@ namespace Leon {
         }
 
         UAssetManager::UnloadUnused();
-        FRenderCommand::InvalidateShaderBindingCache();
 
         if (ViewportLayer)
             FUIRenderer::Init();

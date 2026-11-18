@@ -29,12 +29,8 @@ leon_add_module(RHI
     Source/Runtime/RHI/Private/FLegacyRenderDriver.cpp
     Source/Runtime/RHI/Private/FRHI.cpp
     Source/Runtime/RHI/Private/FFrameProfiler.cpp
-    Source/Runtime/RHI/Private/IGraphicsContext.cpp
-    Source/Runtime/RHI/Private/IRenderAPI.cpp
     Source/Runtime/RHI/Private/IRenderDriver.cpp
-    Source/Runtime/RHI/Private/FRenderCommand.cpp
     Source/Runtime/RHI/Private/FBuffer.cpp
-    Source/Runtime/RHI/Private/FFramebuffer.cpp
     Source/Runtime/RHI/Private/FShader.cpp
     Source/Runtime/RHI/Private/FTexture.cpp
     Source/Runtime/RHI/Private/FVertexArray.cpp

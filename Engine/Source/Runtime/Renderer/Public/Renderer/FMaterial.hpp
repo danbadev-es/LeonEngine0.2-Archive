@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Base.hpp"
-#include "RHI/IRenderAPI.hpp"
 #include "RHI/FShader.hpp"
 #include "RHI/FTexture.hpp"
 
@@ -19,6 +18,22 @@ namespace Leon {
     /**
      * @brief Pipeline state configuration associated with a material.
      */
+    enum class EDepthFunc { Less = 0, LessEqual = 1, Equal = 2, Always = 3 };
+    enum class ECullMode { Back = 0, Front = 1, FrontAndBack = 2, None = 3 };
+    enum class EBlendFactor {
+        Zero = 0,
+        One = 1,
+        SrcColor = 2,
+        OneMinusSrcColor = 3,
+        SrcAlpha = 4,
+        OneMinusSrcAlpha = 5,
+        DstAlpha = 6,
+        OneMinusDstAlpha = 7,
+        DstColor = 8,
+        OneMinusDstColor = 9
+    };
+
+    /** How a material's surfaces are rasterised; the world renderer turns it into a pipeline. */
     struct FMaterialPipelineState {
         ECullMode CullMode = ECullMode::Back;
         bool bDepthTest = true;

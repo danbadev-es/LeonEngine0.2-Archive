@@ -2,7 +2,6 @@
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Core/FLog.hpp"
-#include "RHI/FRenderCommand.hpp"
 
 #include <cmath>
 #include <fstream>
@@ -106,8 +105,6 @@ namespace Leon {
             Init();
         }
 
-        // UI must never inherit scene wireframe (F3) polygon mode
-        FRenderCommand::SetWireframe(false);
 
         ViewportWidth = InViewportWidth > 0 ? InViewportWidth : 1280;
         ViewportHeight = InViewportHeight > 0 ? InViewportHeight : 720;

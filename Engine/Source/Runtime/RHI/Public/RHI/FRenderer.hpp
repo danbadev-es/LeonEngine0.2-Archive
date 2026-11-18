@@ -1,13 +1,14 @@
 #pragma once
 
-#include "RHI/FRenderCommand.hpp"
+#include <cstddef>
+#include <cstdint>
+
 #include "RHI/FRenderStats.hpp"
 
 namespace Leon {
 
     /**
-     * @brief Centralized render stats tracker and GPU memory accounting.
-     * Draw submission now lives in FWorldRenderer. This class only tracks metrics.
+     * Render statistics, GPU memory accounting and the texture quality limit.
      */
     class FRenderer {
     public:
@@ -44,8 +45,6 @@ namespace Leon {
         /** Max edge length for file-loaded 2D/cube textures (Low=256, Medium=512, High=1024). */
         static void SetMaxTextureResolution(uint32_t InMaxDim);
         static uint32_t GetMaxTextureResolution();
-
-        static ERenderAPI GetAPI() { return IRenderAPI::GetAPI(); }
 
     private:
         static FRenderStats Stats;

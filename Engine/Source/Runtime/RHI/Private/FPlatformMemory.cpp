@@ -1,5 +1,5 @@
 #include "RHI/FPlatformMemory.hpp"
-#include "RHI/FRenderCommand.hpp"
+#include "RHI/IRHIDevice.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -31,12 +31,9 @@ namespace Leon {
         }
 #endif
 
-        // 3. GPU VRAM Telemetry from RHI Driver
-        FGPUVRAMStats rhiStats = FRenderCommand::GetGPUVRAMStats();
-        if (rhiStats.TotalVRAMBytes > 0) {
-            stats.DedicatedVideoMemoryBytes = rhiStats.TotalVRAMBytes;
-            stats.UsedVideoMemoryBytes = rhiStats.UsedVRAMBytes;
-        }
+        // 3. Dedicated memory of the adapter the device runs on. Usage comes from DXGI below.
+        if (IRHIDevice* device = FRHI::GetDevice())
+            stats.DedicatedVideoMemoryBytes = static_cast<size_t>(device->GetInfo().DedicatedVideoMemoryBytes);
 
 #ifdef _WIN32
         // 4. DXGI Fallback / Supplement for AMD / Intel / Windows Universal GPUs
@@ -75,7 +72,14 @@ namespace Leon {
     }
 
     FGPUInfo FPlatformMemory::GetGPUInfo() {
-        return FRenderCommand::GetGPUInfo();
+        FGPUInfo info;
+        if (IRHIDevice* device = FRHI::GetDevice()) {
+            const FRHIDeviceInfo& deviceInfo = device->GetInfo();
+            info.Renderer = deviceInfo.AdapterName;
+            info.Version = deviceInfo.Backend == ERHIBackend::D3D12 ? "Direct3D 12" : "Null device";
+            info.ShadingLanguageVersion = "HLSL 2021";
+        }
+        return info;
     }
 
 } // namespace Leon

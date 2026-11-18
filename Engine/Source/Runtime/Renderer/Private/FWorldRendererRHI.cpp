@@ -26,7 +26,6 @@
 #include "Gameplay/FGameplayDebugger.hpp"
 #include "Physics/FCollisionQuery.hpp"
 #include "RHI/FFrameProfiler.hpp"
-#include "RHI/FFramebuffer.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FRenderer.hpp"
 #include "RHI/FTexture.hpp"

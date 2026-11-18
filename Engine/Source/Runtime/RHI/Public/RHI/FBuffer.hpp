@@ -150,14 +150,4 @@ namespace Leon {
         static TRef<FIndexBuffer> Create(const uint32_t* InIndices, unsigned int InCount);
     };
 
-    class FUniformBuffer {
-    public:
-        virtual ~FUniformBuffer() = default;
-
-        virtual void SetData(const void* InData, unsigned int InSize, unsigned int InOffset = 0) = 0;
-        virtual unsigned int GetBinding() const = 0;
-
-        static TRef<FUniformBuffer> Create(unsigned int InSize, unsigned int InBinding);
-    };
-
 } // namespace Leon

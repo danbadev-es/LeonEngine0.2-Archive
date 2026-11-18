@@ -8,7 +8,6 @@
 #include "Renderer/FDebugRenderer.hpp"
 #include "Renderer/FParticleRenderer.hpp"
 #include "RHI/FRenderer.hpp"
-#include "RHI/FRenderCommand.hpp"
 #include "Renderer/FTextRenderer.hpp"
 #include "RHI/FRHIFrame.hpp"
 #include "Renderer/FImmediateDrawRHI.hpp"
@@ -35,13 +34,7 @@ namespace Leon {
         FWindowProps WindowProps(InProps.Name, InProps.WindowWidth, InProps.WindowHeight, true,
                                  InProps.bHdClientPolicy, true, InProps.bMaximized);
         AppWindow = FWindow::Create(WindowProps);
-        GraphicsContext = IGraphicsContext::Create(AppWindow->GetNativeHandle());
-        if (GraphicsContext) {
-            GraphicsContext->Init();
-            AppWindow->SetVSync(AppWindow->IsVSync());
-        } else {
-            LE_CORE_ERROR("Failed to create IGraphicsContext! No active RenderDriver is registered.");
-        }
+        AppWindow->SetVSync(AppWindow->IsVSync());
         // The GPU device, when a backend was registered by the executable (the launcher does).
         if (!FRHI::IsInitialized() && FRHI::IsBackendRegistered(ERHIBackend::D3D12)) {
             FRHIInitDesc rhiDesc;
@@ -231,22 +224,12 @@ namespace Leon {
                 AppWindow->OnUpdate();
                 if (bRenderFrame)
                     Swapchain->Present(AppWindow->IsVSync());
-                if (GraphicsContext)
-                    GraphicsContext->SwapBuffers();
                 const auto presentEnd = std::chrono::high_resolution_clock::now();
                 FFrameProfiler::SetPresentMs(
                     std::chrono::duration<float, std::milli>(presentEnd - presentStart).count());
             }
-            FRenderCommand::ResolveGPUTimeQueries();
+            // GPU timings are not measured yet on this RHI; the profiler shows CPU time per stage.
             auto& last = FFrameProfiler::LastMutable();
-            last.GPUShadowMs = FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::Shadow);
-            last.GPUOpaqueMs = FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::Opaque);
-            last.GPUPostProcessMs = FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::PostProcess);
-            last.GPUPlanarMs = FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::Planar);
-            last.GPUMs = last.GPUShadowMs + last.GPUOpaqueMs + last.GPUPostProcessMs + last.GPUPlanarMs +
-                         FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::Sky) +
-                         FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::Transparent) +
-                         FRenderCommand::GetGPUTimeMs(EGPUTimerSlot::Particles);
             FFrameStatsCollector::Capture(last);
         }
 

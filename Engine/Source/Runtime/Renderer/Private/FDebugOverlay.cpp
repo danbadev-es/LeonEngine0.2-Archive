@@ -3,7 +3,6 @@
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "Core/FLog.hpp"
-#include "RHI/FRenderCommand.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -190,15 +189,6 @@ namespace Leon {
         glm::mat4 ortho = glm::ortho(0.0f, static_cast<float>(InViewportWidth), static_cast<float>(InViewportHeight),
                                      0.0f, -1.0f, 1.0f);
 
-        // Disable depth testing and enable standard alpha blending for HUD overlay
-        // Culling must be off: after FUIRenderer::End(), Back-face culling is restored and
-        // Y-flipped ortho quads would be culled (F1 overlay invisible).
-        FRenderCommand::SetWireframe(false);
-        FRenderCommand::SetDepthTesting(false);
-        FRenderCommand::SetCulling(false);
-        FRenderCommand::SetBlendState(true);
-        FRenderCommand::SetBlendFunc(EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha);
-
         Vertices.clear();
 
         // 1. Draw Glassmorphism Dark HUD Panel Background
@@ -343,11 +333,6 @@ namespace Leon {
         DrawString(textX, textY, hotkeyInfo, gizmoColor);
 
         Flush(ortho);
-
-        // Restore defaults so the next frame does not inherit overlay blend
-        FRenderCommand::SetDepthTesting(true);
-        FRenderCommand::SetCulling(true, ECullMode::Back);
-        FRenderCommand::SetBlendState(false);
     }
 
 } // namespace Leon

@@ -15,47 +15,6 @@ namespace Leon {
 
     namespace {
 
-        class FNullGraphicsContext final : public IGraphicsContext {
-        public:
-            void Init() override {}
-            void SwapBuffers() override {}
-        };
-
-        class FNullRenderAPI final : public IRenderAPI {
-        public:
-            void Init() override {}
-            void SetViewport(unsigned int, unsigned int, unsigned int, unsigned int) override {}
-            void SetClearColor(float, float, float, float) override {}
-            void Clear() override {}
-            void SetDepthTesting(bool) override {}
-            void SetDepthMask(bool) override {}
-            void SetDepthFunc(EDepthFunc) override {}
-            void SetCulling(bool, ECullMode) override {}
-            void SetWireframe(bool) override {}
-            void SetBlendState(bool) override {}
-            void SetBlendFunc(EBlendFactor, EBlendFactor) override {}
-            void SetClipDistance(bool) override {}
-            void SetPolygonOffset(bool, float, float) override {}
-            uint32_t GetFramebufferBinding() override { return 0; }
-            void BindFramebuffer(uint32_t) override {}
-            void DrawArrays(const TRef<FVertexArray>&, unsigned int) override {}
-            void DrawIndexed(const TRef<FVertexArray>&, unsigned int) override {}
-            void DrawIndexedOffset(const TRef<FVertexArray>&, unsigned int, unsigned int) override {}
-            void DrawIndexedInstanced(const TRef<FVertexArray>&, unsigned int, unsigned int) override {}
-            void DrawIndexedOffsetInstanced(const TRef<FVertexArray>&, unsigned int, unsigned int,
-                                            unsigned int) override {}
-            void DrawLines(const TRef<FVertexArray>&, unsigned int) override {}
-            void SetLineWidth(float) override {}
-            FGPUInfo GetGPUInfo() override {
-                FGPUInfo info;
-                info.Vendor = "None";
-                info.Renderer = "Null render driver";
-                info.Version = "0";
-                return info;
-            }
-            FGPUVRAMStats GetGPUVRAMStats() override { return {}; }
-        };
-
         /** Vertex data kept in memory until the first draw needs it on the device. */
         class FLegacyVertexBuffer final : public FVertexBuffer {
         public:
@@ -132,16 +91,6 @@ namespace Leon {
             std::vector<uint32_t> Indices;
             unsigned int Count;
             TRef<IRHIBuffer> Buffer;
-        };
-
-        class FNullUniformBuffer final : public FUniformBuffer {
-        public:
-            explicit FNullUniformBuffer(unsigned int InBinding) : Binding(InBinding) {}
-            void SetData(const void*, unsigned int, unsigned int) override {}
-            unsigned int GetBinding() const override { return Binding; }
-
-        private:
-            unsigned int Binding;
         };
 
         class FNullVertexArray final : public FVertexArray {
@@ -407,38 +356,8 @@ namespace Leon {
             mutable TRef<IRHITexture> Texture;
         };
 
-        class FNullFramebuffer final : public FFramebuffer {
-        public:
-            explicit FNullFramebuffer(const FFramebufferSpecification& InSpec) : Specification(InSpec), Id(NextNullId()) {}
-            void Bind() override {}
-            void Unbind() override {}
-            void Resize(uint32_t InWidth, uint32_t InHeight) override {
-                Specification.Width = InWidth;
-                Specification.Height = InHeight;
-            }
-            int ReadPixel(uint32_t, int, int) override { return 0; }
-            void ClearAttachment(uint32_t, int) override {}
-            uint32_t GetRendererID() const override { return Id; }
-            uint32_t GetColorAttachmentRendererID(uint32_t) const override { return Id; }
-            uint32_t GetDepthAttachmentRendererID() const override { return Id; }
-            void BindTexture(uint32_t, uint32_t) const override {}
-            void BindDepthTexture(uint32_t) const override {}
-            void AttachDepthTextureLayer(uint32_t) override {}
-            void BlitToDefault(uint32_t, uint32_t) override {}
-            void GenerateColorMipmaps() override {}
-            const FFramebufferSpecification& GetSpecification() const override { return Specification; }
-
-        private:
-            FFramebufferSpecification Specification;
-            uint32_t Id;
-        };
-
         class FLegacyDriver final : public IRenderDriver {
         public:
-            TScope<IGraphicsContext> CreateGraphicsContext(void*) override {
-                return CreateScope<FNullGraphicsContext>();
-            }
-            TScope<IRenderAPI> CreateRenderAPI() override { return CreateScope<FNullRenderAPI>(); }
             TRef<FVertexBuffer> CreateVertexBuffer(unsigned int InSize) override {
                 return CreateRef<FLegacyVertexBuffer>(InSize);
             }
@@ -473,12 +392,6 @@ namespace Leon {
             TRef<FTextureCube> CreateTextureCube(const std::vector<std::string>&) override {
                 // Cube maps from six image files are not used by the engine or the games.
                 return CreateRef<FLegacyTextureCube>(1u, false);
-            }
-            TRef<FFramebuffer> CreateFramebuffer(const FFramebufferSpecification& InSpec) override {
-                return CreateRef<FNullFramebuffer>(InSpec);
-            }
-            TRef<FUniformBuffer> CreateUniformBuffer(unsigned int, unsigned int InBinding) override {
-                return CreateRef<FNullUniformBuffer>(InBinding);
             }
         };
 
@@ -556,9 +469,8 @@ namespace Leon {
     }
 
     void FLegacyRenderDriver::Register() {
-        if (!FRenderDriverRegistry::GetDriver(ERenderAPI::Null))
-            FRenderDriverRegistry::RegisterDriver(ERenderAPI::Null, CreateScope<FLegacyDriver>());
-        IRenderAPI::SetAPI(ERenderAPI::Null);
+        if (!FRenderDriverRegistry::GetActiveDriver())
+            FRenderDriverRegistry::RegisterDriver(CreateScope<FLegacyDriver>());
     }
 
 } // namespace Leon

@@ -4,7 +4,6 @@
 #include "Application/FLayerStack.hpp"
 #include "Core/FTimestep.hpp"
 #include "Platform/FWindow.hpp"
-#include "RHI/IGraphicsContext.hpp"
 #include "RHI/IRHIDevice.hpp"
 #include "Core/events/FApplicationEvent.hpp"
 
@@ -82,7 +81,6 @@ namespace Leon {
 
     private:
         TScope<FWindow> AppWindow;
-        TScope<IGraphicsContext> GraphicsContext;
         TScope<IRHISwapchain> Swapchain;
         IRHICommandList* FrameCommands = nullptr;
         std::chrono::high_resolution_clock::time_point WindowCreationTime;

@@ -24,11 +24,4 @@ namespace Leon {
         return nullptr;
     }
 
-    TRef<FUniformBuffer> FUniformBuffer::Create(unsigned int InSize, unsigned int InBinding) {
-        if (auto driver = FRenderDriverRegistry::GetActiveDriver()) {
-            return driver->CreateUniformBuffer(InSize, InBinding);
-        }
-        return nullptr;
-    }
-
 } // namespace Leon

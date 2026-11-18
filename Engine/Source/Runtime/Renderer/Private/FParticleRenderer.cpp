@@ -4,7 +4,6 @@
 #include "Engine/Components.hpp"
 #include "Engine/FParticleTypes.hpp"
 #include "Engine/UWorld.hpp"
-#include "RHI/FRenderCommand.hpp"
 #include "RHI/FBuffer.hpp"
 #include "RHI/FFrameProfiler.hpp"
 

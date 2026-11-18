@@ -3,7 +3,6 @@
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Renderer/FShadowMath.hpp"
 #include "Core/FLog.hpp"
-#include "RHI/FRenderCommand.hpp"
 
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>

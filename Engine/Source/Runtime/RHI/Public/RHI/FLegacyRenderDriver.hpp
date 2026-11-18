@@ -16,19 +16,19 @@ namespace Leon {
     class IRHITexture;
 
     /**
-     * Serves the engine's original resource interfaces (FVertexBuffer, FVertexArray, FTexture2D,
-     * FShader, FRenderCommand...) while the renderer is moved to the RHI.
+     * The objects behind the engine's resource classes: FVertexBuffer, FIndexBuffer, FVertexArray,
+     * FTexture2D, FTextureCube and FShader.
      *
      * Vertex buffers, index buffers and textures created through those interfaces are real RHI
      * resources, so meshes and materials loaded by the asset code can be drawn by the new renderer
-     * without touching the asset code. Everything else (shaders, framebuffers, draw commands) does
-     * nothing: the passes still written against the old interfaces run but produce no image.
+     * without touching the asset code. FShader objects are only names: materials and maps still
+     * refer to shaders by the path of the old GLSL file, and the renderer picks the HLSL shader itself.
      *
      * Without an RHI device (tests, tools) the resources are plain memory.
      */
     class FLegacyRenderDriver {
     public:
-        /** Registers the driver and makes it the active API. Safe to call more than once. */
+        /** Registers the driver. Safe to call more than once. */
         static void Register();
     };
 
