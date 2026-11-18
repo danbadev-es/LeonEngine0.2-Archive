@@ -174,7 +174,7 @@ This is **not** full Unreal config stacking (`Base.ini` + project + `Saved/Confi
 ### 3.3 Virtual Path Resolution (`FProjectPaths`)
 * `/Game/Maps/ShowcaseLevel` → `<ProjectRoot>/Content/Maps/ShowcaseLevel.lmap`
 * `/Game/Materials/M_StudioFloor` → `<ProjectRoot>/Content/Materials/M_StudioFloor.lmat`
-* `/Engine/Shaders/PBR_Lit.glsl` → `Engine/Resources/Shaders/PBR_Lit.glsl`
+* `/Engine/Shaders/PBR_Lit.glsl` → `Engine/Content/Shaders/PBR_Lit.glsl`
 
 ### 3.4 Multi-INI Configuration
 1. **`DefaultEngine.ini`**: window, maps, GameMode class, renderer project defaults.

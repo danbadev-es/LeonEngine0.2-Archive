@@ -2,7 +2,7 @@
 
 Canonical rendering contracts for LeonEngine2. This document describes the **implemented** pipeline, not a wishlist.
 
-Source of truth: `Engine/Source/Runtime` and `Engine/Resources/Shaders`.  
+Source of truth: `Engine/Source/Runtime` and `Engine/Content/Shaders`.  
 Doc index: [RENDERER.md](RENDERER.md). Remediation backlog: [RENDERER_REMEDIATION.md](RENDERER_REMEDIATION.md).
 
 ## Coordinate system

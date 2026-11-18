@@ -534,7 +534,7 @@ namespace Leon {
 
             // Test /Engine/ resolution
             std::string resolvedEngine = FProjectPaths::ResolveVirtualPath("/Engine/Materials/M_WorldGrid.lmat");
-            CHECK(resolvedEngine == "Engine/Resources/Materials/M_WorldGrid.lmat");
+            CHECK(resolvedEngine == "Engine/Content/Materials/M_WorldGrid.lmat");
 
             // Test MakeVirtualPath
             std::string virtGame = FProjectPaths::MakeVirtualPath("Projects/TestProject/Content/Textures/T_Test.ltex");

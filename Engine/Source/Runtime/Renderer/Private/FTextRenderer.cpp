@@ -33,9 +33,9 @@ namespace Leon {
         std::vector<unsigned char> tempBitmap(AtlasDimension * AtlasDimension, 0);
 
         // Load Inter-Bold TrueType Font from Engine Resources (with fallback to Inter-Regular)
-        std::ifstream file("Engine/Resources/Fonts/Inter-Bold.ttf", std::ios::binary | std::ios::ate);
+        std::ifstream file("Engine/Content/Fonts/Inter-Bold.ttf", std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
-            file.open("Engine/Resources/Fonts/Inter-Regular.ttf", std::ios::binary | std::ios::ate);
+            file.open("Engine/Content/Fonts/Inter-Regular.ttf", std::ios::binary | std::ios::ate);
         }
         if (file.is_open()) {
             std::streamsize size = file.tellg();

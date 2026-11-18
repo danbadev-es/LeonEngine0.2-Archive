@@ -65,7 +65,7 @@ def main() -> int:
         if not os.path.isfile(exe_path):
             print(f"[ERROR] Executable not found at {exe_path}")
             return 1
-        # Run from the exe folder so the staged Engine/Resources resolve.
+        # Run from the exe folder so the staged Engine/Content resolve.
         return subprocess.run([exe_path], cwd=os.path.dirname(exe_path)).returncode
     return 0
 

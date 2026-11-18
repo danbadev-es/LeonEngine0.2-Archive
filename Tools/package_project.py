@@ -8,7 +8,7 @@ Industry layout (double-clickable folder / zip):
     <ProjectName>.lproject
     Content/
     Config/
-    Engine/Resources/          # shaders, fonts, engine textures
+    Engine/Content/          # shaders, fonts, engine textures
     <runtime DLLs>          # MinGW/MSVC redistributables when dynamically linked
 
 Usage:
@@ -284,7 +284,7 @@ def main() -> int:
 
     content_src = os.path.join(abs_project_dir, "Content")
     config_src = os.path.join(abs_project_dir, "Config")
-    engine_assets_src = os.path.join(root, "Engine", "Resources")
+    engine_assets_src = os.path.join(root, "Engine", "Content")
     if not os.path.isdir(content_src):
         print(f"[ERROR] Missing Content/: {content_src}")
         return 1
@@ -292,7 +292,7 @@ def main() -> int:
         print(f"[ERROR] Missing Config/: {config_src}")
         return 1
     if not os.path.isdir(engine_assets_src):
-        print(f"[ERROR] Missing Engine/Resources: {engine_assets_src}")
+        print(f"[ERROR] Missing Engine/Content: {engine_assets_src}")
         return 1
 
     if args.clean and os.path.isdir(stage_dir):
@@ -314,8 +314,8 @@ def main() -> int:
     _copytree(content_src, os.path.join(stage_dir, "Content"))
     print("[INFO] Staging Config/")
     _copytree(config_src, os.path.join(stage_dir, "Config"))
-    print("[INFO] Staging Engine/Resources/")
-    _copytree(engine_assets_src, os.path.join(stage_dir, "Engine", "Resources"))
+    print("[INFO] Staging Engine/Content/")
+    _copytree(engine_assets_src, os.path.join(stage_dir, "Engine", "Content"))
     # The HLSL sources: the game compiles its shaders when it starts.
     print("[INFO] Staging Engine/Shaders/")
     _copytree(os.path.join(root, "Engine", "Shaders"), os.path.join(stage_dir, "Engine", "Shaders"))

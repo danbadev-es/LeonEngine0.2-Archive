@@ -57,7 +57,7 @@ namespace Leon {
         std::vector<unsigned char> tempBitmap(AtlasDim * AtlasDim, 0);
 
         // Load Inter TrueType Font from Engine Resources
-        std::ifstream file("Engine/Resources/Fonts/Inter-Regular.ttf", std::ios::binary | std::ios::ate);
+        std::ifstream file("Engine/Content/Fonts/Inter-Regular.ttf", std::ios::binary | std::ios::ate);
         if (file.is_open()) {
             std::streamsize size = file.tellg();
             file.seekg(0, std::ios::beg);
@@ -67,7 +67,7 @@ namespace Leon {
                                                96, BakedChars);
                 if (res > 0) {
                     bInterFontLoaded = true;
-                    LE_CORE_INFO("Loaded Inter Font from Engine/Resources/Fonts/Inter-Regular.ttf");
+                    LE_CORE_INFO("Loaded Inter Font from Engine/Content/Fonts/Inter-Regular.ttf");
                 }
             }
         }

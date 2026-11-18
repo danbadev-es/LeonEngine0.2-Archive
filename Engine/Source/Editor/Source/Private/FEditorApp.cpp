@@ -165,7 +165,7 @@ namespace Leon::Editor {
         char exePath[MAX_PATH] = {};
         if (GetModuleFileNameA(nullptr, exePath, MAX_PATH) > 0) {
             const fs::path exeDir = fs::path(exePath).parent_path();
-            iconCandidates.push_back(exeDir / "Engine" / "Resources" / "Icon" / "Logo.png");
+            iconCandidates.push_back(exeDir / "Engine" / "Content" / "Icon" / "Logo.png");
             iconCandidates.push_back(exeDir / "Editor" / "Resources" / "Icons" / "LeonEditor.png");
             iconCandidates.push_back(exeDir / "Resources" / "Icons" / "LeonEditor.png");
         }
@@ -175,14 +175,14 @@ namespace Leon::Editor {
             char* envRoot = nullptr;
             size_t envLen = 0;
             if (_dupenv_s(&envRoot, &envLen, "LEON_ENGINE_ROOT") == 0 && envRoot && envRoot[0] != '\0') {
-                iconCandidates.push_back(fs::path(envRoot) / "Engine" / "Resources" / "Icon" / "Logo.png");
+                iconCandidates.push_back(fs::path(envRoot) / "Engine" / "Content" / "Icon" / "Logo.png");
                 iconCandidates.push_back(fs::path(envRoot) / "Editor" / "Resources" / "Icons" / "LeonEditor.png");
             }
             free(envRoot);
         }
 #else
         if (const char* envRoot = std::getenv("LEON_ENGINE_ROOT"); envRoot && envRoot[0] != '\0') {
-            iconCandidates.push_back(fs::path(envRoot) / "Engine" / "Resources" / "Icon" / "Logo.png");
+            iconCandidates.push_back(fs::path(envRoot) / "Engine" / "Content" / "Icon" / "Logo.png");
             iconCandidates.push_back(fs::path(envRoot) / "Editor" / "Resources" / "Icons" / "LeonEditor.png");
         }
 #endif

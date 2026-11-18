@@ -6,8 +6,8 @@
 TEST_SUITE("Cache - Invalidation & FNV-1a 64-bit Content Hashing") {
 
     TEST_CASE("FNV-1a 64-bit Content Hashing & Invalidation on File Modification") {
-        const std::string testFilePath = "Engine/Resources/Textures/TempHashTest.bin";
-        std::filesystem::create_directories("Engine/Resources/Textures");
+        const std::string testFilePath = "Engine/Content/Textures/TempHashTest.bin";
+        std::filesystem::create_directories("Engine/Content/Textures");
 
         // 1. Create file A
         {

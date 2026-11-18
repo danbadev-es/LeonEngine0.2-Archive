@@ -142,14 +142,14 @@ if(WIN32)
     set_source_files_properties("${LEON_EDITOR_RC}" PROPERTIES OBJECT_DEPENDS "${LEON_EDITOR_ICO_SRC}")
 endif()
 
-# Stage Engine/Resources beside the exe so relative shader/font paths resolve.
+# Stage Engine/Content beside the exe so relative shader/font paths resolve.
 set(_leon_sync "${LEON_ENGINE_ROOT}/cmake/SyncDirectory.cmake")
 set(_editor_exe_dir "$<TARGET_FILE_DIR:LeonEditor>")
-set(LEON_ENGINE_RESOURCES "${LEON_ENGINE_ROOT}/Engine/Resources")
+set(LEON_ENGINE_CONTENT "${LEON_ENGINE_ROOT}/Engine/Content")
 add_custom_command(TARGET LeonEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND}
-        -DSRC=${LEON_ENGINE_RESOURCES}
-        -DDST=${_editor_exe_dir}/Engine/Resources
+        -DSRC=${LEON_ENGINE_CONTENT}
+        -DDST=${_editor_exe_dir}/Engine/Content
         -DREMOVE_ORPHANS=ON
         -P ${_leon_sync}
     # The editor runs from its own folder, so the HLSL sources it compiles at start-up go there too.

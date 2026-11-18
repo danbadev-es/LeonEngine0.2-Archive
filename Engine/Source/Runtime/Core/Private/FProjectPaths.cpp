@@ -64,7 +64,7 @@ namespace Leon {
     }
 
     std::string FProjectPaths::EngineContentDir() {
-        return "Engine/Resources";
+        return "Engine/Content";
     }
 
     std::string FProjectPaths::EngineConfigDir() {
@@ -203,7 +203,7 @@ namespace Leon {
         if (ec || exeDir.empty())
             return false;
 
-        const fs::path packagedResources = exeDir / "Engine" / "Resources";
+        const fs::path packagedResources = exeDir / "Engine" / "Content";
         if (!fs::is_directory(packagedResources, ec))
             return false;
 
@@ -217,7 +217,7 @@ namespace Leon {
             return true;
 
         std::error_code ec;
-        if (fs::is_directory(fs::path("Engine") / "Resources", ec))
+        if (fs::is_directory(fs::path("Engine") / "Content", ec))
             return true;
         if (!InExecutableArgv0 || InExecutableArgv0[0] == '\0')
             return false;
@@ -237,7 +237,7 @@ namespace Leon {
         for (int depth = 0; depth < 10 && !cursor.empty(); ++depth) {
             // A missing folder reports an error here; it only means "keep walking up".
             std::error_code probe;
-            if (fs::is_directory(cursor / "Engine" / "Resources", probe)) {
+            if (fs::is_directory(cursor / "Engine" / "Content", probe)) {
                 fs::current_path(cursor, ec);
                 return !ec;
             }

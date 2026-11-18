@@ -18,7 +18,7 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LOGO_PNG = ROOT / "Engine" / "Resources" / "Icon" / "Logo.png"
+LOGO_PNG = ROOT / "Engine" / "Content" / "Icon" / "Logo.png"
 ICON_DIR = ROOT / "Engine" / "Source" / "Editor" / "Resources" / "Icons"
 OUT_PNG = ICON_DIR / "LeonEditor.png"
 OUT_ICO = ICON_DIR / "LeonEditor.ico"
@@ -205,8 +205,8 @@ def write_ico(path: Path, images: list[tuple[int, bytes]]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build LeonEditor.ico from Engine/Resources/Icon/Logo.png")
-    parser.add_argument("--src", type=Path, default=None, help="Source PNG (defaults to Engine/Resources/Icon/Logo.png)")
+    parser = argparse.ArgumentParser(description="Build LeonEditor.ico from Engine/Content/Icon/Logo.png")
+    parser.add_argument("--src", type=Path, default=None, help="Source PNG (defaults to Engine/Content/Icon/Logo.png)")
     args = parser.parse_args()
 
     src = args.src if args.src is not None else LOGO_PNG

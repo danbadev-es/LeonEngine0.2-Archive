@@ -198,7 +198,7 @@ Keep the function on `FViewportPanel` (no `FSceneRay` type).
 
 ### 4.2 Grid + snap
 
-- Draw an XZ grid in the editor debug pass (engine already has `Engine/Resources/Materials/M_WorldGrid.lmat`). Toggle next to existing Show Flags gizmos (`bShowEditorGizmos` or a sibling `bShowGrid`, default true).
+- Draw an XZ grid in the editor debug pass (engine already has `Engine/Content/Materials/M_WorldGrid.lmat`). Toggle next to existing Show Flags gizmos (`bShowEditorGizmos` or a sibling `bShowGrid`, default true).
 - `FTransformGizmo`: snap **only the active axis**; local translate snaps along `DragAxisDir`, not world XYZ independently.
 - Implement unused `EGizmoAxis` plane values (`PlaneXY` / `PlaneXZ` / `PlaneYZ`) and `Uniform` scale **or delete the enum entries**. Do not leave dead Unreal-like names.
 
@@ -206,7 +206,7 @@ Keep the function on `FViewportPanel` (no `FSceneRay` type).
 
 `FProceduralPrimitiveSpawner::SpawnShape` today: `Cube`, `Sphere`, `Cylinder`, `Plane`.
 
-Add **`Ramp`**: engine builtin `.lmesh` (same pipeline as Cube — author FBX → `Engine/Resources/Meshes/Ramp.lmesh` via AssetTool) and a Place Actors Shapes item `"Ramp"`.
+Add **`Ramp`**: engine builtin `.lmesh` (same pipeline as Cube — author FBX → `Engine/Content/Meshes/Ramp.lmesh` via AssetTool) and a Place Actors Shapes item `"Ramp"`.
 
 Do not invent `FRampActor`. Spawn stays `AActor` + `FStaticMeshComponent` like other shapes.
 

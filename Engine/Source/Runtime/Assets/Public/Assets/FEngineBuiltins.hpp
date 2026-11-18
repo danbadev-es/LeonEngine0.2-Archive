@@ -6,7 +6,7 @@ namespace Leon {
 
     /**
      * Engine built-in content (Unreal-style /Engine/... assets).
-     * Writes missing files under Engine/Resources and registers them in UAssetManager.
+     * Writes missing files under Engine/Content and registers them in UAssetManager.
      * When a matching .fbx exists next to a primitive .lmesh (Blender export, Y-up),
      * that FBX is imported and rebaked into the .lmesh.
      */

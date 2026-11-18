@@ -33,7 +33,7 @@ python Tools/validate_project.py --project Samples/Sandbox/Sandbox.lproject
 | `Engine/Source/Editor/` | The editor (`LeonEditor`) |
 | `Engine/Source/Programs/` | Stand-alone tools (`AssetTool`, `LightmassTool`, `ProjectTool`) |
 | `Engine/Plugins/` | Backends and optional features (RHI, physics, networking) |
-| `Engine/Resources/` | Engine shaders, fonts and built-in assets |
+| `Engine/Content/` | Engine shaders, fonts and built-in assets |
 | `Engine/ThirdParty/` | Vendored dependencies |
 | `Games/` | Game projects (`LeonHorror`, `LeonTournament`) |
 | `Samples/` | Reference project (`Sandbox`) |

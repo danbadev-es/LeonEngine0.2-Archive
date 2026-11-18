@@ -43,8 +43,8 @@ namespace Leon {
 
         // Prefer Inter Bold for crisp HUD digits; fall back to Regular.
         const char* fontCandidates[] = {
-            "Engine/Resources/Fonts/Inter-Bold.ttf",
-            "Engine/Resources/Fonts/Inter-Regular.ttf",
+            "Engine/Content/Fonts/Inter-Bold.ttf",
+            "Engine/Content/Fonts/Inter-Regular.ttf",
         };
         for (const char* fontPath : fontCandidates) {
             std::ifstream file(fontPath, std::ios::binary | std::ios::ate);

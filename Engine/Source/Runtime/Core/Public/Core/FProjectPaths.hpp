@@ -37,7 +37,7 @@ namespace Leon {
         static std::string LocateProjectFile(const std::string& InPathOrDir);
 
         /**
-         * @brief If argv0 sits next to Engine/Resources (shipping layout), chdir there.
+         * @brief If argv0 sits next to Engine/Content (shipping layout), chdir there.
          * Dev builds keep the caller's cwd (engine root) because that folder is absent.
          */
         static bool AdoptPackagedWorkingDirectory(const char* InExecutableArgv0);
@@ -46,7 +46,7 @@ namespace Leon {
          * @brief Makes engine resource paths resolve wherever the executable was started from.
          *
          * Order: a packaged layout beside the executable; the current directory if it already holds
-         * Engine/Resources; otherwise the nearest parent of the executable that does (a build tree
+         * Engine/Content; otherwise the nearest parent of the executable that does (a build tree
          * inside the repository). Returns false when no engine root was found.
          */
         static bool AdoptEngineRoot(const char* InExecutableArgv0);

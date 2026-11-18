@@ -38,7 +38,7 @@ own copy of everything. See [ADR 0007](adr/0007-one-build-tree-and-enforced-modu
 LeonEngine2 strictly decouples physical file locations on disk from asset references in code and maps:
 
 ```text
-/Engine/Shaders/PBR_Lit.glsl  ──►  Engine/Resources/Shaders/PBR_Lit.glsl
+/Engine/Shaders/PBR_Lit.glsl  ──►  Engine/Content/Shaders/PBR_Lit.glsl
 /Game/Maps/ShowcaseLevel      ──►  Games/<Project>/Content/Maps/ShowcaseLevel.lmap
 /Game/Materials/M_Floor       ──►  Games/<Project>/Content/Materials/M_Floor.lmat
 ```
@@ -80,7 +80,7 @@ python Tools/package_project.py --project Samples/Sandbox/Sandbox.lproject --con
    - `<Name>.exe` and `<Name>.lproject`
    - `Content/` (game assets)
    - `Config/` (Multi-INI configurations)
-   - `Engine/Resources/` (runtime shaders, fonts, fallback textures)
+   - `Engine/Content/` (runtime shaders, fonts, fallback textures)
    - Compiler runtime DLLs (MSVC / MinGW redistributables)
 4. **Archive Creation**: Compresses the staging directory into `<Name>-Win64-Shipping.zip` for one-click distribution.
 

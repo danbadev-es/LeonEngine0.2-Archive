@@ -224,7 +224,7 @@ namespace Leon {
         // (packaged layout, or a build tree inside the repository) so the game starts from anywhere.
         if (InArgs.Args && InArgs.Count > 0 && InArgs.Args[0]) {
             if (!FProjectPaths::AdoptEngineRoot(InArgs.Args[0]))
-                LE_CORE_WARN("UEngine: Engine/Resources not found from the working directory or the executable");
+                LE_CORE_WARN("UEngine: Engine/Content not found from the working directory or the executable");
         }
 
         LE_CORE_INFO("==================================================");
