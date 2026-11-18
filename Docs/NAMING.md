@@ -50,47 +50,29 @@ These exist in the tree and must not be mass-renamed without a dedicated sweep. 
 
 ## 2. Runtime Module Layout (Unreal-style)
 
+Every module is `Engine/Source/Runtime/<Module>/{Public/<Module>,Private}`:
+
 ```text
-Engine/
-├── Assets/                          # Engine shaders, fonts, LUTs
-└── Source/
-    └── Runtime/
-        ├── Core/Public/Core/       # FWindow, FLog, FInput, FLayer, …
-        ├── Core/Private/
-        ├── Engine/Public/Engine/   # UEngine, UWorld, UGameInstance, serializers
-        ├── Engine/Private/
-        ├── Gameplay/Public/Gameplay/
-        ├── Gameplay/Private/
-        ├── UMG/Public/UMG/         # UWidget hierarchy, FUIRenderer
-        ├── UMG/Private/
-        ├── Renderer/Public/Renderer/
-        ├── Renderer/Private/
-        ├── RHI/Public/RHI/
-        ├── RHI/Private/
-        ├── Assets/Public/Assets/
-        ├── Assets/Private/
-        ├── AI/Public/AI/               # UBehaviorTree, UBlackboard*, UAIPerceptionComponent
-        ├── AI/Private/
-        ├── Audio/Public/Audio/         # FAudioDevice, USoundWave, UAudioComponent
-        ├── Audio/Private/
-        ├── Physics/Public/Physics/     # IPhysicsScene, FHitResult, FSimplePhysicsScene
-        ├── Physics/Private/
-        ├── Lightmass/Public/Lightmass/  # FLightmass, FLightBaker, FLightmapBuilder
-        └── Lightmass/Private/
+Core  Platform  RHI  RHINull  RHID3D12  RenderCore  Assets  Audio  Physics
+Renderer  Engine  Gameplay  AI  UMG  Application  Lightmass  Launch
 ```
 
-Plugins (not Runtime modules): `Plugins/RHI/OpenGL` (`FOpenGL*`), `Plugins/Physics/Jolt` (`FJolt*`), `Plugins/Networking/ENet` (`FENetTransport`).
+Development-only modules are under `Engine/Source/Developer` (`ShaderCompiler`). What each module
+holds and may depend on: [ARCHITECTURE.md](ARCHITECTURE.md), section 1.
 
-`AAIController` lives under **Gameplay** (it is an `A*` actor). Behavior tree / perception types live under **AI**.
+Plugins (not Runtime modules): `Engine/Plugins/Physics/Jolt` (`FJolt*`), `Engine/Plugins/Networking/ENet` (`FENetTransport`).
+
+`AAIController` and `UAudioComponent` live under **Gameplay** (an actor, and a component of actors).
+Behavior tree / perception types live under **AI**; the audio device under **Audio**.
 
 Module folder names are **short** (`Core`, `Engine`, …) — no `Leon` prefix on modules.
-CMake exposes aliases `Leon::Core`, `Leon::Engine`, … for linking.
+CMake targets: `Leon::Module::<Name>` for the modules that are libraries, `LeonEngineCore` for the rest.
 C++ code stays in namespace `Leon`.
 
 Includes:
 
 ```cpp
-#include "Core/FWindow.hpp"
+#include "Platform/FWindow.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Renderer/FWorldRenderer.hpp"

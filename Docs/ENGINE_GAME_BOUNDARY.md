@@ -14,15 +14,15 @@ LeonTournament, Shooter, Rifle, TDM, teams, kills, deathmatch, game HUD, game we
 
 ## Configuration, not compilation
 
-Product class names appear in **project** `Config/*.ini` and `.lproject`, never as `#include` of `Projects/...` from `Engine/Source`.
+Product class names appear in **project** `Config/*.ini` and `.lproject`, never as `#include` of game code from `Engine/Source`.
 
-Root CMake `LEON_PROJECT_DIR` selects the game to run. Extra monorepo games are discovered via `Projects/*/CMakeLists.txt` without naming a product in Engine sources.
+The root CMake builds the games listed in `LEON_GAMES` (folders under `Games/` or `Samples/`) and `LEON_EXTERNAL_GAME_DIRS`; each registers itself with `leon_register_game`, so no engine source names a product.
 
 ## Enforcement
 
 | Check | Location |
 | :--- | :--- |
-| No `Sandbox` / `LeonTournament` / `Projects/<Product>` in Engine sources | `Tools/verify_ue_naming.py` |
+| No game name or game path in Engine sources | `Tools/verify_ue_naming.py` |
 | No game tokens in `Engine/Source` | `Tests/Gameplay/EngineGameSeparationTests.cpp` |
 | Engine test binary does not link game `.cpp` | `Tests/CMakeLists.txt` (`RendererTests`) |
 

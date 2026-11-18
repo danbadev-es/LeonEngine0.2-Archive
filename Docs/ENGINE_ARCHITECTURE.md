@@ -1,26 +1,33 @@
 # LeonEngine2 — Engine Architecture
 
-This document describes the reusable engine layer. Product games live under `Projects/` and must not be referenced from `Engine/`. Companion docs: [GAMEPLAY_FRAMEWORK.md](GAMEPLAY_FRAMEWORK.md), [ENGINE_GAME_BOUNDARY.md](ENGINE_GAME_BOUNDARY.md), [TESTING_ARCHITECTURE.md](TESTING_ARCHITECTURE.md), [ARCHITECTURE.md](ARCHITECTURE.md), [NAMING.md](NAMING.md), [RENDERER.md](RENDERER.md).
+This document describes the reusable engine layer. Games live under `Games/` and `Samples/` and must not be referenced from `Engine/`. Companion docs: [GAMEPLAY_FRAMEWORK.md](GAMEPLAY_FRAMEWORK.md), [ENGINE_GAME_BOUNDARY.md](ENGINE_GAME_BOUNDARY.md), [TESTING_ARCHITECTURE.md](TESTING_ARCHITECTURE.md), [ARCHITECTURE.md](ARCHITECTURE.md), [NAMING.md](NAMING.md), [RENDERER.md](RENDERER.md).
 
 ## High-level tree
 
 ```text
 LeonEngine2/
 ├── Engine/Source/Runtime/
-│   ├── Core/          FApplication, FWindow, FInput, FConfigFile, FLog
+│   ├── Core/          FLog, FConfigFile, FProjectPaths, UObject
+│   ├── Platform/      FWindow, FInput
+│   ├── RHI/           IRHIDevice, IRHICommandList (+ RHID3D12, RHINull backends)
+│   ├── RenderCore/    vertex formats, camera, colour / shadow maths, shader library
+│   ├── Assets/        UAssetManager, meshes, skeleton, animation, materials, HDR
+│   ├── Audio/         FAudioDevice, USoundWave
+│   ├── Physics/       IPhysicsScene (Jolt behind a plugin), collision types
+│   ├── Renderer/      FWorldRenderer, post-processing, particles, debug drawing
 │   ├── Engine/        UEngine, UWorld, UGameInstance, serializers, ECS PODs
 │   ├── Gameplay/      AActor … ACharacter, components, UGameplayStatics
-│   ├── AI/            AAIController, UBehaviorTree, UBlackboard*
-│   ├── Assets/        UAssetManager, meshes, skeleton, BlendSpace, HDR
-│   ├── Renderer/      FWorldRenderer, PBR, IBL, particles, post
-│   ├── RHI/           IGraphicsContext, IRenderAPI, FShader, FTexture
-│   ├── Physics/       IPhysicsScene (Jolt behind a plugin)
-│   ├── Lightmass/     static lighting bake types
-│   └── UMG/           UWidget hierarchy, FUIRenderer, FUILayout
-├── Plugins/           OpenGL RHI, Jolt, ENet
-├── Projects/          Sandbox (sample), LeonTournament (product)
-└── Tests/             Engine suite + per-project suites
+│   ├── AI/            UBehaviorTree, UBlackboard*, navigation, perception
+│   ├── UMG/           UWidget hierarchy, FUIRenderer, FUILayout
+│   ├── Application/   FApplication, layers
+│   ├── Lightmass/     static lighting bake (pipeline library)
+│   └── Launch/        the main() every game shares
+├── Engine/Plugins/    Jolt, ENet
+├── Games/, Samples/   LeonHorror, LeonTournament; Sandbox
+└── Tests/             Engine suite; each game has its own
 ```
+
+Which of these are separate libraries, and what each may depend on: [ARCHITECTURE.md](ARCHITECTURE.md), section 1.
 
 ## Class hierarchy (gameplay)
 
@@ -192,7 +199,7 @@ Source (FBX, HDR, PNG, …)
   → Runtime UObject
 ```
 
-Engine never hardcodes `Projects/<Product>/…` paths.
+Engine never hardcodes a game's path.
 
 ## World / level
 

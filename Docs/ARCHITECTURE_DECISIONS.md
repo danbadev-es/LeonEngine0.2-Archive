@@ -21,29 +21,15 @@ Unreal Engine provides one of the industry's most battle-tested and extensible g
 
 ## 2. Product Separation & Build Model
 
-### The Three Independent CMake Products
-Rather than a single monolithic build, LeonEngine2 separates code into three distinct CMake products, writing to isolated output directories under `out/`:
-
-```text
-┌────────────────────────────────────────────────────────────────────────────────┐
-│ 1. ENGINE PRODUCT (cmake -S . -B out/Engine -DLEON_PRODUCT=Engine)             │
-│    Outputs: LeonEngineCore.lib, Plugins (OpenGL, Jolt, ENet), Tools            │
-│             (AssetTool, LightmassTool, ProjectTool), and unit/GPU tests        │
-├────────────────────────────────────────────────────────────────────────────────┤
-│ 2. EDITOR PRODUCT (cmake -S Editor -B out/Editor)                              │
-│    Outputs: LeonEditor.exe (out/Editor/)                                       │
-│    Consumes: LeonEngineCore + Plugins + Dear ImGui Docking + Editor Panels     │
-├────────────────────────────────────────────────────────────────────────────────┤
-│ 3. PROJECT PRODUCT (cmake -S . -B out/Games/<Name> -DLEON_PRODUCT=Project)  │
-│    Outputs: _project/<Game>.exe (out/Games/<Name>/)                         │
-│    Consumes: LeonEngineCore + Plugins + Single Game Source (Zero Editor/ImGui) │
-└────────────────────────────────────────────────────────────────────────────────┘
-```
+One CMake tree (`out/build/<preset>`) builds the engine modules, the tools, the editor, the games and
+the tests; dependencies are fetched and compiled once. Earlier each product had its own tree and its
+own copy of everything. See [ADR 0007](adr/0007-one-build-tree-and-enforced-modules.md) and
+[BUILD.md](BUILD.md).
 
 ### Rationale:
-1. **Zero Editor Bloat in Runtime Games**: The game executable (`_project/<Game>.exe`) never includes ImGui or editor panels.
-2. **Multi-Project Scalability**: The engine does not hardcode any game names. Any external `.lproject` can be built against the engine using `python Tools/build_project.py --project <path>`.
-3. **Clean Incremental Builds**: Changes to editor UI do not invalidate game runtime compilation artifacts, and vice versa.
+1. **No editor code in games**: a game executable links the engine and `Launch`, never ImGui or editor panels.
+2. **The engine names no game**: a game registers itself with `leon_register_game`; any external `.lproject` builds against the engine with `python Tools/build_project.py --project <path>` or `LEON_EXTERNAL_GAME_DIRS`.
+3. **Module boundaries are enforced by the build**: a module only sees the headers of the modules it declares.
 
 ---
 

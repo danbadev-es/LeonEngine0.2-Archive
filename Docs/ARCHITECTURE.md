@@ -6,34 +6,61 @@ This document details the architectural principles, dependency hierarchy, subsys
 
 ## 1. Architectural Principles & Dependency Direction
 
-LeonEngine2 follows a strict, unidirectional dependency hierarchy adhering to **Dependency Inversion** and **Separation of Concerns**, with naming standards inspired by the **Unreal Engine C++ Coding Standard**.
+Dependencies point one way: games and the editor use the engine; the engine never names a game.
+Inside the engine, lower modules never include higher ones. Naming follows the Unreal Engine C++
+coding standard ([NAMING.md](NAMING.md)). The decisions behind the current shape are in [adr/](adr/).
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                          PROJECTS                           │
-│             (Sandbox, Editor, Game Applications)            │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                ┌──────────────┴──────────────┐
-                │                             │
-                ▼ (uses engine)               ▼ (links backend)
-┌──────────────────────────────┐     ┌────────────────────────┐
-│            ENGINE            │     │      PLUGINS (RHI)     │
-│   (Core, FWindow, Lifecycle,  │◄────┤  (OpenGL, Vulkan, etc.)│
-│   Renderer Interfaces, RHI)  │     │                        │
-└──────────────────────────────┘     └────────────────────────┘
+ Games (LeonHorror, LeonTournament), Samples (Sandbox), Editor
+                      │ use
+                      ▼
+ Launch ──► LeonEngineCore (Renderer, Engine, Gameplay, AI, UMG, Application)
+                      │
+                      ▼
+        Assets · Audio · Physics ──► RenderCore ──► RHI ──► Core
+                                                     ▲
+                                  RHID3D12, RHINull ─┘        Platform ──► Core
 ```
 
-### Strict Rules:
+### Modules
 
-1. **Engine $\rightarrow$ Projects**: **FORBIDDEN.** The engine is an agnostic reusable library. It must never reference or include any code from `Projects/`, and must never hardcode a product name (e.g. Sandbox) or `Samples/Sandbox` path. Enforced by `Tools/verify_ue_naming.py`.
-2. **Plugins $\rightarrow$ Projects**: **FORBIDDEN.** Hardware plugins/drivers are low-level rendering backends. They must never know about client applications.
-3. **Plugins $\rightarrow$ Engine Runtime Public headers**: **ALLOWED & REQUIRED.** Plugins depend on the abstract interfaces under `Engine/Source/Runtime/*/Public/` (such as `RHI/IGraphicsContext.hpp`, `RHI/FBuffer.hpp`, `RHI/IRenderDriver.hpp`, `Core/Base.hpp`) in order to implement them.
-4. **Engine $\rightarrow$ Plugins**: **FORBIDDEN.** The `Engine` core contains **zero `#include` directives** pointing to plugin implementation headers (e.g., `opengl/...`). All hardware object instantiation is mediated via the **`FRenderDriverRegistry`** factory registry.
+A module is a static library made with `leon_add_module(Name DEPENDS ...)` (`cmake/LeonModule.cmake`).
+It sees its own headers and those of the modules it declares; an include pointing the wrong way does
+not compile.
 
-### Engine / Project isolation (Unreal-like)
+| Module | Depends on | Holds |
+| :--- | :--- | :--- |
+| `Core` | — | Log, config files, project paths, `UObject` base, events |
+| `Platform` | Core | Window, input (GLFW stays inside this module) |
+| `RHI` | Core | GPU interface (`IRHIDevice`, `IRHICommandList`), render statistics, the resource classes assets still use |
+| `RHINull` | RHI | A backend with no GPU, for tests and tools |
+| `RHID3D12` | RHI | The Direct3D 12 backend |
+| `ShaderCompiler` (Developer) | RHI | HLSL to DXIL with DXC |
+| `RenderCore` | Core, RHI, ShaderCompiler | Vertex formats, camera, colour / lighting / shadow maths, shader library, shader constant structures |
+| `Assets` | Core, RHI, RenderCore | Asset types and `UAssetManager`: meshes, skeletons, animation, textures, materials |
+| `Audio` | Core | Audio device and sound data |
+| `Physics` | Core, Assets | Physics interface for backends, collision vocabulary, physics assets |
+| `LeonEngineCore` (one library) | all of the above | `Renderer` (the world renderer), `Engine` (world, maps, net), `Gameplay`, `AI`, `UMG`, `Application` |
+| `Launch` | LeonEngineCore, RHID3D12, Jolt | The `main()` every game shares |
 
-Like Unreal, **build/run tools live with the Engine** and are invoked *against* a `.lproject`:
+The modules inside `LeonEngineCore` keep their own folders but still compile together, because they
+include each other in cycles around `UWorld` and `AActor`. What separating them needs is recorded in
+[ADR 0007](adr/0007-one-build-tree-and-enforced-modules.md).
+
+### Rules
+
+1. **Engine → games: forbidden.** Engine sources never include game code nor contain a game's name or
+   path. Enforced by `Tools/verify_ue_naming.py` and `Tests/Gameplay/EngineGameSeparationTests.cpp`.
+2. **Runtime → Developer / Editor: forbidden.** Importers, the light baker and the editor depend on
+   the runtime, never the other way round.
+3. **Graphics API only below the RHI.** Direct3D is used in `RHID3D12` and nowhere else; the renderer,
+   the editor and the tests draw through `IRHIDevice` / `IRHICommandList`.
+4. **Plugins implement engine interfaces** (`IPhysicsScene` by Jolt, `INetTransport` by ENet) and are
+   registered at start-up; the engine does not include plugin headers.
+
+### Engine and projects
+
+Build and run tools live with the engine and are pointed at a `.lproject`:
 
 ```text
 python Tools/build_engine.py
@@ -45,21 +72,13 @@ python Tools/bake_lightmaps.py --project Samples/Sandbox/Sandbox.lproject
 python Tools/create_project.py --name MyGame --output D:/Games/MyGame
 ```
 
-Environment: `LEON_ENGINE_ROOT` (optional), `LEON_PROJECT` (or `--project`). Full inventory: [SCRIPTS.md](SCRIPTS.md).
+Environment: `LEON_ENGINE_ROOT` (optional), `LEON_PROJECT` (or `--project`). Full inventory:
+[SCRIPTS.md](SCRIPTS.md). Building: [BUILD.md](BUILD.md).
 
-| Owner | Responsibility |
-| :--- | :--- |
-| Engine (`Engine/`, `Plugins/`, `Scripts/`, `Tools/`) | Runtime, RHI plugins, asset tool, build/verify scripts |
-| Editor (`Editor/`) | Out-of-process ImGui host (`LeonEditor`); separate `out/Editor` build |
-| Project (`Games/<Name>/` or any external path) | `Main`, gameplay classes, Content, Config, `.lproject`, thin CMake target |
-
-- `UEngine::Run` requires a `.lproject` (argv `--project=`, explicit path, or discovery) — **no Sandbox default inside Engine**.
-- Root CMake `LEON_PRODUCT=Engine|Project`; Editor uses `cmake -S Editor`. Artifacts: `out/Engine`, `out/Editor`, `out/Games/<Name>`. See [BUILD.md](BUILD.md).
-- One Project configure builds **one** game (`LEON_PROJECT_DIR`).
-- There is no UBT / `.Build.cs` yet; CMake + these Python scripts are the lite equivalent.
-- Product shortcuts (e.g. Sandbox) live under `Games/<Name>/Scripts/`, never as Engine defaults.
-
-**Isolation checklist:** `grep` / CI must not find `Samples/Sandbox`, `Games/LeonTournament`, or bare product names (`Sandbox`, `LeonTournament`) under `Engine/Source`. Enforced by `Tools/verify_ue_naming.py` and `Tests/Gameplay/EngineGameSeparationTests.cpp`.
+- One CMake tree builds engine, editor, tools, games and tests (`CMakePresets.json`).
+- A game registers itself with `leon_register_game`; the editor gets its list of games from a table
+  CMake generates. Games outside the repository are added with `LEON_EXTERNAL_GAME_DIRS`.
+- `UEngine::Run` requires a `.lproject`: there is no default game inside the engine.
 
 ---
 
@@ -67,40 +86,27 @@ Environment: `LEON_ENGINE_ROOT` (optional), `LEON_PROJECT` (or `--project`). Ful
 
 ```text
 LeonEngine2/
-├── Docs/                                  # Technical specifications (NAMING, ARCHITECTURE, …)
-├── Scripts/                               # Engine tooling — see Docs/SCRIPTS.md
-├── CMake/                                 # Shared CMake helpers (stack, ImGui, sync)
+├── CMakeLists.txt, CMakePresets.json      # one build tree: out/build/<preset>
+├── cmake/                                 # compile options, dependencies, leon_add_module()
 ├── Engine/
-│   ├── Assets/                            # Engine shaders, fonts, BRDF LUT
-│   ├── CMakeLists.txt                     # LeonEngineCore (single link unit today)
-│   └── Source/Runtime/                    # Unreal-style modules (Public + Private)
-│       ├── Core/Public/Core/             # FApplication, FWindow, FLog, …
-│       ├── RHI/Public/RHI/                # IGraphicsContext, IRenderAPI, FBuffer, …
-│       ├── Assets/Public/Assets/         # UAssetManager, UStaticMesh, importers
-│       ├── Renderer/Public/Renderer/     # FWorldRenderer, FMaterial, IBL, post
-│       ├── UMG/Public/UMG/               # UWidget hierarchy, FUIRenderer
-│       ├── Engine/Public/Engine/         # UEngine, UWorld, serializers
-│       ├── Gameplay/Public/Gameplay/     # AActor, APawn, UGameplayStatics, …
-│       ├── AI/Public/AI/                 # Behavior trees, blackboard, perception
-│       ├── Audio/Public/Audio/           # FAudioDevice, USoundWave
-│       ├── Physics/Public/Physics/       # IPhysicsScene, traces
-│       └── Lightmass/Public/Lightmass/   # FLightmass, FLightBaker (offline bake)
-├── Editor/
-│   ├── CMakeLists.txt                     # Separate product entry (out/Editor)
-│   ├── Source/Public/Editor/              # FEditorApp, FViewportPanel (NAMING)
-│   ├── Source/Private/
-│   └── Resources/
-├── Plugins/RHI/OpenGL/                    # FOpenGL* backend
-├── Plugins/Physics/Jolt/                  # FJoltPhysicsDriver
-├── Plugins/Networking/ENet/               # FENetTransport
-├── Samples/Sandbox/
-├── Tests/
-└── ThirdParty/
+│   ├── Source/
+│   │   ├── Runtime/<Module>/{Public/<Module>,Private}   # what ships with a game (table above)
+│   │   ├── Developer/ShaderCompiler/      # development only
+│   │   ├── Editor/                        # LeonEditor
+│   │   └── Programs/                      # AssetTool, LightmassTool, ProjectTool
+│   ├── Shaders/                           # HLSL
+│   ├── Resources/                         # engine content (fonts, LUTs) and the old shader names materials still use
+│   ├── Plugins/Physics/Jolt, Plugins/Networking/ENet
+│   └── ThirdParty/
+├── Games/LeonHorror, Games/LeonTournament
+├── Samples/Sandbox
+├── Tests/                                 # engine suite; each game has its own under <Game>/Tests
+├── Tools/                                 # Python scripts — see SCRIPTS.md
+└── Docs/                                  # this folder; decisions in Docs/adr
 ```
 
-> **Include form:** `#include "Engine/UWorld.hpp"`, `#include "Renderer/FWorldRenderer.hpp"`.  
-> Namespace remains `Leon::`. Module folders are short (`Core`, not `LeonCore`).  
-> CMake still links one `LeonEngineCore` static lib; Public trees are the modular contract.
+> **Include form:** `#include "Engine/UWorld.hpp"`, `#include "RenderCore/FVertexLayout.hpp"`.
+> Namespace is `Leon::`. Module folders are short (`Core`, not `LeonCore`).
 
 > **Naming contract:** UE-style `U`/`A`/`F` prefixes are used without Unreal GC or reflection.
 > `AActor` wraps an EnTT entity; render components are POD structs on the registry.
@@ -176,10 +182,11 @@ This is **not** full Unreal config stacking (`Base.ini` + project + `Saved/Confi
 3. **`DefaultInput.ini`**: `FInputSettings` consumed by pawns.
 
 ### 3.5 Entry point
-The **project** executable registers the RHI driver and project classes, resolves its `.lproject`
-(`--project=` → `LEON_PROJECT` → beside exe → project-local fallback), then calls
-`UEngine::Run(args, projectPath)`. There is no `EntryPoint.hpp`. Prefer
-`Tools/run_project.py --project <path>` so the Engine never assumes a product path.
+Every game's `main()` fills a `FGameLaunchDesc` (project name, the function that registers its classes,
+an optional hook for its own command line arguments) and calls `LaunchGame` from the `Launch` module.
+`LaunchGame` registers the Direct3D 12 backend and Jolt, resolves the `.lproject` (`--project=` →
+bare `*.lproject` argument → `LEON_PROJECT` → beside the executable → working directory → the game's
+default path) and runs the engine.
 
 ---
 
@@ -193,56 +200,32 @@ The **project** executable registers the RHI driver and project classes, resolve
 * Allows game logic, debug tools, and UI systems to be isolated into distinct `FLayer` instances.
 * Updates flow forward through the stack (`Layer 0 -> Layer N`), while events flow backwards from overlays down to base layers until marked handled (`bHandled = true`).
 
-### 3.3 FWindow & Graphics Context (`FWindow.hpp`, `IGraphicsContext.hpp`)
-* `FWindow` creates the GLFW window surface and instantiates a `TScope<IGraphicsContext>` via `IGraphicsContext::Create()`.
-* Graphics context initialization and buffer swap (`SwapBuffers()`) are owned and executed automatically by `FWindow`.
+### 3.3 FWindow (`Platform/FWindow.hpp`)
+* `FWindow` creates the GLFW window with no graphics API attached (`GLFW_NO_API`) and exposes its
+  native handle. The application creates the swapchain on it through the RHI.
+* No public header exposes a GLFW type.
 
 ---
 
-## 4. The Render Hardware Interface (RHI) Driver System
+## 4. The Render Hardware Interface (RHI)
 
-The RHI decoupling is powered by the **`IRenderDriver`** factory pattern:
+The RHI is shaped like Direct3D 12, and small ([ADR 0003](adr/0003-explicit-rhi-with-a-fixed-binding-model.md)):
 
-```cpp
-namespace Leon {
+* `IRHIDevice` creates buffers, textures, shaders (bytecode), graphics pipelines and the swapchain;
+  uploads and reads back textures; opens and closes a frame.
+* `IRHICommandList` records a frame: render passes, pipeline, vertex and index data, constants,
+  textures, draws.
+* State is not global: culling, depth and blending live in the pipeline description.
+* Binding is fixed: constant buffers `b0` frame, `b1` pass, `b2` material, `b3` draw, `b4` bones;
+  textures `t0..t15`; five fixed samplers. Constants are copied per draw, so a draw can never see the
+  values of the previous one.
+* Backends register themselves (`FD3D12RHI::Register()`, the null backend for tests) and
+  `FRHI::Init` picks one.
 
-    class IRenderDriver {
-    public:
-        virtual ~IRenderDriver() = default;
-        virtual TScope<IGraphicsContext> CreateGraphicsContext(void* InWindowHandle) = 0;
-        virtual TScope<IRenderAPI> CreateRenderAPI() = 0;
-        virtual TRef<FVertexBuffer> CreateVertexBuffer(unsigned int InSize) = 0;
-        virtual TRef<FVertexBuffer> CreateVertexBuffer(const float* InVertices, unsigned int InSize) = 0;
-        virtual TRef<FIndexBuffer> CreateIndexBuffer(const uint32_t* InIndices, unsigned int InCount) = 0;
-        virtual TRef<FVertexArray> CreateVertexArray() = 0;
-        virtual TRef<FShader> CreateShader(const std::string& InName, const std::string& InVertexSrc,
-                                           const std::string& InFragmentSrc) = 0;
-        virtual TRef<FTexture2D> CreateTexture2D(uint32_t InWidth, uint32_t InHeight) = 0;
-        virtual TRef<FTexture2D> CreateTexture2D(uint32_t InWidth, uint32_t InHeight, ETextureFormat InFormat) = 0;
-        virtual TRef<FTexture2D> CreateTexture2D(const std::string& InPath) = 0;
-        virtual TRef<FTextureCube> CreateTextureCube(uint32_t InWidth, uint32_t InHeight, bool InbHDR) = 0;
-        virtual TRef<FFramebuffer> CreateFramebuffer(const FFramebufferSpecification& InSpec) = 0;
-        virtual TRef<FUniformBuffer> CreateUniformBuffer(uint32_t InSize, uint32_t InBinding) = 0;
-    };
-
-    class FRenderDriverRegistry {
-    public:
-        static void RegisterDriver(ERenderAPI InAPI, TScope<IRenderDriver> InDriver);
-        static IRenderDriver* GetDriver(ERenderAPI InAPI);
-        static IRenderDriver* GetActiveDriver();
-    };
-
-}
-```
-
-### Agnostic Resource Creation:
-When client or engine code requests a GPU resource:
-```cpp
-Leon::TRef<Leon::FVertexBuffer> vb = Leon::FVertexBuffer::Create(vertices, size);
-```
-1. `FVertexBuffer::Create` queries `FRenderDriverRegistry::GetActiveDriver()`.
-2. The active driver (e.g., `FOpenGLRenderDriver`) instantiates the concrete backend resource (`FOpenGLVertexBuffer`).
-3. The engine never references backend headers directly.
+`FVertexBuffer`, `FIndexBuffer`, `FTexture2D` and `FTextureCube` (with `FLegacyRenderDriver`) remain
+as the resource classes meshes and materials hold; they are thin wrappers over RHI objects
+([ADR 0008](adr/0008-asset-resource-classes-kept-as-a-bridge.md)). Details of the renderer on top:
+[RENDERER.md](RENDERER.md).
 
 ---
 
@@ -291,29 +274,28 @@ Runtime: `diffuseIBL = E * albedo / π`, `specularIBL = Li_prefilter * (F_rough 
 
 Runtime path: `UEngine` → viewport layer → `UWorld::OnRender` → `FWorldRenderer::Render`.
 
-Implementation is split across `FWorldRenderer.cpp` (frame + FBOs), `FWorldRendererLighting.cpp` (CSM / spot / planar / sky / IBL), `FWorldRendererGeometry.cpp` (opaque / skinned outline / transparent), `FWorldRendererPostProcess.cpp`.
+Implementation: `FWorldRenderer.cpp` (view state: lights, LOD, IBL, planar planes), `FWorldRendererRHI.cpp` (the passes), `FPostProcessRHI.cpp` (post-processing), `FImmediateDrawRHI.cpp` (HUD, text, debug lines, particles).
 
 Static lighting (offline): `LightmassTool bake` → `FLightmass` / `FLightBaker` → `.llightmap`. Runtime sampling: [STATIC_LIGHTING.md](STATIC_LIGHTING.md). Bake AO: when enabled, `FLightBaker` multiplies AO into stored `E` (aligned with [RENDERER_CONTRACT.md](RENDERER_CONTRACT.md)). Renderer docs: [RENDERER.md](RENDERER.md).
 
 ```text
-Gather lights (skip ELightMobility::Static) → Lighting UBO
+Gather lights (skip ELightMobility::Static) → pass constants
 UpdateIBL
-PASS 1: Cascaded Shadow (4-slice DEPTH32F array, front-face cull)
-PASS 2: Spot shadow (one 2D DEPTH32F map — `ShadowedSpotIndex` in the runtime spot list)
+PASS 1: Cascaded Shadow (4-slice D32_Float array)
+PASS 2: Spot shadow (one 2D D32_Float map — `ShadowedSpotIndex` in the runtime spot list)
 PASS 3: Planar reflection (mirrored camera, RGBA16F, shadows disabled, clip plane)
-PASS 4: Opaque HDR geometry RGBA16F — CPU AABB frustum cull,
-         GPU instancing (same VA + material, ≤64)
+PASS 4: Opaque HDR geometry RGBA16F — CPU AABB frustum cull, one draw per mesh section
          opaque → skinned inverted-hull outline
 PASS 5: Skybox (z = w, depth LessEqual)
 PASS 6: Transparent Blend (back-to-front, depth write off)
 PASS 7: 3D world text → particles → optional gameplay debug (depth test on, write off)
 PASS 8: SSAO → Bloom → exposure → tone map (ACES default) → IEC sRGB → FXAA
-Restore PreviousFBO → UI / F1 overlay → Present
+UI / F1 overlay on the output → Present
 ```
 
-**Coordinates (implemented):** right-handed, +Y up, camera forward −Z (default yaw −90°), OpenGL clip $z \in [-1,1]$, front face CCW, `M = T * R * S`, GPU column-major no-transpose. Not reversed-Z. Near 0.1 / far 1000. Actor world pose is `AActor::GetActorWorldMatrix()` (root `USceneComponent` chain, else `FTransformComponent`).
+**Coordinates (implemented):** right-handed, +Y up, camera forward −Z (default yaw −90°), clip $z \in [-1,1]$ in engine matrices (converted to Direct3D's $[0,1]$ where they reach the shaders), front face CCW, `M = T * R * S`, GPU column-major no-transpose. Not reversed-Z. Near 0.1 / far 1000. Actor world pose is `AActor::GetActorWorldMatrix()` (root `USceneComponent` chain, else `FTransformComponent`).
 
-**Planar pass:** not cubemap probes. Floor FBO fills when a plane is registered; optional wall FBO when the camera faces a non-horizontal plane. Games currently register the floor (`n = +Y`, `d = 0`). Contract: [RENDERER_CONTRACT.md](RENDERER_CONTRACT.md#planar-reflections).
+**Planar pass:** not cubemap probes. The floor capture fills when a plane is registered; an optional wall capture when the camera faces a non-horizontal plane. Games currently register the floor (`n = +Y`, `d = 0`). Contract: [RENDERER_CONTRACT.md](RENDERER_CONTRACT.md#planar-reflections).
 
 **Lighting equation (lit):** `hdr = ambient + Lo_direct + baked + emissive`. With a static lightmap, diffuse IBL is replaced by `kD * albedo/π * E`; specular IBL remains. Dynamic lights with `Mobility != Static` still add `Lo_direct`. Material AO multiplies indirect specular (and full ambient when no lightmap), not baked `E` and not direct `Lo`.
 
@@ -327,13 +309,13 @@ LeonEngine2 provides direct single-key forensic debugging controls available acr
 | :--- | :--- | :--- |
 | **`F1`** | **Diagnostics HUD** | Real-time panel rendering FPS, frametimes (CPU/GPU), VRAM allocation, RAM usage, triangle counts, and draw call metrics. |
 | **`F2`** | **3D Light Gizmos** | 3D wireframe cones for Spot Lights, bounding attenuation spheres for Point Lights, and directional sunlight vectors. |
-| **`F3`** | **Wireframe** | Toggle solid fill vs wireframe (`glPolygonMode`). Geometry only; restored before post/UI. |
+| **`F3`** | **Wireframe** | Toggle solid fill vs wireframe (pipeline raster state). Geometry only; restored before post/UI. |
 | **`F4`** | **Material cycle** | Albedo → Metallic → Roughness → AO → Emissive → UV0 → Tangent → Bitangent → N·L. |
 | **`F5`** | **Geometry cycle** | World normals → reflection vector. |
 | **`F6`** | **Lighting cycle** | Lo → direct diffuse → direct specular → IBL specular → IBL diffuse → baked → lightmap irradiance → lightmap UV → Lo+baked (no IBL) → HDR before tone map. |
 | **`F7`** | **IBL maps cycle** | Prefilter mips 0–4 → irradiance cubemap → BRDF LUT. |
 | **`F8`** | **Shadows cycle** | Occlusion mask → CSM false-color → spot shadow → cascade 0–3 depth. |
-| **`F9`** | **Planar buffer** | Offscreen planar reflection texture (`u_DebugMode` 13). |
+| **`F9`** | **Planar buffer** | Offscreen planar reflection texture (debug view 13). |
 | **`F10`** | **Post-process cycle** | Composite → raw HDR → bloom → bright pass → tone map (no FXAA) → SSAO. |
 | **`F11`** | **Post-process master** | Toggle `FPostProcessSettings::bEnabled` (tone map / bloom / SSAO / FXAA). |
 | **`F12`** | **Reset lit** | Shader mode 0, post debug 0, post enabled, solid fill. |
