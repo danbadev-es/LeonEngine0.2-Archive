@@ -94,9 +94,13 @@ namespace Leon {
         return glm::dot(delta, delta) <= NetCullDistanceSquared;
     }
 
+    // The three lifecycle loops below are index-based and hold a local reference to each component:
+    // callbacks may add components (reallocating the vector) or destroy the owning actor.
+
     void AActor::ExecuteBeginPlay() {
         BeginPlay();
-        for (auto& comp : ActorComponents) {
+        for (size_t i = 0; i < ActorComponents.size(); ++i) {
+            const TRef<UActorComponent> comp = ActorComponents[i];
             if (comp && !comp->HasBegunPlay()) {
                 comp->BeginPlay();
                 comp->MarkBegunPlay();
@@ -110,7 +114,11 @@ namespace Leon {
         auto& timing = FFrameProfiler::Working();
         ++timing.TickActors;
         Tick(DeltaSeconds);
-        for (auto& comp : ActorComponents) {
+        for (size_t i = 0; i < ActorComponents.size(); ++i) {
+            // Destroyed from its own Tick or from a component: EndPlay already ran, stop ticking.
+            if (bPendingKill)
+                break;
+            const TRef<UActorComponent> comp = ActorComponents[i];
             if (comp && comp->IsComponentTickEnabled()) {
                 ++timing.TickComponents;
                 comp->Tick(DeltaSeconds);
@@ -119,16 +127,21 @@ namespace Leon {
     }
 
     void AActor::ExecuteEndPlay() {
+        // Cleared first so a Destroy() issued from an EndPlay handler cannot re-enter this function.
+        bHasBegunPlay = false;
         if (World && World->GetPhysicsScene())
             World->GetPhysicsScene()->DestroyPhysicsState(this);
-        for (auto& comp : ActorComponents) {
+        for (size_t i = 0; i < ActorComponents.size(); ++i) {
+            const TRef<UActorComponent> comp = ActorComponents[i];
             if (comp) {
                 comp->EndPlay();
+                comp->ClearBegunPlay();
             }
         }
         EndPlay();
-        ActorComponents.clear();
-        bHasBegunPlay = false;
+        // Components are intentionally kept: they are released with the actor. Clearing them here freed
+        // components that were still on the call stack (a component destroying its owner from Tick) and
+        // left RootComponent dangling.
     }
 
     void AActor::SetName(const std::string& InName) {
@@ -212,6 +225,11 @@ namespace Leon {
     void AActor::AttachToActor(AActor* InParent) {
         if (InParent == this || InParent == ParentActor)
             return;
+        // Refuse cycles: attaching to one of our own descendants would orphan the whole chain.
+        for (AActor* ancestor = InParent; ancestor; ancestor = ancestor->ParentActor) {
+            if (ancestor == this)
+                return;
+        }
         if (ParentActor) {
             DetachFromActor();
         }

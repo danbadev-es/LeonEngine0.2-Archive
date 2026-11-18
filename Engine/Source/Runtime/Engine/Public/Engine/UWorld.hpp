@@ -77,7 +77,30 @@ namespace Leon {
             return actor.get();
         }
 
+        /**
+         * Marks the actor pending-kill and runs its EndPlay. The actor is removed from the world immediately,
+         * unless an FActorIterationScope is alive (BeginPlay / Tick / EndPlay loops); then removal is deferred
+         * until the outermost scope ends, so the pointer stays valid for the rest of that loop.
+         */
         void DestroyActor(AActor* InActor);
+
+        /**
+         * RAII guard for code that walks the actor list while running gameplay callbacks. While at least one
+         * scope is alive, DestroyActor defers the erase from `Actors`; the queue is flushed when the outermost
+         * scope is destroyed. Loops under a scope must still be index-based, because spawning appends.
+         */
+        class FActorIterationScope {
+        public:
+            explicit FActorIterationScope(UWorld& InWorld);
+            ~FActorIterationScope();
+            FActorIterationScope(const FActorIterationScope&) = delete;
+            FActorIterationScope& operator=(const FActorIterationScope&) = delete;
+
+        private:
+            UWorld& World;
+        };
+        bool IsIteratingActors() const { return ActorIterationDepth > 0; }
+
         void RemovePlayerController(APlayerController* InPC);
         AActor* FindActorByName(const std::string& InName);
         AActor* FindActorByGuid(const FUUID& InGuid);
@@ -228,7 +251,7 @@ namespace Leon {
         TScope<FWorldRenderer> Renderer;
         bool bBegunPlay = false;
         bool bDeferSpawnedActorBeginPlay = false;
-        bool bIsTicking = false;
+        int32_t ActorIterationDepth = 0;
         bool bLightmapsTrusted = true;
         std::vector<std::string> EditorFolders;
 

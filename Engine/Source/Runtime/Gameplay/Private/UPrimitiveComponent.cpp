@@ -35,6 +35,8 @@ namespace Leon {
     void UPrimitiveComponent::UpdateOverlaps(const std::vector<UPrimitiveComponent*>& InCandidates) {
         if (!bGenerateOverlapEvents || CollisionEnabled == ECollisionEnabled::NoCollision || !Owner)
             return;
+        if (Owner->IsPendingKill())
+            return;
 
         const glm::vec3 myPos = GetComponentLocation();
         const glm::vec3 myHalf = GetOverlapQueryHalfExtent();
@@ -97,21 +99,34 @@ namespace Leon {
 
         OverlappingComponents = std::move(now);
 
+        // Callbacks may destroy the owner of this component, which runs EndPlay and clears the callback
+        // vectors. Iterate copies and stop as soon as the owner is on its way out.
+        const auto beginCallbacks = OnComponentBeginOverlap;
+        const auto endCallbacks = OnComponentEndOverlap;
+
         for (auto& [other, hit] : beginHits) {
+            if (!Owner || Owner->IsPendingKill())
+                return;
             if (!other || !other->GetOwner() || other->GetOwner()->IsPendingKill())
                 continue;
-            for (auto& cb : OnComponentBeginOverlap) {
+            for (const auto& cb : beginCallbacks) {
                 if (cb)
                     cb(this, other->GetOwner(), other, hit);
+                if (!Owner || Owner->IsPendingKill())
+                    return;
             }
         }
         for (auto& [prev, hit] : endHits) {
+            if (!Owner || Owner->IsPendingKill())
+                return;
             AActor* otherOwner = prev ? prev->GetOwner() : nullptr;
             if (otherOwner && otherOwner->IsPendingKill())
                 otherOwner = nullptr;
-            for (auto& cb : OnComponentEndOverlap) {
+            for (const auto& cb : endCallbacks) {
                 if (cb)
                     cb(this, otherOwner, prev, hit);
+                if (!Owner || Owner->IsPendingKill())
+                    return;
             }
         }
     }

@@ -29,6 +29,7 @@ namespace Leon {
 
         bool HasBegunPlay() const { return bHasBegunPlay; }
         void MarkBegunPlay() { bHasBegunPlay = true; }
+        void ClearBegunPlay() { bHasBegunPlay = false; }
 
     protected:
         AActor* Owner = nullptr;

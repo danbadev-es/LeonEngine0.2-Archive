@@ -56,7 +56,7 @@ namespace Leon {
         PhysicsScene.reset();
         NavigationSystem.reset();
         TimerManager.Clear();
-        bIsTicking = false;
+        ActorIterationDepth = 0;
         bLightmapsTrusted = true;
         EditorFolders.clear();
         TransientParticleEntity = entt::null;
@@ -176,17 +176,23 @@ namespace Leon {
 
         LE_CORE_INFO("UWorld: Beginning play across all actors (Count: {0})...", Actors.size());
 
-        // Flow: StartPlay/Login spawns & wires PC/HUD/Pawn first; BeginPlay runs after wiring.
-        bDeferSpawnedActorBeginPlay = true;
-        if (GameMode) {
-            GameMode->StartPlay();
-        }
-        bDeferSpawnedActorBeginPlay = false;
+        {
+            // BeginPlay callbacks may spawn (appends to Actors) or destroy (deferred by the scope) actors.
+            FActorIterationScope iteration(*this);
 
-        for (auto& actor : Actors) {
-            if (actor && !actor->HasBegunPlay() && !actor->IsPendingKill()) {
-                actor->ExecuteBeginPlay();
-                actor->MarkBegunPlay();
+            // Flow: StartPlay/Login spawns & wires PC/HUD/Pawn first; BeginPlay runs after wiring.
+            bDeferSpawnedActorBeginPlay = true;
+            if (GameMode) {
+                GameMode->StartPlay();
+            }
+            bDeferSpawnedActorBeginPlay = false;
+
+            for (size_t i = 0; i < Actors.size(); ++i) {
+                const TRef<AActor> actor = Actors[i]; // keep alive; Actors may reallocate during the call
+                if (actor && !actor->HasBegunPlay() && !actor->IsPendingKill()) {
+                    actor->ExecuteBeginPlay();
+                    actor->MarkBegunPlay();
+                }
             }
         }
         if (PhysicsScene)
@@ -196,7 +202,8 @@ namespace Leon {
 
     void UWorld::Tick(FTimestep InTs) {
         float deltaSeconds = std::max(InTs.GetSeconds(), 0.0f);
-        bIsTicking = true;
+        // Destroys requested anywhere in this tick are queued and flushed when the scope ends.
+        FActorIterationScope iteration(*this);
 
         if (NetDriver) {
             NetDriver->ConsumeIncomingInput();
@@ -273,14 +280,15 @@ namespace Leon {
         }
 
         if (bBegunPlay) {
-            for (const auto& actorRef : Actors) {
-                AActor* actor = actorRef.get();
+            for (size_t i = 0; i < Actors.size(); ++i) {
+                AActor* actor = Actors[i].get();
                 if (!actor || actor->IsPendingKill())
                     continue;
                 if (auto* character = dynamic_cast<ACharacter*>(actor))
                     character->ConstrainRagdollToFloor();
-                for (const auto& compRef : actor->GetActorComponents()) {
-                    auto* skel = dynamic_cast<USkeletalMeshComponent*>(compRef.get());
+                const auto& comps = actor->GetActorComponents();
+                for (size_t c = 0; c < comps.size(); ++c) {
+                    auto* skel = dynamic_cast<USkeletalMeshComponent*>(comps[c].get());
                     if (skel && skel->IsRagdoll())
                         skel->ApplyRagdollPoseFromBodies();
                 }
@@ -299,9 +307,6 @@ namespace Leon {
             FFrameProfiler::FScope net(&FFrameProfiler::Working().NetworkMs);
             NetDriver->Tick(deltaSeconds);
         }
-
-        bIsTicking = false;
-        FlushPendingDestroy();
     }
 
     void UWorld::EndPlay() {
@@ -309,9 +314,14 @@ namespace Leon {
             return;
 
         LE_CORE_INFO("UWorld: Ending play across all actors...");
-        for (auto& actor : Actors) {
-            if (actor && actor->HasBegunPlay()) {
-                actor->ExecuteEndPlay();
+        {
+            // EndPlay handlers destroy other actors (inventories, showcases); the scope defers the erase.
+            FActorIterationScope iteration(*this);
+            for (size_t i = 0; i < Actors.size(); ++i) {
+                const TRef<AActor> actor = Actors[i];
+                if (actor && actor->HasBegunPlay()) {
+                    actor->ExecuteEndPlay();
+                }
             }
         }
 
@@ -329,16 +339,33 @@ namespace Leon {
         InActor->MarkPendingKill();
         UnbindActorAliases(InActor);
 
+        // Break attachment links in both directions so neither side keeps a pointer to a dead actor.
+        InActor->DetachFromActor();
+        const std::vector<AActor*> children = InActor->GetAttachedActors();
+        for (AActor* child : children) {
+            if (child)
+                child->DetachFromActor();
+        }
+
         if (bBegunPlay && InActor->HasBegunPlay()) {
             InActor->ExecuteEndPlay();
         }
 
-        if (bIsTicking) {
+        if (ActorIterationDepth > 0) {
             PendingDestroy.push_back(InActor);
             return;
         }
 
         DestroyActorImmediate(InActor);
+    }
+
+    UWorld::FActorIterationScope::FActorIterationScope(UWorld& InWorld) : World(InWorld) {
+        ++World.ActorIterationDepth;
+    }
+
+    UWorld::FActorIterationScope::~FActorIterationScope() {
+        if (--World.ActorIterationDepth == 0)
+            World.FlushPendingDestroy();
     }
 
     void UWorld::DestroyActorImmediate(AActor* InActor) {
@@ -418,10 +445,13 @@ namespace Leon {
     }
 
     void UWorld::FlushPendingDestroy() {
-        std::vector<AActor*> pending = std::move(PendingDestroy);
-        PendingDestroy.clear();
-        for (AActor* actor : pending) {
-            DestroyActorImmediate(actor);
+        // Releasing an actor can destroy more actors from destructors; loop until the queue stays empty.
+        while (!PendingDestroy.empty()) {
+            std::vector<AActor*> pending = std::move(PendingDestroy);
+            PendingDestroy.clear();
+            for (AActor* actor : pending) {
+                DestroyActorImmediate(actor);
+            }
         }
     }
 
@@ -676,6 +706,9 @@ namespace Leon {
             }
         }
 
+        // Overlap callbacks destroy actors (pickups, projectiles). The scope keeps every gathered component
+        // alive until the loop ends; UpdateOverlaps itself skips owners that became pending-kill.
+        FActorIterationScope iteration(*this);
         for (UPrimitiveComponent* gen : generators)
             gen->UpdateOverlaps(candidates);
     }

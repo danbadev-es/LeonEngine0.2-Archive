@@ -1214,7 +1214,9 @@ namespace Leon {
                 hit.Normal = N;
                 hit.ImpactNormal = N;
                 hit.bBlockingHit = true;
-                for (auto& cb : prim->OnComponentHit) {
+                // Copy: a callback may destroy the owner, whose EndPlay clears the live vector.
+                const auto callbacks = prim->OnComponentHit;
+                for (const auto& cb : callbacks) {
                     if (cb)
                         cb(prim, OtherActor, hit.Component, hit);
                 }
@@ -1230,16 +1232,11 @@ namespace Leon {
                 hit.Location = Loc;
                 hit.ImpactPoint = Loc;
                 hit.bBlockingHit = false;
-                if (bBegin) {
-                    for (auto& cb : prim->OnComponentBeginOverlap) {
-                        if (cb)
-                            cb(prim, OtherActor, hit.Component, hit);
-                    }
-                } else {
-                    for (auto& cb : prim->OnComponentEndOverlap) {
-                        if (cb)
-                            cb(prim, OtherActor, hit.Component, hit);
-                    }
+                // Copy: a callback may destroy the owner, whose EndPlay clears the live vector.
+                const auto callbacks = bBegin ? prim->OnComponentBeginOverlap : prim->OnComponentEndOverlap;
+                for (const auto& cb : callbacks) {
+                    if (cb)
+                        cb(prim, OtherActor, hit.Component, hit);
                 }
             };
 

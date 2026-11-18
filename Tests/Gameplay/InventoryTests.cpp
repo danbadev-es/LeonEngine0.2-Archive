@@ -47,6 +47,8 @@ TEST_SUITE("UInventoryComponent") {
 
         auto* a = world->SpawnActor<Leon::AActor>("KeepOrKill");
         auto* b = world->SpawnActor<Leon::AActor>("Gone");
+        // Destruction outside a tick is immediate: hold references so the pointers below stay readable.
+        const auto keepAlive = world->GetAllActors();
         CHECK(inv->GiveItem(0, a));
         CHECK(inv->GiveItem(1, b));
         CHECK(inv->RemoveItem(1, true));

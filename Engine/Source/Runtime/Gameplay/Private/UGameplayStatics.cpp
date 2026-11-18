@@ -156,7 +156,9 @@ namespace Leon {
         int32_t hitCount = 0;
         const float radiusSq = DamageRadius * DamageRadius;
         AGameModeBase* gm = GetGameMode(InWorld);
-        for (const auto& actorRef : InWorld->GetAllActors()) {
+        // Death callbacks spawn and destroy actors; iterate a snapshot that also keeps every actor alive.
+        const std::vector<TRef<AActor>> actors = InWorld->GetAllActors();
+        for (const auto& actorRef : actors) {
             AActor* actor = actorRef.get();
             if (!actor || actor == IgnoreActor || actor->IsPendingKill())
                 continue;
