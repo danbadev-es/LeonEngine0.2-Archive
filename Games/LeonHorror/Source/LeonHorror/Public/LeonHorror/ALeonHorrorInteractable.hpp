@@ -47,9 +47,15 @@ namespace Leon {
     };
 
     /**
-     * A door. Properties: RequiredKey (item id; empty = never locked), Open (true/false),
-     * SlideX/SlideY/SlideZ (how far it moves when open; default: its own width along X).
-     * Unlocking does not consume the key.
+     * A door. Properties: RequiredKey (item id; empty = never locked), Open (true/false), and how
+     * it opens:
+     *   - sliding (the default): SlideX/SlideY/SlideZ, how far it moves; default its own width along X;
+     *   - hinged: Swing, the angle in degrees it turns to when open (the sign picks the side). The
+     *     origin of the actor is the hinge at floor level and the leaf extends along its local +X;
+     *     Width, Height and Thickness size what it blocks (default 0.9 x 2.05 x 0.05 m).
+     * Partner names the other leaf of a double door: the two open, close and unlock together.
+     * Sound picks the set of noises: Wood (default), Swing or Metal.
+     * Unlocking does not consume the key. An open door blocks nothing, hinged or not.
      */
     class ALeonHorrorDoor : public ALeonHorrorInteractable {
     public:
@@ -63,6 +69,14 @@ namespace Leon {
 
         std::string GetInteractPrompt(const APawn& InInstigator) const override;
         bool Interact(APawn& InInstigator) override;
+        /** A hinged door is used at the middle of its leaf, not at the hinge on the floor. */
+        glm::vec3 GetInteractLocation() const override;
+
+        /** Makes the door turn on its hinge: see the class comment. Call before play begins. */
+        void SetHinged(float InSwingDegrees, const glm::vec3& InLeafSize = {0.9f, 2.05f, 0.05f});
+        bool IsHinged() const { return bHinged; }
+        float GetSwingDegrees() const { return SwingDegrees; }
+        void SetPartnerName(const std::string& InName) { PartnerName = InName; }
 
         bool IsLocked() const { return bLocked; }
         bool IsOpen() const { return bOpen; }
@@ -80,8 +94,12 @@ namespace Leon {
 
     private:
         void ApplyOpenState(bool bInSnap);
+        void ApplyPose();
         void RefreshCollision();
         void SyncColliderFromMesh();
+        void ConfigureCollider();
+        void PlayDoorSound(const char* InWhat) const;
+        ALeonHorrorDoor* FindPartner() const;
 
         TRef<UBoxComponent> Collider;
         std::string RequiredKey;
@@ -93,6 +111,12 @@ namespace Leon {
         bool bHasSlideOffset = false;
         glm::vec3 Size{1.0f, 2.2f, 0.12f};
         float OpenAlpha = 0.0f;
+
+        bool bHinged = false;
+        float SwingDegrees = 95.0f;
+        glm::vec3 ClosedRotation{0.0f};
+        std::string PartnerName;
+        std::string SoundSet = "Wood";
     };
 
     /** Something to read. Properties: Title, Text ("\n" for line breaks). */

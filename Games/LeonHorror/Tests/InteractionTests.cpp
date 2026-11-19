@@ -11,6 +11,8 @@
 #include "Gameplay/IInteractable.hpp"
 #include "Gameplay/UPrimitiveComponent.hpp"
 
+#include <cmath>
+
 namespace Leon {
 
     namespace {
@@ -196,6 +198,127 @@ namespace Leon {
             door->SetState(false, false);
             CHECK(door->GetActorLocation().x == doctest::Approx(closed.x).epsilon(0.01));
             CHECK(f.World->LineTraceSingleByChannel(f.Eye, beyond, ECollisionChannel::WorldStatic, f.Player, hit));
+        }
+
+        TEST_CASE("a hinged door turns on its hinge and blocks only while closed") {
+            FInteractFixture f;
+            // The leaf runs along X across the view; its hinge is on the floor at its left end.
+            glm::vec3 hinge = f.InFront(1.6f, -0.45f);
+            hinge.y = 0.0f;
+            auto* door = f.World->SpawnActor<ALeonHorrorDoor>("Door");
+            door->SetActorLocation(hinge);
+            door->SetHinged(90.0f);
+            f.TickSeconds(0.05f);
+            REQUIRE(door->IsHinged());
+
+            // It is used at the middle of the leaf, at hand height: not at the hinge on the floor.
+            CHECK(door->GetInteractLocation().x == doctest::Approx(hinge.x + 0.45f));
+            CHECK(door->GetInteractLocation().y == doctest::Approx(1.05f));
+            REQUIRE(f.Player->GetFocusedInteractable() == door);
+            CHECK(f.Player->GetInteractPrompt() == "Open door");
+
+            FHitResult hit;
+            const glm::vec3 beyond = f.InFront(4.0f);
+            REQUIRE(f.World->LineTraceSingleByChannel(f.Eye, beyond, ECollisionChannel::WorldStatic, f.Player, hit));
+            CHECK(hit.Actor == door);
+            // Past the free edge of the leaf there is nothing: the box is the leaf, not a slab around the hinge.
+            const glm::vec3 aside(hinge.x + 1.3f, f.Eye.y, 0.0f);
+            CHECK_FALSE(f.World->LineTraceSingleByChannel(aside + glm::vec3(0.0f, 0.0f, f.Eye.z), aside + glm::vec3(0.0f, 0.0f, beyond.z),
+                                                          ECollisionChannel::WorldStatic, f.Player, hit));
+
+            f.PressInteract();
+            CHECK(door->IsOpen());
+            f.TickSeconds(0.4f);
+            const float halfway = door->GetActorRotation().y;
+            CHECK(halfway > 5.0f);
+            CHECK(halfway < 85.0f);
+            f.TickSeconds(1.0f);
+            CHECK(door->GetActorRotation().y == doctest::Approx(90.0f));
+            CHECK(door->GetActorLocation().x == doctest::Approx(hinge.x)); // it turns, it does not move
+            CHECK_FALSE(f.World->LineTraceSingleByChannel(f.Eye, beyond, ECollisionChannel::WorldStatic, f.Player, hit));
+
+            // Still within reach of the hand from the same spot, to close it again.
+            CHECK(f.Player->GetFocusedInteractable() == door);
+            CHECK(f.Player->GetInteractPrompt() == "Close door");
+            f.PressInteract();
+            f.TickSeconds(1.2f);
+            CHECK(door->GetActorRotation().y == doctest::Approx(0.0f).epsilon(0.01));
+            CHECK(f.World->LineTraceSingleByChannel(f.Eye, beyond, ECollisionChannel::WorldStatic, f.Player, hit));
+        }
+
+        TEST_CASE("a hinged door in a wall that runs the other way blocks along that wall") {
+            FInteractFixture f;
+            // Turned a quarter: the leaf now runs along Z, to the right of the player.
+            const glm::vec3 hinge(2.0f, 0.0f, f.Eye.z);
+            auto* door = f.World->SpawnActor<ALeonHorrorDoor>("SideDoor");
+            door->SetActorLocation(hinge);
+            door->SetActorRotation({0.0f, 90.0f, 0.0f});
+            door->SetHinged(-90.0f);
+            f.TickSeconds(0.05f);
+
+            const glm::vec3 middle = door->GetInteractLocation();
+            CHECK(middle.x == doctest::Approx(hinge.x).epsilon(0.01));
+            CHECK(std::abs(middle.z - hinge.z) == doctest::Approx(0.45f).epsilon(0.02));
+
+            // A ray along X through the middle of the leaf is stopped; one through where the leaf
+            // would be if the box had not been turned with the door is not.
+            FHitResult hit;
+            REQUIRE(f.World->LineTraceSingleByChannel(middle - glm::vec3(1.0f, 0.0f, 0.0f), middle + glm::vec3(1.0f, 0.0f, 0.0f),
+                                                      ECollisionChannel::WorldStatic, f.Player, hit));
+            CHECK(hit.Actor == door);
+            const glm::vec3 wrong = hinge + glm::vec3(0.45f, 1.05f, 0.0f);
+            CHECK_FALSE(f.World->LineTraceSingleByChannel(wrong - glm::vec3(0.0f, 0.0f, 1.0f), wrong + glm::vec3(0.0f, 0.0f, 1.0f),
+                                                          ECollisionChannel::WorldStatic, f.Player, hit));
+        }
+
+        TEST_CASE("the two leaves of a double door open, close and unlock together") {
+            FInteractFixture f;
+            glm::vec3 left = f.InFront(1.6f, -0.8f);
+            glm::vec3 right = f.InFront(1.6f, 0.8f);
+            left.y = right.y = 0.0f;
+            auto* leafA = f.World->SpawnActor<ALeonHorrorDoor>("Ward_A");
+            leafA->SetActorLocation(left);
+            leafA->SetProperty("Swing", "85");
+            leafA->SetProperty("Width", "0.8");
+            leafA->SetProperty("Partner", "Ward_B");
+            leafA->SetProperty("RequiredKey", "Key.Ward");
+            leafA->OnPropertiesLoaded();
+            auto* leafB = f.World->SpawnActor<ALeonHorrorDoor>("Ward_B");
+            leafB->SetActorLocation(right);
+            leafB->SetActorRotation({0.0f, 180.0f, 0.0f}); // hinged on the other jamb, leaf towards the first
+            leafB->SetProperty("Swing", "-85");
+            leafB->SetProperty("Width", "0.8");
+            leafB->SetProperty("Partner", "Ward_A");
+            leafB->SetProperty("RequiredKey", "Key.Ward");
+            leafB->OnPropertiesLoaded();
+            f.TickSeconds(0.05f);
+            REQUIRE(leafA->IsHinged());
+            CHECK(leafA->GetSwingDegrees() == doctest::Approx(85.0f));
+            CHECK(leafA->IsLocked());
+            CHECK(leafB->IsLocked());
+
+            // Without the key neither moves.
+            CHECK_FALSE(leafA->Interact(*f.Player));
+            CHECK_FALSE(leafB->IsOpen());
+
+            f.Player->GetInventory()->AddItem("Key.Ward");
+            REQUIRE(leafA->Interact(*f.Player));
+            CHECK(leafA->IsOpen());
+            CHECK(leafB->IsOpen());
+            CHECK_FALSE(leafB->IsLocked());
+            f.TickSeconds(1.2f);
+            CHECK(leafA->GetActorRotation().y == doctest::Approx(85.0f));
+            CHECK(leafB->GetActorRotation().y == doctest::Approx(180.0f - 85.0f));
+
+            // Both are remembered for the save.
+            const auto& states = f.GM->GetDoorStates();
+            REQUIRE(states.count(leafA->GetActorGuid().ToString()) == 1);
+            REQUIRE(states.count(leafB->GetActorGuid().ToString()) == 1);
+            CHECK(states.at(leafB->GetActorGuid().ToString()).bOpen);
+
+            // Closing from the other leaf closes the first as well.
+            REQUIRE(leafB->Interact(*f.Player));
+            CHECK_FALSE(leafA->IsOpen());
         }
 
         TEST_CASE("a closed door hides what is behind it from interaction") {

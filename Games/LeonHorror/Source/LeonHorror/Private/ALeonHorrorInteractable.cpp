@@ -9,6 +9,9 @@
 #include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 
+#include "Gameplay/UGameplayStatics.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+#include <cmath>
 #include <algorithm>
 #include <sstream>
 
@@ -107,15 +110,80 @@ namespace Leon {
         if (!Collider) {
             Collider = AddActorComponent<UBoxComponent>("DoorCollision");
             Collider->SetCollisionObjectType(ECollisionChannel::WorldStatic);
-            Collider->SetBoxExtent(Size * 0.5f);
         }
+        ConfigureCollider();
+    }
+
+    void ALeonHorrorDoor::ConfigureCollider() {
+        if (!Collider)
+            return;
+        if (!bHinged) {
+            Collider->SetRelativeLocation(glm::vec3(0.0f));
+            Collider->SetRelativeRotation(glm::vec3(0.0f));
+            Collider->SetBoxExtent(Size * 0.5f);
+            return;
+        }
+        // The box sits on the closed leaf: half a width along the door from the hinge, half a height
+        // up. It is kept square to the world (its own turn cancels that of the actor) and its sides
+        // are swapped for a door that runs along Z, so it blocks the same whether or not the physics
+        // scene in use honours the rotation of a box.
+        const float yaw = glm::radians(ClosedRotation.y);
+        const bool bAlongZ = std::abs(std::sin(yaw)) > 0.7071f;
+        Collider->SetRelativeLocation({Size.x * 0.5f, Size.y * 0.5f, 0.0f});
+        Collider->SetRelativeRotation(-ClosedRotation);
+        Collider->SetBoxExtent(bAlongZ ? glm::vec3(Size.z, Size.y, Size.x) * 0.5f : Size * 0.5f);
     }
 
     void ALeonHorrorDoor::SetDoorSize(const glm::vec3& InSize) {
         Size = glm::max(InSize, glm::vec3(0.02f));
-        if (Collider)
-            Collider->SetBoxExtent(Size * 0.5f);
+        ConfigureCollider();
         RefreshCollision();
+    }
+
+    void ALeonHorrorDoor::SetHinged(float InSwingDegrees, const glm::vec3& InLeafSize) {
+        bHinged = true;
+        SwingDegrees = InSwingDegrees;
+        Size = glm::max(InLeafSize, glm::vec3(0.02f));
+        ClosedRotation = GetActorRotation();
+        ClosedLocation = GetActorLocation();
+        bHasClosedLocation = true;
+        ConfigureCollider();
+        ApplyOpenState(true);
+    }
+
+    glm::vec3 ALeonHorrorDoor::GetInteractLocation() const {
+        if (!bHinged)
+            return GetActorLocation();
+        // The middle of the closed leaf at hand height, wherever the leaf has swung to.
+        const glm::mat4 turn = glm::rotate(glm::mat4(1.0f), glm::radians(ClosedRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        return ClosedLocation + glm::vec3(turn * glm::vec4(Size.x * 0.5f, 1.05f, 0.0f, 0.0f));
+    }
+
+    void ALeonHorrorDoor::ApplyPose() {
+        if (bHinged) {
+            // Eased, so the leaf starts and settles gently instead of turning at one speed.
+            const float eased = OpenAlpha * OpenAlpha * (3.0f - 2.0f * OpenAlpha);
+            SetActorRotation(ClosedRotation + glm::vec3(0.0f, SwingDegrees * eased, 0.0f));
+        } else {
+            SetActorLocation(ClosedLocation + SlideOffset * OpenAlpha);
+        }
+    }
+
+    void ALeonHorrorDoor::PlayDoorSound(const char* InWhat) const {
+        if (!HasBegunPlay())
+            return;
+        const std::string what = InWhat;
+        std::string sound = "/Game/Audio/SFX_Door_" + what;
+        // Swing and metal doors have one sound of their own for opening and closing alike.
+        if (SoundSet != "Wood" && (what == "Open" || what == "Close"))
+            sound = "/Game/Audio/SFX_Door_" + SoundSet;
+        UGameplayStatics::PlaySoundAtLocation(sound, GetInteractLocation(), 0.9f, 18.0f);
+    }
+
+    ALeonHorrorDoor* ALeonHorrorDoor::FindPartner() const {
+        if (PartnerName.empty() || !World)
+            return nullptr;
+        return Cast<ALeonHorrorDoor>(World->FindActorByName(PartnerName));
     }
 
     void ALeonHorrorDoor::SetClosedLocation(const glm::vec3& InLocation) {
@@ -131,10 +199,14 @@ namespace Leon {
         // The collider is a static body: it is created where the actor stands and does not follow it.
         // While closed it must sit in the doorway, wherever the sliding animation currently has the mesh.
         if (!bOpen && HasBegunPlay()) {
-            const glm::vec3 current = GetActorLocation();
+            const glm::vec3 location = GetActorLocation();
+            const glm::vec3 rotation = GetActorRotation();
             SetActorLocation(ClosedLocation);
+            if (bHinged)
+                SetActorRotation(ClosedRotation);
             Collider->RecreatePhysicsBody();
-            SetActorLocation(current);
+            SetActorLocation(location);
+            SetActorRotation(rotation);
         }
     }
 
@@ -161,6 +233,15 @@ namespace Leon {
         }
         ClosedLocation = GetActorLocation();
         bHasClosedLocation = true;
+        ClosedRotation = GetActorRotation();
+        if (HasProperty("Swing")) {
+            bHinged = true;
+            SwingDegrees = GetPropertyFloat("Swing", SwingDegrees);
+            Size = {GetPropertyFloat("Width", 0.9f), GetPropertyFloat("Height", 2.05f), GetPropertyFloat("Thickness", 0.05f)};
+            ConfigureCollider();
+        }
+        PartnerName = GetProperty("Partner", PartnerName);
+        SoundSet = GetProperty("Sound", SoundSet);
         bOpen = GetPropertyBool("Open", false);
         if (bOpen)
             bLocked = false;
@@ -191,7 +272,7 @@ namespace Leon {
 
         if (bInSnap) {
             OpenAlpha = bOpen ? 1.0f : 0.0f;
-            SetActorLocation(ClosedLocation + SlideOffset * OpenAlpha);
+            ApplyPose();
         }
         // Collision changes at once: passable as soon as the door starts to open, solid as soon as it
         // starts to close.
@@ -209,9 +290,9 @@ namespace Leon {
         const float target = bOpen ? 1.0f : 0.0f;
         if (OpenAlpha == target)
             return;
-        const float step = DeltaSeconds / 0.45f;
+        const float step = DeltaSeconds / (bHinged ? 0.8f : 0.45f);
         OpenAlpha = bOpen ? std::min(1.0f, OpenAlpha + step) : std::max(0.0f, OpenAlpha - step);
-        SetActorLocation(ClosedLocation + SlideOffset * OpenAlpha);
+        ApplyPose();
     }
 
     std::string ALeonHorrorDoor::GetInteractPrompt(const APawn& InInstigator) const {
@@ -227,16 +308,29 @@ namespace Leon {
     bool ALeonHorrorDoor::Interact(APawn& InInstigator) {
         if (bLocked) {
             const auto* inventory = InventoryOf(InInstigator);
-            if (!inventory || !inventory->HasItem(RequiredKey))
+            if (!inventory || !inventory->HasItem(RequiredKey)) {
+                PlayDoorSound("Locked");
                 return false;
+            }
             bLocked = false;
             bOpen = true;
+            PlayDoorSound("Unlock");
         } else {
             bOpen = !bOpen;
+            PlayDoorSound(bOpen ? "Open" : "Close");
         }
         ApplyOpenState(false);
-        if (auto* gameMode = GameModeOf(*this))
+        auto* gameMode = GameModeOf(*this);
+        if (gameMode)
             gameMode->NotifyDoorChanged(*this);
+        // The other leaf of a double door does what this one did.
+        if (ALeonHorrorDoor* partner = FindPartner(); partner && partner != this) {
+            partner->bLocked = bLocked;
+            partner->bOpen = bOpen;
+            partner->ApplyOpenState(false);
+            if (gameMode)
+                gameMode->NotifyDoorChanged(*partner);
+        }
         return true;
     }
 
