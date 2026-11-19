@@ -114,6 +114,39 @@ namespace Leon {
             f.TickSeconds(0.1f);
             CHECK_FALSE(weapon->IsShown());
         }
+
+        TEST_CASE("with a wall right behind, the body and what it carries are not drawn; stepping away brings them back") {
+            Test::FMapWorld slice("/Game/Maps/Slice", true);
+            ALeonHorrorCharacter* player = slice.Player;
+            auto mesh = player->GetMesh();
+            REQUIRE(mesh);
+            CHECK_FALSE(player->IsBodyHiddenFromCamera());
+            CHECK_FALSE(mesh->IsHiddenInGame());
+
+            // The start room's back wall is behind the player at the start; go and lean on it.
+            glm::vec3 camera, forward;
+            player->GetViewPoint(camera, forward);
+            const glm::vec3 start = player->GetActorLocation();
+            glm::vec3 back = camera - start;
+            back.y = 0.0f;
+            back = glm::normalize(back);
+            float hiddenAt = -1.0f;
+            for (float moved = 0.0f; moved < 12.0f && hiddenAt < 0.0f; moved += 0.25f) {
+                player->SetActorLocation(start + back * moved);
+                slice.Tick(0.4f);
+                if (player->IsBodyHiddenFromCamera())
+                    hiddenAt = moved;
+            }
+            REQUIRE(hiddenAt > 0.0f);
+            CHECK(mesh->IsHiddenInGame());
+            CHECK_FALSE(player->GetHeldLight()->IsShown());
+
+            player->SetActorLocation(start);
+            slice.Tick(1.0f);
+            CHECK_FALSE(player->IsBodyHiddenFromCamera());
+            CHECK_FALSE(mesh->IsHiddenInGame());
+            CHECK(player->GetHeldLight()->IsShown());
+        }
     }
 
 } // namespace Leon

@@ -291,6 +291,15 @@ namespace Leon {
         const float alpha = std::clamp(Tuning.CameraBlendRate * DeltaSeconds, 0.0f, 1.0f);
         arm->TargetArmLength += (targetLength - arm->TargetArmLength) * alpha;
         arm->SocketOffset += (targetOffset - arm->SocketOffset) * alpha;
+
+        // Backed against a wall the camera has nowhere to go but into the player's head. Seeing the
+        // room past a body that is not there beats seeing nothing but the inside of a jacket. A little
+        // slack between hiding and showing keeps it from flickering at the threshold.
+        const float length = arm->GetCurrentArmLength();
+        if (bBodyHidden ? length > Tuning.HideBodyArmLength + 0.15f : length < Tuning.HideBodyArmLength)
+            bBodyHidden = !bBodyHidden;
+        if (auto mesh = GetMesh())
+            mesh->SetHiddenInGame(bBodyHidden);
     }
 
     void ALeonHorrorCharacter::UpdateFlashlight() {
@@ -346,6 +355,7 @@ namespace Leon {
         glm::mat4 hand;
         if (ALeonHorrorHeldItem* light = HeldLight.Get()) {
             // The hand carries it, the wrist points it where the player looks.
+            light->SetShown(!bBodyHidden);
             if (mesh->GetBoneMatrix("mixamorig:LeftHand", hand))
                 light->FollowBoneAimed(hand, bDead ? GetActorForwardVector() : GetControlLookDirection());
         }
@@ -358,7 +368,7 @@ namespace Leon {
                 weapon->SetMesh(LeonHorrorArchetypes::ExistingAsset("/Game/Meshes/SM_Held_Pistol.lmesh", ""));
                 weapon->SetGrip({0.0f, 0.09f, 0.03f}, {90.0f, 0.0f, 0.0f});
             }
-            weapon->SetShown(equipped != ELeonHorrorWeapon::None);
+            weapon->SetShown(equipped != ELeonHorrorWeapon::None && !bBodyHidden);
             if (weapon->IsShown() && mesh->GetBoneMatrix("mixamorig:RightHand", hand))
                 weapon->FollowBone(hand);
         }

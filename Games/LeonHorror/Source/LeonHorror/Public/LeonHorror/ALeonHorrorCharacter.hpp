@@ -43,6 +43,8 @@ namespace Leon {
         float InteractConeDegrees = 28.0f;
 
         float AimArmLength = 1.15f;
+        /** With the camera pushed nearer than this by a wall behind, the body is not drawn: it would fill the view. */
+        float HideBodyArmLength = 0.6f;
         glm::vec3 AimShoulderOffset{0.58f, 0.0f, 0.0f};
         /** Metres per second the camera regains after a wall pushed it in. */
         float CameraRecoverySpeed = 2.5f;
@@ -86,6 +88,8 @@ namespace Leon {
         ALeonHorrorFlashlight* GetFlashlight() const { return Flashlight.Get(); }
         /** What is seen in the hands: the flashlight in the left, the weapon in use in the right. */
         ALeonHorrorHeldItem* GetHeldLight() const { return HeldLight.Get(); }
+        /** The camera is so close behind that the body and what it carries are not drawn. */
+        bool IsBodyHiddenFromCamera() const { return bBodyHidden; }
         ALeonHorrorHeldItem* GetHeldWeapon() const { return HeldWeapon.Get(); }
         bool IsFlashlightOn() const;
 
@@ -136,6 +140,7 @@ namespace Leon {
         float HeartbeatTimer = 0.0f;
         bool bStepStarted = false;
         bool bWasExhausted = false;
+        bool bBodyHidden = false;
         FLeonHorrorInputSampler Sampler;
         std::optional<FLeonHorrorInputState> InjectedInput;
 
