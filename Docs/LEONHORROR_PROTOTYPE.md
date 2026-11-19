@@ -7,6 +7,10 @@ what the engine still lacks for this kind of game.
 
 Project folder: `Games/LeonHorror`. Game classes are prefixed `ALeonHorror*` / `ULeonHorror*`.
 
+The game now opens on a larger level, the clinic (`LEONHORROR_CLINIC.md`). This slice is still in the
+project as `/Game/Maps/Slice`: the reference pictures and many tests run on it. Open it with
+`LeonHorror.exe --map=/Game/Maps/Slice`.
+
 ## Build, run, test
 
 Run everything from the repository root.
