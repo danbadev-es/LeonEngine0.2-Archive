@@ -328,3 +328,4 @@ def write_flat(name, folder):
 
 
 from . import materials_more  # noqa: E402,F401  (registers the rest of the library)
+from . import materials_decals  # noqa: E402,F401  (registers the decals)
