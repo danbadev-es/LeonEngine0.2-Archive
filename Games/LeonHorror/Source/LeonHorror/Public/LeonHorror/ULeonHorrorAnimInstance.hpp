@@ -7,6 +7,17 @@ namespace Leon {
     /** Which body the graph is built for; both use the mannequin skeleton. */
     enum class ELeonHorrorAnimProfile : uint8_t { Player = 0, Enemy = 1 };
 
+    /** The clips of one kind of enemy. Paths of .lanim assets; an empty one leaves the default. */
+    struct FLeonHorrorAnimSet {
+        std::string Idle;
+        std::string Walk;
+        std::string Attack;
+        std::string Hit;
+        std::string Death;
+        /** Ground speed the walk clip was authored at, in cm/s: where it sits in the locomotion blend. */
+        float WalkSpeedCm = 110.0f;
+    };
+
     /** Single actions layered over locomotion with UAnimInstance::PlayOneShot. */
     enum class ELeonHorrorAnimAction : uint8_t { MeleeSwing, PistolFire, HitReact, Interact, EnemyAttack };
 
@@ -30,6 +41,10 @@ namespace Leon {
         void SetAiming(bool bInAiming);
         bool IsAiming() const { return bAiming; }
 
+        /** The clips an enemy uses; the graph is rebuilt with them. Ignored by the player profile. */
+        void SetEnemyClips(const FLeonHorrorAnimSet& InClips);
+        const FLeonHorrorAnimSet& GetEnemyClips() const { return EnemyClips; }
+
         ELeonHorrorAnimProfile GetProfile() const { return Profile; }
         TRef<UAnimSequence> GetActionSequence(ELeonHorrorAnimAction InAction) const;
 
@@ -38,6 +53,7 @@ namespace Leon {
         TRef<UBlendSpace> BuildLocomotion();
 
         ELeonHorrorAnimProfile Profile;
+        FLeonHorrorAnimSet EnemyClips;
         TRef<USkeleton> GraphSkeleton;
         TRef<UBlendSpace> Locomotion;
         TRef<UAnimSequence> DeathSequence;

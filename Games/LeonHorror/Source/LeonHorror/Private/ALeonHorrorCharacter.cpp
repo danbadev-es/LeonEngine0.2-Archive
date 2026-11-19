@@ -1,4 +1,6 @@
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
+
+#include "LeonHorror/FLeonHorrorArchetypes.hpp"
 #include "Core/Cast.hpp"
 #include "Gameplay/IInteractable.hpp"
 
@@ -22,7 +24,6 @@
 namespace Leon {
 
     namespace {
-        constexpr const char* kPlayerMeshPath = "/Game/SkeletalMeshes/YBot.lskeletalmesh";
         constexpr float kPlayerHeightMetres = 1.78f;
     } // namespace
 
@@ -68,7 +69,7 @@ namespace Leon {
             return;
         if (!Anim)
             Anim = MakeRef<ULeonHorrorAnimInstance>("PlayerAnim", ELeonHorrorAnimProfile::Player);
-        mesh->SetMeshAssetPath(kPlayerMeshPath);
+        mesh->SetMeshAssetPath(LeonHorrorArchetypes::PlayerMeshPath());
         mesh->SetAnimInstance(Anim);
 
         // Imported meshes come at arbitrary scale: normalise to a design height and stand the soles

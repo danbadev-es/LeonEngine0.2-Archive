@@ -5,7 +5,29 @@
 namespace Leon {
 
     ULeonHorrorAnimInstance::ULeonHorrorAnimInstance(const std::string& InName, ELeonHorrorAnimProfile InProfile)
-        : UAnimInstance(InName), Profile(InProfile) {}
+        : UAnimInstance(InName), Profile(InProfile) {
+        EnemyClips.Idle = "/Game/Animations/EnemyIdle.lanim";
+        EnemyClips.Walk = "/Game/Animations/EnemyShamble.lanim";
+        EnemyClips.Attack = "/Game/Animations/EnemyAttack.lanim";
+        EnemyClips.Hit = "/Game/Animations/HitReact.lanim";
+        EnemyClips.Death = "/Game/Animations/DeathFromTheFront.lanim";
+    }
+
+    void ULeonHorrorAnimInstance::SetEnemyClips(const FLeonHorrorAnimSet& InClips) {
+        const auto take = [](std::string& InOutPath, const std::string& InNew) {
+            if (!InNew.empty())
+                InOutPath = InNew;
+        };
+        take(EnemyClips.Idle, InClips.Idle);
+        take(EnemyClips.Walk, InClips.Walk);
+        take(EnemyClips.Attack, InClips.Attack);
+        take(EnemyClips.Hit, InClips.Hit);
+        take(EnemyClips.Death, InClips.Death);
+        EnemyClips.WalkSpeedCm = InClips.WalkSpeedCm > 1.0f ? InClips.WalkSpeedCm : EnemyClips.WalkSpeedCm;
+        // The graph was built for the old clips: have it built again.
+        GraphSkeleton.reset();
+        NativeInitializeAnimation();
+    }
 
     TRef<UAnimSequence> ULeonHorrorAnimInstance::LoadLinked(const std::string& InPath, bool bInLoop) {
         auto sequence = UAssetManager::GetAnimSequence(InPath);
@@ -35,9 +57,9 @@ namespace Leon {
         };
 
         if (Profile == ELeonHorrorAnimProfile::Enemy) {
-            addAllDirections(0.0f, "/Game/Animations/EnemyIdle.lanim");
-            addAllDirections(110.0f, "/Game/Animations/EnemyShamble.lanim");
-            addAllDirections(600.0f, "/Game/Animations/EnemyShamble.lanim");
+            addAllDirections(0.0f, EnemyClips.Idle.c_str());
+            addAllDirections(EnemyClips.WalkSpeedCm, EnemyClips.Walk.c_str());
+            addAllDirections(600.0f, EnemyClips.Walk.c_str());
             return blend;
         }
 
@@ -63,13 +85,14 @@ namespace Leon {
         GraphSkeleton = Skeleton;
 
         Locomotion = BuildLocomotion();
-        DeathSequence = LoadLinked("/Game/Animations/DeathFromTheFront.lanim", false);
+        const bool bEnemy = Profile == ELeonHorrorAnimProfile::Enemy;
+        DeathSequence = LoadLinked(bEnemy ? EnemyClips.Death : std::string("/Game/Animations/DeathFromTheFront.lanim"), false);
         AimSequence = LoadLinked("/Game/Animations/PistolAimIdle.lanim", true);
         MeleeSequence = LoadLinked("/Game/Animations/MeleeSwing.lanim", false);
         FireSequence = LoadLinked("/Game/Animations/PistolFire.lanim", false);
-        HitSequence = LoadLinked("/Game/Animations/HitReact.lanim", false);
+        HitSequence = LoadLinked(bEnemy ? EnemyClips.Hit : std::string("/Game/Animations/HitReact.lanim"), false);
         InteractSequence = LoadLinked("/Game/Animations/Interact.lanim", false);
-        EnemyAttackSequence = LoadLinked("/Game/Animations/EnemyAttack.lanim", false);
+        EnemyAttackSequence = LoadLinked(EnemyClips.Attack, false);
 
         StateMachine = FAnimStateMachine{};
         SetBlendParamNames("Speed", "Direction");

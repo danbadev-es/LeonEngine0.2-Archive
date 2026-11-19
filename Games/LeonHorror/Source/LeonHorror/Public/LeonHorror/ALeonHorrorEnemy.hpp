@@ -67,6 +67,15 @@ namespace Leon {
         /** Turns the body to face a planar direction (the view cone follows the body). */
         void FaceDirection(const glm::vec3& InDirection);
 
+        /**
+         * Makes it one of the kinds in FLeonHorrorArchetypes: mesh, size, clips, tuning, health and
+         * voice. An unknown name gives the default kind.
+         */
+        void ApplyArchetype(const std::string& InName);
+        const std::string& GetArchetypeName() const { return ArchetypeName; }
+        /** Plays "<voice>_<InWhat>" (with a number from 1 to InVariants when there are several) where it stands. */
+        void PlayVoice(const char* InWhat, uint32_t InVariants = 1, float InVolume = 0.9f);
+
         FLeonHorrorEnemyTuning Tuning;
 
     private:
@@ -76,6 +85,11 @@ namespace Leon {
         TRef<UHealthComponent> Health;
         TRef<ULeonHorrorAnimInstance> Anim;
         std::string SpawnerGuid;
+        std::string ArchetypeName = "Husk";
+        std::string VoicePrefix;
+        float HeightMetres = 1.82f;
+        std::string MeshPath = "/Game/SkeletalMeshes/YBot.lskeletalmesh";
+        uint32_t VoiceCounter = 0;
         float StaggerRemaining = 0.0f;
         bool bDead = false;
     };
@@ -123,13 +137,17 @@ namespace Leon {
         float AttackCooldownRemaining = 0.0f;
         float AttackWindupRemaining = 0.0f;
         float InvestigateSeconds = 0.0f;
+        /** Seconds until it next makes a noise while wandering. */
+        float IdleVoiceWait = 5.0f;
+        bool bWasChasing = false;
         uint32_t RandomState = 0x9E3779B9u;
         bool bPerceptionConfigured = false;
     };
 
     /**
      * Where an enemy appears. A plain actor so it can be placed and saved in a map: the map writer
-     * skips characters as runtime actors. Properties: WanderRadius (metres), Enabled (true/false).
+     * skips characters as runtime actors. Properties: Type (a kind from FLeonHorrorArchetypes;
+     * default Husk), WanderRadius (metres), Enabled (true/false).
      */
     class ALeonHorrorEnemySpawn : public AActor {
     public:
@@ -143,10 +161,13 @@ namespace Leon {
         ALeonHorrorEnemy* SpawnEnemy();
         ALeonHorrorEnemy* GetEnemy() const { return Enemy.Get(); }
         void SetWanderRadius(float InRadius) { WanderRadius = InRadius; }
+        void SetType(const std::string& InType) { Type = InType; }
+        const std::string& GetType() const { return Type; }
         void SetEnabled(bool bInEnabled) { bEnabled = bInEnabled; }
 
     private:
         TWeakObjectPtr<ALeonHorrorEnemy> Enemy;
+        std::string Type = "Husk";
         float WanderRadius = 4.0f;
         bool bEnabled = true;
     };

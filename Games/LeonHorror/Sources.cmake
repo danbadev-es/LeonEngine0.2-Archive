@@ -13,6 +13,7 @@ set(LEONHORROR_GAME_SOURCES
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorPlayerController.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorHUD.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorInventoryComponent.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorArchetypes.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorInputState.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorSaveGame.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorAnimInstance.cpp"

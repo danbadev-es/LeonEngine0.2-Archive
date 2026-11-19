@@ -5,12 +5,16 @@
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorEnemy.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
+#include "LeonHorror/FLeonHorrorArchetypes.hpp"
 #include "LeonHorror/ULeonHorrorCombatComponent.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "AI/UAIPerceptionComponent.hpp"
 #include "Gameplay/UCharacterMovementComponent.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "Engine/FMapSerializer.hpp"
+
+#include <filesystem>
 
 namespace Leon {
 
@@ -62,6 +66,67 @@ namespace Leon {
             CHECK(f.Enemy->GetSpawnerGuid() == f.Spawn->GetActorGuid().ToString());
             CHECK(f.Spawn->SpawnEnemy() == f.Enemy); // asking again does not create a second one
             CHECK(f.World->GetAIControllers().size() == 1);
+        }
+
+        TEST_CASE("the kinds of enemy differ in what matters, and every one of them can be built") {
+            namespace fs = std::filesystem;
+            const FLeonHorrorEnemyArchetype husk = LeonHorrorArchetypes::FindEnemy("Husk");
+            const FLeonHorrorEnemyArchetype patient = LeonHorrorArchetypes::FindEnemy("Patient");
+            const FLeonHorrorEnemyArchetype orderly = LeonHorrorArchetypes::FindEnemy("Orderly");
+            CHECK(patient.Name == "Patient");
+            CHECK(orderly.Name == "Orderly");
+            // A name nobody defined is the kind every old map has.
+            CHECK(LeonHorrorArchetypes::FindEnemy("NoSuchThing").Name == husk.Name);
+            CHECK(LeonHorrorArchetypes::FindEnemy("").Name == husk.Name);
+
+            // The patient is the quick fragile one, the orderly the slow heavy one.
+            CHECK(patient.Tuning.ChaseSpeed > husk.Tuning.ChaseSpeed);
+            CHECK(orderly.Tuning.ChaseSpeed < husk.Tuning.ChaseSpeed);
+            CHECK(patient.Tuning.Health < husk.Tuning.Health);
+            CHECK(orderly.Tuning.Health > husk.Tuning.Health * 2.0f);
+            CHECK(orderly.Tuning.AttackDamage > patient.Tuning.AttackDamage * 2.0f);
+            CHECK(orderly.Tuning.AttackWindup > patient.Tuning.AttackWindup);
+            // The orderly can be walked away from; the patient cannot, but can be outrun.
+            const FLeonHorrorPlayerTuning player;
+            CHECK(orderly.Tuning.ChaseSpeed < player.WalkSpeed);
+            CHECK(patient.Tuning.ChaseSpeed > player.WalkSpeed);
+            CHECK(patient.Tuning.ChaseSpeed < player.SprintSpeed);
+            CHECK(patient.VoicePrefix != orderly.VoicePrefix);
+
+            // Whatever art exists today, each kind names a mesh and clips that are really there.
+            for (const std::string& name : LeonHorrorArchetypes::EnemyNames()) {
+                const FLeonHorrorEnemyArchetype kind = LeonHorrorArchetypes::FindEnemy(name);
+                CAPTURE(name);
+                CHECK(fs::exists(FProjectPaths::ResolveVirtualPath(kind.MeshPath)));
+                for (const std::string& clip : {kind.Anims.Idle, kind.Anims.Walk, kind.Anims.Attack, kind.Anims.Hit, kind.Anims.Death})
+                    CHECK_MESSAGE(fs::exists(FProjectPaths::ResolveVirtualPath(clip)), clip);
+            }
+            CHECK(fs::exists(FProjectPaths::ResolveVirtualPath(LeonHorrorArchetypes::PlayerMeshPath())));
+            CHECK(LeonHorrorArchetypes::ExistingAsset("/Game/SkeletalMeshes/NotThere.lskeletalmesh", "fallback") == "fallback");
+        }
+
+        TEST_CASE("an enemy becomes the kind its spawner names") {
+            FEnemyFixture f(8.0f);
+            REQUIRE(f.Enemy->GetArchetypeName() == "Husk");
+            const float wander = f.Enemy->Tuning.WanderRadius;
+
+            f.Enemy->ApplyArchetype("Orderly");
+            CHECK(f.Enemy->GetArchetypeName() == "Orderly");
+            CHECK(f.Enemy->Tuning.Health == doctest::Approx(220.0f));
+            CHECK(f.Enemy->GetHealth()->GetHealth() == doctest::Approx(220.0f));
+            CHECK(f.Enemy->GetHealth()->GetMaxHealth() == doctest::Approx(220.0f));
+            CHECK(f.Enemy->Tuning.WanderRadius == doctest::Approx(wander)); // set by the map, kept
+            REQUIRE(f.Enemy->GetHorrorAnim() != nullptr);
+            CHECK(f.Enemy->GetHorrorAnim()->GetEnemyClips().WalkSpeedCm == doctest::Approx(95.0f));
+
+            // It takes more than two pipe blows where the default kind takes two or three.
+            f.Enemy->GetHealth()->ApplyDamage(100.0f);
+            CHECK_FALSE(f.Enemy->IsDead());
+
+            // The map says which kind with a property of the spawner.
+            f.Spawn->SetProperty("Type", "Patient");
+            f.Spawn->OnPropertiesLoaded();
+            CHECK(f.Spawn->GetType() == "Patient");
         }
 
         TEST_CASE("its speeds sit between the player's walk and sprint") {

@@ -2,6 +2,7 @@
 
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
+#include "LeonHorror/FLeonHorrorArchetypes.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 
 #include "AI/UAIPerceptionComponent.hpp"
@@ -18,9 +19,6 @@
 namespace Leon {
 
     namespace {
-        constexpr const char* kEnemyMeshPath = "/Game/SkeletalMeshes/YBot.lskeletalmesh";
-        constexpr float kEnemyHeightMetres = 1.82f;
-
         glm::vec3 Planar(const glm::vec3& InVector) {
             return {InVector.x, 0.0f, InVector.z};
         }
@@ -48,23 +46,60 @@ namespace Leon {
             movement->SetJumpMaxCount(1);
         }
 
+        if (!Anim)
+            Anim = MakeRef<ULeonHorrorAnimInstance>("EnemyAnim", ELeonHorrorAnimProfile::Enemy);
+        ApplyArchetype(ArchetypeName);
+    }
+
+    void ALeonHorrorEnemy::ApplyArchetype(const std::string& InName) {
+        // Copied, not kept: the table belongs to the open project and may be rebuilt.
+        const FLeonHorrorEnemyArchetype archetype = LeonHorrorArchetypes::FindEnemy(InName);
+        ArchetypeName = archetype.Name;
+        VoicePrefix = archetype.VoicePrefix;
+        MeshPath = archetype.MeshPath;
+        HeightMetres = archetype.HeightMetres;
+
+        // What the map set on the spawner (how far it wanders) outlives a change of kind.
+        const float wanderRadius = Tuning.WanderRadius;
+        Tuning = archetype.Tuning;
+        Tuning.WanderRadius = wanderRadius;
+        if (Health && !bDead) {
+            Health->SetMaxHealth(Tuning.Health);
+            Health->SetHealth(Tuning.Health);
+        }
+        if (auto movement = GetCharacterMovement())
+            movement->SetMaxWalkSpeed(Tuning.WanderSpeed);
+
         auto mesh = GetMesh();
         if (!mesh)
             return;
-        if (!Anim)
-            Anim = MakeRef<ULeonHorrorAnimInstance>("EnemyAnim", ELeonHorrorAnimProfile::Enemy);
-        mesh->SetMeshAssetPath(kEnemyMeshPath);
-        mesh->SetAnimInstance(Anim);
+        mesh->SetMeshAssetPath(MeshPath);
+        if (Anim) {
+            mesh->SetAnimInstance(Anim);
+            Anim->SetEnemyClips(archetype.Anims);
+        }
         float scale = 1.0f;
         float feetY = 0.0f;
         if (auto asset = mesh->GetSkeletalMesh()) {
             const float meshHeight = asset->GetBoundsMax().y - asset->GetBoundsMin().y;
             if (meshHeight > 1e-3f)
-                scale = kEnemyHeightMetres / meshHeight;
+                scale = HeightMetres / meshHeight;
             feetY = asset->GetBoundsMin().y;
         }
         mesh->SetRelativeScale3D(glm::vec3(scale));
         mesh->SetRelativeLocation(glm::vec3(0.0f, -GetCapsuleHalfHeight() - feetY * scale, 0.0f));
+    }
+
+    void ALeonHorrorEnemy::PlayVoice(const char* InWhat, uint32_t InVariants, float InVolume) {
+        if (VoicePrefix.empty() || !FApplication::HasInstance())
+            return;
+        std::string sound = VoicePrefix + "_" + InWhat;
+        if (InVariants > 1) {
+            // In turn rather than at random: the same one never comes twice running.
+            const uint32_t pick = (VoiceCounter++ % InVariants) + 1;
+            sound += "_0" + std::to_string(pick);
+        }
+        UGameplayStatics::PlaySoundAtLocation(sound, GetActorLocation(), InVolume, 22.0f);
     }
 
     void ALeonHorrorEnemy::BeginPlay() {
@@ -102,7 +137,9 @@ namespace Leon {
             movement->StopMovementImmediately();
         if (Anim)
             Anim->PlayAction(ELeonHorrorAnimAction::HitReact);
-        if (FApplication::HasInstance())
+        if (!VoicePrefix.empty())
+            PlayVoice("Hurt");
+        else if (FApplication::HasInstance())
             UGameplayStatics::PlaySoundAtLocation("/Game/Audio/SFX_DamageTaken", GetActorLocation(), 0.8f, 25.0f);
     }
 
@@ -112,6 +149,7 @@ namespace Leon {
             return;
         bDead = true;
         StaggerRemaining = 0.0f;
+        PlayVoice("Death");
         if (auto movement = GetCharacterMovement()) {
             movement->StopMovementImmediately();
             movement->SetMovementMode(EMovementMode::None);
@@ -228,6 +266,7 @@ namespace Leon {
                 AttackCooldownRemaining = InEnemy.Tuning.AttackCooldown;
                 if (auto* anim = InEnemy.GetHorrorAnim())
                     anim->PlayAction(ELeonHorrorAnimAction::EnemyAttack);
+                InEnemy.PlayVoice("Attack", 2);
             }
         } else {
             State = ELeonHorrorEnemyState::Chase;
@@ -323,10 +362,21 @@ namespace Leon {
 
         if (ALeonHorrorCharacter* target = GetVisibleTarget()) {
             InvestigateSeconds = 0.0f;
+            if (!bWasChasing)
+                enemy->PlayVoice("Alert", 1, 1.0f); // the moment it notices the player
+            bWasChasing = true;
             TickChase(*enemy, *target, DeltaSeconds);
         } else if (Perception->HasLastKnown()) {
             TickInvestigate(*enemy, DeltaSeconds);
         } else {
+            bWasChasing = false;
+            // Now and then it can be heard before it is seen.
+            IdleVoiceWait -= DeltaSeconds;
+            if (IdleVoiceWait <= 0.0f) {
+                RandomState = RandomState * 1664525u + 1013904223u;
+                IdleVoiceWait = 7.0f + static_cast<float>((RandomState >> 8) & 0xFFFFu) / 65535.0f * 8.0f;
+                enemy->PlayVoice("Idle", 3, 0.7f);
+            }
             TickWander(*enemy, DeltaSeconds);
         }
     }
@@ -344,6 +394,7 @@ namespace Leon {
     void ALeonHorrorEnemySpawn::OnPropertiesLoaded() {
         WanderRadius = GetPropertyFloat("WanderRadius", WanderRadius);
         bEnabled = GetPropertyBool("Enabled", bEnabled);
+        Type = GetProperty("Type", Type);
     }
 
     void ALeonHorrorEnemySpawn::BeginPlay() {
@@ -363,6 +414,7 @@ namespace Leon {
             return nullptr;
         enemy->SetSpawnerGuid(guid);
         enemy->Tuning.WanderRadius = WanderRadius;
+        enemy->ApplyArchetype(Type);
         glm::vec3 location = GetActorLocation();
         location.y += enemy->GetCapsuleHalfHeight();
         enemy->SetFloorZ(GetActorLocation().y);
