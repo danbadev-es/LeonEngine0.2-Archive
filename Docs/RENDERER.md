@@ -36,7 +36,7 @@ UpdateViewState    level of detail, IBL environment, spot light aim, skinned sha
 queue              world text, particles, gameplay debug shapes (drawn at the end of the scene pass)
 collect            visible mesh sections, resolved to pipelines, buffers and textures; shadow casters
 lights             the point and spot lights that get the shader's slots, by importance for the camera
-probe captures     only when a reflection probe has no cube yet: six views of the static level each
+probe captures     only while a reflection probe has no cube yet: two views of the static level a frame
 shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
 scene pass (HDR)   opaque → skinned outlines → sky → blended (back to front) → queued world-space batches
@@ -182,16 +182,22 @@ cube map of one room, captured from inside it, that the surfaces in the room ref
   map has it, fog. Not in it: Movable lights (the flashlight), Movable and Stationary meshes,
   characters, particles, text. Surfaces in a capture reflect the sky, never a probe, so captures do not
   depend on each other and one bounce of specular is all there is.
-- **When.** On the first frame that draws the world, all probes at once, and again for a probe whose
-  key changes: the hash of the map's bake (`IRenderScene::GetStaticLightingHash`), whether the
-  lightmaps are trusted, the capture position, the resolution. `FWorldRenderer::InvalidateReflectionProbes`
-  captures everything again on demand. Moving the box or changing `Intensity` needs no capture.
+- **When.** From the first frame that draws the world, two cube faces a frame
+  (`SetReflectionProbeCaptureFacesPerFrame`) until every probe has its cube: a face draws the static
+  level once more, and a level's worth of them does not fit what the device has for one frame (texture
+  tables, constants). Sixteen probes take 48 frames. A probe is read by nothing until its cube is
+  complete; one being captured again keeps showing its old cube meanwhile. A probe is captured again
+  when its key changes: the hash of the map's bake (`IRenderScene::GetStaticLightingHash`), whether the
+  lightmaps are trusted, the capture position, the resolution. So a map without a trusted bake is
+  captured once per run. `FWorldRenderer::InvalidateReflectionProbes` captures everything again on
+  demand. Moving the box or changing `Intensity` needs no capture.
 - **Filtering.** Each face is drawn at the probe resolution into a scratch cube and then filtered into
   the probe's cube of a `TextureCubeArray` (`t15`, RGBA16F, 5 levels): level *n* is the GGX lobe of
   roughness *n*/4 around the mirror direction (`ReflectionProbeFilter.hlsl`), the same convention as
   the sky's prefiltered map, so a surface reads `roughness * 4` in both. The two widest lobes are
   taken from a quarter-size copy of the capture, where a lamp is not a single bright pixel.
-- **Cache.** With a trusted bake, a captured cube is written to
+- **Cache.** Cubes found on disk are loaded on the first frame, all of them, before anything is
+  drawn. With a trusted bake, a captured cube is written to
   `<project>/Saved/ReflectionProbes/<key>.lprobecube` after the frame (`FRHIFrame::RunAfterFrame`:
   a texture cannot be read back while a frame is recorded) and loaded instead of captured from then
   on. The key is in the file name and the header; a new bake, a moved capture point or another

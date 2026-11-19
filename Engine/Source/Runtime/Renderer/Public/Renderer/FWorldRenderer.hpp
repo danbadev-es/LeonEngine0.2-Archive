@@ -114,7 +114,7 @@ namespace Leon {
 
         /**
          * Reflection probes (FReflectionProbeComponent): each is a cube map of the static level around
-         * it, captured on the first frame that shows the world and kept on disk under the hash of the
+         * it, captured over the first frames that show the world and kept on disk under the hash of the
          * level's bake, so later runs load it instead. Off: surfaces reflect the sky everywhere.
          */
         void SetReflectionProbesEnabled(bool bEnabled) { bReflectionProbesEnabled = bEnabled; }
@@ -122,8 +122,15 @@ namespace Leon {
         /** Pixels along the edge of a cube face. A change captures every probe again. */
         void SetReflectionProbeResolution(uint32_t InResolution) { ReflectionProbeResolution = InResolution; }
         uint32_t GetReflectionProbeResolution() const { return ReflectionProbeResolution; }
-        /** Captures every probe again on the next frame, whatever is on disk. */
+        /** Captures every probe again from the next frame on, whatever is on disk. */
         void InvalidateReflectionProbes() { bReflectionProbesInvalidated = true; }
+        /**
+         * How many cube faces are captured in one frame while probes wait for their cube (2 unless
+         * set). A face draws the static level once more, so capturing a level's probes takes a few
+         * dozen frames instead of one that does not fit the device's budget for a frame.
+         */
+        void SetReflectionProbeCaptureFacesPerFrame(uint32_t InFaces) { ReflectionProbeCaptureFacesPerFrame = InFaces; }
+        uint32_t GetReflectionProbeCaptureFacesPerFrame() const { return ReflectionProbeCaptureFacesPerFrame; }
         /** Where captures are kept. Empty (the default): Saved/ReflectionProbes of the project. */
         void SetReflectionProbeCacheDirectory(const std::string& InDirectory) { ReflectionProbeCacheDirectory = InDirectory; }
         /** How many cubes this renderer has captured, and how many it took from disk instead. */
@@ -189,6 +196,7 @@ namespace Leon {
         bool bReflectionProbesEnabled = true;
         bool bReflectionProbesInvalidated = false;
         uint32_t ReflectionProbeResolution = 128;
+        uint32_t ReflectionProbeCaptureFacesPerFrame = 2;
         std::string ReflectionProbeCacheDirectory;
         uint32_t ReflectionProbeCaptureCount = 0;
         uint32_t ReflectionProbeCacheLoadCount = 0;

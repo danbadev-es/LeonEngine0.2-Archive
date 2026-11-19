@@ -346,10 +346,14 @@ namespace Leon {
     /** One probe of the world and the state of its cube. */
     struct FReflectionProbeSlot {
         FReflectionProbeBox Box;
-        /** What the cube was captured from (ReflectionProbeCache::Key); 0 = not captured. */
+        /** What the cube holds was captured from this (ReflectionProbeCache::Key); 0 = it holds nothing yet. */
         uint64_t Key = 0;
+        /** The key the disk was last asked for in vain: not asked again every frame. */
+        uint64_t MissedKey = 0;
         /** The cube is not yet in the cache on disk. */
         bool bUnsaved = false;
+        /** Captured on demand: whatever the disk holds is not wanted. */
+        bool bSkipCache = false;
     };
 
     /**
@@ -362,7 +366,9 @@ namespace Leon {
 
         constexpr uint32_t kMagic = 0x4350524Cu; // "LRPC"
         // Raise when captures made by older code must not be used (the capture or the filter changed).
-        constexpr uint32_t kVersion = 1;
+        // 2: version 1 captured every probe in one frame, which ran the device out of texture tables in
+        // a level of any size and left cubes drawn with the wrong textures.
+        constexpr uint32_t kVersion = 2;
 
         struct FHeader {
             uint32_t Magic = kMagic;
@@ -498,6 +504,13 @@ namespace Leon {
         TRef<IRHIPipeline> ProbeShrinkPipeline;
         std::vector<FReflectionProbeSlot> Probes;
         bool bWarnedTooManyProbes = false;
+        /**
+         * The capture in progress: a cube is drawn a few faces a frame into ProbeCapture and filtered
+         * into the probe's cube when the sixth is there. -1 = none.
+         */
+        int32_t CaptureCube = -1;
+        uint64_t CaptureKey = 0;
+        uint32_t CaptureFace = 0;
         /** FShaderLibrary::GetGeneration when the pipelines above were built. */
         uint64_t ShaderGeneration = 0;
         FLightSlotHistory LightHistory;
@@ -808,6 +821,7 @@ namespace Leon {
             desc.DebugName = "ReflectionProbes";
             state.ProbeCubes = device->CreateTexture(desc);
             state.Probes.clear();
+            state.CaptureCube = -1;
 
             desc.ArraySize = 1;
             desc.MipLevels = 1;
@@ -825,10 +839,12 @@ namespace Leon {
             depthDesc.DebugName = "ReflectionProbeDepth";
             state.ProbeDepth = device->CreateTexture(depthDesc);
         }
-        if (bReflectionProbesInvalidated)
-            state.Probes.clear();
-        const bool bIgnoreCache = bReflectionProbesInvalidated;
+        const bool bCaptureAgain = bReflectionProbesInvalidated;
         bReflectionProbesInvalidated = false;
+        if (bCaptureAgain) {
+            state.Probes.clear();
+            state.CaptureCube = -1;
+        }
 
         if (!state.ProbeFilterPipeline || !state.ProbeShrinkPipeline) {
             const TRef<IRHIShader> filterVS = FShaderLibrary::Get("ReflectionProbeFilter.hlsl", "VSMain", ERHIShaderStage::Vertex);
@@ -853,8 +869,35 @@ namespace Leon {
         const bool bCanCapture = state.ProbeCubes && state.ProbeCapture && state.ProbeCaptureSmall && state.ProbeDepth &&
                                  state.ProbeFilterPipeline && state.ProbeShrinkPipeline;
         state.Probes.resize(bCanCapture ? probes.size() : 0);
-        for (uint32_t index = 0; bCanCapture && index < probes.size(); ++index)
-            probeBoxes.push_back(probes[index].Box);
+        // What each cube should hold. Cubes that are on disk are taken from there at once, all of them;
+        // the others are captured further down, a few faces a frame.
+        std::vector<uint64_t> probeKeys(state.Probes.size(), 0);
+        for (uint32_t index = 0; index < state.Probes.size(); ++index) {
+            FReflectionProbeSlot& slot = state.Probes[index];
+            slot.Box = probes[index].Box;
+            slot.bSkipCache = slot.bSkipCache || bCaptureAgain;
+            const uint64_t key =
+                ReflectionProbeCache::Key(lightingHash, bLightmapsTrusted, slot.Box.CapturePosition, probeResolution);
+            probeKeys[index] = key;
+            if (slot.Key != key && bUseCache && !slot.bSkipCache && slot.MissedKey != key) {
+                if (ReflectionProbeCache::Load(*device, *state.ProbeCubes, index,
+                                               ReflectionProbeCache::FilePath(cacheDirectory, key), key)) {
+                    slot.Key = key;
+                    slot.bUnsaved = false;
+                    ++ReflectionProbeCacheLoadCount;
+                } else {
+                    slot.MissedKey = key;
+                }
+            }
+            FReflectionProbeBox box = slot.Box;
+            if (slot.Key == 0) {
+                // Nothing reads a cube that holds nothing yet: a box no bounds can touch. (A cube that
+                // holds an older capture is read until the new one is complete.)
+                box.BoxMin = glm::vec3(1.0e30f);
+                box.BoxMax = glm::vec3(-1.0e30f);
+            }
+            probeBoxes.push_back(box);
+        }
 
 
         const auto lightmapFor = [&](EComponentMobility InMobility, int32_t InIndex,
@@ -1528,7 +1571,10 @@ namespace Leon {
             static const glm::vec3 faceRight[6] = {{0, 0, -1}, {0, 0, 1}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {-1, 0, 0}};
             static const glm::vec3 faceUp[6] = {{0, 1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {0, 1, 0}, {0, 1, 0}};
 
-            const auto captureProbe = [&](uint32_t InCube, const FReflectionProbeBox& InProbe) {
+            // Draws InFaceCount faces of a probe's capture, from InFirstFace on, and with the sixth face
+            // filters the capture into the probe's cube.
+            const auto captureFaces = [&](uint32_t InCube, const FReflectionProbeBox& InProbe, uint32_t InFirstFace,
+                                          uint32_t InFaceCount) {
                 collectStaticLevel();
                 const glm::vec3 position = InProbe.CapturePosition;
                 InCommands.PushMarker("ReflectionProbe");
@@ -1571,7 +1617,8 @@ namespace Leon {
                 const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, 500.0f);
                 std::vector<FSceneDraw> faceOpaque;
                 std::vector<FSceneDraw> faceTransparent;
-                for (uint32_t face = 0; face < 6; ++face) {
+                const uint32_t endFace = std::min(InFirstFace + InFaceCount, 6u);
+                for (uint32_t face = InFirstFace; face < endFace; ++face) {
                     const glm::mat4 faceView = ShadowMath::PointCubeFaceView(position, face);
                     const FFrustumPlanes faceFrustum = ExtractFrustumPlanes(faceProjection * faceView);
                     const auto inFace = [&faceFrustum](const FSceneDraw& InDraw) {
@@ -1630,17 +1677,17 @@ namespace Leon {
                     InCommands.Draw(3);
                     InCommands.EndRenderPass();
                 };
-                for (uint32_t face = 0; face < 6; ++face)
+                for (uint32_t face = 0; endFace == 6 && face < 6; ++face)
                     filterFace(*state.ProbeCaptureSmall, face, 0, state.ProbeShrinkPipeline.get(), *state.ProbeCapture, face,
                                glm::vec4(0.0f, 0.0f, 1.0f / static_cast<float>(probeResolution), 0.0f));
-                for (uint32_t mip = 0; mip < kReflectionProbeMipLevels; ++mip) {
+                for (uint32_t mip = 0; endFace == 6 && mip < kReflectionProbeMipLevels; ++mip) {
                     const float roughness = static_cast<float>(mip) / static_cast<float>(kReflectionProbeMipLevels - 1);
                     IRHITexture& source = mip >= 2 ? *state.ProbeCaptureSmall : *state.ProbeCapture;
                     for (uint32_t face = 0; face < 6; ++face)
                         filterFace(*state.ProbeCubes, InCube * 6 + face, mip, state.ProbeFilterPipeline.get(), source, face,
                                    glm::vec4(roughness, mip >= 2 ? 96.0f : 48.0f, 0.0f, 0.0f));
                 }
-                // The shadow maps are drawn into again next (the next probe's, then the camera's): they
+                // The shadow maps are drawn into again next (the next capture's, then the camera's): they
                 // must not stay bound for reading.
                 InCommands.SetTexture(kSlotCascadeShadow, nullptr);
                 InCommands.SetTexture(kSlotSpotShadow, nullptr);
@@ -1648,30 +1695,43 @@ namespace Leon {
                 InCommands.PopMarker();
             };
 
+            // A few faces a frame, however many probes wait: a face is the whole static level drawn once
+            // more, and every draw of a frame takes from what the device has for one frame (texture
+            // tables, constants). A level's worth of probes in one frame does not fit.
             bool bSaveQueued = false;
-            for (uint32_t index = 0; index < state.Probes.size(); ++index) {
-                FReflectionProbeSlot& slot = state.Probes[index];
-                const bool bUnsaved = slot.bUnsaved;
-                const uint64_t previousKey = slot.Key;
-                slot = probes[index];
-                slot.Key = previousKey;
-                slot.bUnsaved = bUnsaved;
-                const uint64_t key = ReflectionProbeCache::Key(lightingHash, bLightmapsTrusted, slot.Box.CapturePosition,
-                                                               probeResolution);
-                if (slot.Key == key)
-                    continue;
-                slot.Key = key;
-                slot.bUnsaved = false;
-                if (bUseCache && !bIgnoreCache &&
-                    ReflectionProbeCache::Load(*device, *state.ProbeCubes, index,
-                                               ReflectionProbeCache::FilePath(cacheDirectory, key), key)) {
-                    ++ReflectionProbeCacheLoadCount;
-                    continue;
+            uint32_t facesLeft = std::max(ReflectionProbeCaptureFacesPerFrame, 1u);
+            while (facesLeft > 0) {
+                // The capture in progress goes on while its probe still wants what it is capturing.
+                const bool bInProgress = state.CaptureCube >= 0 &&
+                                         static_cast<size_t>(state.CaptureCube) < state.Probes.size() &&
+                                         probeKeys[static_cast<size_t>(state.CaptureCube)] == state.CaptureKey;
+                if (!bInProgress) {
+                    state.CaptureCube = -1;
+                    for (uint32_t index = 0; index < state.Probes.size(); ++index) {
+                        if (state.Probes[index].Key != probeKeys[index]) {
+                            state.CaptureCube = static_cast<int32_t>(index);
+                            state.CaptureKey = probeKeys[index];
+                            state.CaptureFace = 0;
+                            break;
+                        }
+                    }
+                    if (state.CaptureCube < 0)
+                        break;
                 }
-                captureProbe(index, slot.Box);
-                ++ReflectionProbeCaptureCount;
-                slot.bUnsaved = bUseCache;
-                bSaveQueued = bSaveQueued || bUseCache;
+                const uint32_t cube = static_cast<uint32_t>(state.CaptureCube);
+                FReflectionProbeSlot& slot = state.Probes[cube];
+                const uint32_t faces = std::min(facesLeft, 6u - state.CaptureFace);
+                captureFaces(cube, slot.Box, state.CaptureFace, faces);
+                state.CaptureFace += faces;
+                facesLeft -= faces;
+                if (state.CaptureFace >= 6) {
+                    slot.Key = state.CaptureKey;
+                    slot.bSkipCache = false;
+                    slot.bUnsaved = bUseCache;
+                    bSaveQueued = bSaveQueued || bUseCache;
+                    state.CaptureCube = -1;
+                    ++ReflectionProbeCaptureCount;
+                }
             }
             if (bSaveQueued) {
                 // The cubes can only be read back once this frame is on the GPU.

@@ -14,6 +14,9 @@
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Assets/FMaterial.hpp"
 #include "Assets/FMaterialInstance.hpp"
+#include "Core/FLog.hpp"
+#include "RHI/FTexture.hpp"
+#include "RenderCore/FReflectionProbeMath.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
 #include "RenderCore/FShaderLibrary.hpp"
@@ -24,6 +27,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <string_view>
 #include <filesystem>
 #include <system_error>
 #include <vector>
@@ -283,6 +287,8 @@ namespace Leon {
                 // need the environment, which takes ten seconds and more to build: reflections go through
                 // its lookup table.)
                 renderer->SetDebugMode(kProbeReflectionView);
+                // The whole cube in the first frame: these cases look at the second.
+                renderer->SetReflectionProbeCaptureFacesPerFrame(6);
                 renderer->SetPlanarReflectionEnabled(false);
                 renderer->SetReflectionProbeResolution(64);
 
@@ -939,6 +945,7 @@ namespace Leon {
                 second.SetDebugMode(kProbeReflectionView);
                 second.SetPlanarReflectionEnabled(false);
                 second.SetReflectionProbeResolution(64);
+                second.SetReflectionProbeCaptureFacesPerFrame(6);
                 second.SetReflectionProbeCacheDirectory(cache.string());
                 second.OnViewportResize(kWidth, kHeight);
                 second.GetPostProcessSettings() = renderer->GetPostProcessSettings();
@@ -973,6 +980,68 @@ namespace Leon {
                 Renderer = nullptr;
             }
             fs::remove_all(cache, error);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "A level full of reflection probes is captured a few faces a frame, once, within the frame's budget") {
+            REQUIRE(bReady);
+            SwitchFixtureLightsOff();
+            UsePlainPostProcess();
+            FWorldRenderer* renderer = World->GetWorldRenderer();
+            renderer->SetPlanarReflectionEnabled(false);
+            renderer->SetReflectionProbeResolution(16);
+            // No bake at all, and what there is not trusted: nothing on disk, every cube captured here.
+            World->SetLightmapsTrusted(false);
+
+            // A ring of static things around the probes, each with a texture of its own: every one of
+            // them is a new set of textures for the device in the face of each capture that shows it.
+            // All the captures in one frame would be some three thousand sets; a frame has two thousand.
+            const glm::vec3 middle(0.0f, 1.0f, 1.0f);
+            const int tileCount = 100;
+            std::vector<TRef<FTexture2D>> textures;
+            for (int i = 0; i < tileCount; ++i) {
+                const TRef<FMaterialInstance> material = FloorMaterial->GetParent()->CreateInstance("Tile");
+                TRef<FTexture2D> texture = FTexture2D::Create(1, 1);
+                uint32_t pixel = 0xFF000000u | static_cast<uint32_t>(40 + i * 2);
+                texture->SetData(&pixel, sizeof(pixel));
+                material->SetTexture(0, texture);
+                textures.push_back(texture);
+                AActor* tile = World->SpawnActor<AActor>("Tile");
+                const float angle = 6.2831853f * static_cast<float>(i) / static_cast<float>(tileCount);
+                tile->SetActorLocation(middle + glm::vec3(3.0f * std::cos(angle), (i % 3 - 1) * 0.8f, 3.0f * std::sin(angle)));
+                auto& mesh = tile->AddComponent<FMeshComponent>(FMeshPrimitives::CreateCube(0.15f));
+                mesh.MeshSize = 0.15f;
+                mesh.Mobility = EComponentMobility::Static;
+                tile->AddComponent<FMaterialComponent>(material);
+            }
+            // As many probes as a map may have, each seeing all of it.
+            for (uint32_t i = 0; i < kMaxReflectionProbes; ++i) {
+                auto* probe = World->SpawnActor<AReflectionProbe>("Probe");
+                probe->SetActorLocation(middle + glm::vec3(-0.5f + 0.03f * static_cast<float>(i), 0.0f, 0.0f));
+                probe->GetComponent<FReflectionProbeComponent>().Extent = {1.0f, 1.0f, 1.0f};
+            }
+
+            // What the device says when a frame asks for more than it has.
+            uint32_t budgetErrors = 0;
+            FLog::SetSink([&budgetErrors](ELogLevel InLevel, std::string_view, std::string_view InMessage) {
+                if (InLevel >= ELogLevel::Error && InMessage.find("descriptors") != std::string_view::npos)
+                    ++budgetErrors;
+            });
+
+            // Two faces a frame: nothing is complete after one frame, one cube after three.
+            REQUIRE(renderer->GetReflectionProbeCaptureFacesPerFrame() == 2);
+            Render(1);
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 0);
+            Render(2);
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 1);
+            // And all of them after three frames each.
+            Render(3 * (kMaxReflectionProbes - 1));
+            CHECK(renderer->GetReflectionProbeCaptureCount() == kMaxReflectionProbes);
+            // Captured once: more frames capture nothing more, trusted bake or not.
+            Render(6);
+            CHECK(renderer->GetReflectionProbeCaptureCount() == kMaxReflectionProbes);
+            FLog::ClearSink();
+            CHECK(budgetErrors == 0);
             CHECK(NewValidationErrors() == 0);
         }
 
