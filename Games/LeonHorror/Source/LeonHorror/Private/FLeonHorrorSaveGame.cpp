@@ -48,6 +48,8 @@ namespace Leon {
             out << "Enemy " << guid << '\n';
         for (const auto& guid : ReadNotes)
             out << "Note " << guid << '\n';
+        for (const auto& group : PoweredGroups)
+            out << "Power " << group << '\n';
         return out.str();
     }
 
@@ -113,6 +115,8 @@ namespace Leon {
                 save.DeadEnemies.insert(RestOfLine(record));
             } else if (kind == "Note") {
                 save.ReadNotes.insert(RestOfLine(record));
+            } else if (kind == "Power") {
+                save.PoweredGroups.insert(RestOfLine(record));
             }
             // Unknown record kinds are skipped: a newer minor writer may add some.
         }

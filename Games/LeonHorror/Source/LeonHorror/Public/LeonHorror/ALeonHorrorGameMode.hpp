@@ -1,12 +1,15 @@
 #pragma once
 
 #include "Gameplay/AGameModeBase.hpp"
+#include "Gameplay/TWeakObjectPtr.hpp"
 
 #include "LeonHorror/FLeonHorrorSaveGame.hpp"
 
 #include <map>
 #include <set>
 #include <string>
+
+#include <vector>
 
 namespace Leon {
 
@@ -58,6 +61,14 @@ namespace Leon {
         void NotifyEnemyKilled(const ALeonHorrorEnemy& InEnemy);
         void MarkEnemyDead(const std::string& InSpawnerGuid) { DeadEnemies.insert(InSpawnerGuid); }
         const std::set<std::string>& GetDeadEnemies() const { return DeadEnemies; }
+
+        // --- Electricity: see ALeonHorrorPower.hpp ---
+        /** Turns a power group on or off and applies it to everything in the map that belongs to it. */
+        void SetPowerGroup(const std::string& InGroup, bool bInPowered);
+        bool IsPowered(const std::string& InGroup) const;
+        const std::set<std::string>& GetPoweredGroups() const { return PoweredGroups; }
+        /** Looks at the map again for things that need power or flicker; for actors added during play. */
+        void RescanPower() { InitialisePower(); }
 
         /** Opens a note for reading; the HUD shows it and the world pauses until it is dismissed. */
         void ShowNote(const ALeonHorrorNote& InNote);
@@ -136,6 +147,18 @@ namespace Leon {
 
         void RefreshPause();
         void ApplyPendingSaveFromInstance();
+        void InitialisePower();
+        void ApplyPowerGroup(const std::string& InGroup, bool bInPowered);
+        void TickFlicker();
+
+        struct FFlickeringLight {
+            TWeakObjectPtr<AActor> Actor;
+            float BaseIntensity = 1.0f;
+            float Amount = 0.5f;
+            float Phase = 0.0f;
+        };
+        std::set<std::string> PoweredGroups;
+        std::vector<FFlickeringLight> FlickeringLights;
 
         /** Virtual path of the running map, e.g. /Game/Maps/Slice. */
         std::string GetCurrentMapPath() const;

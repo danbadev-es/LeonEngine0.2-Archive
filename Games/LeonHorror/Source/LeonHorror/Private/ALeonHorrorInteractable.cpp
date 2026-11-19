@@ -242,6 +242,7 @@ namespace Leon {
         }
         PartnerName = GetProperty("Partner", PartnerName);
         SoundSet = GetProperty("Sound", SoundSet);
+        bNeedsPower = HasProperty("PowerGroup");
         bOpen = GetPropertyBool("Open", false);
         if (bOpen)
             bLocked = false;
@@ -296,6 +297,8 @@ namespace Leon {
     }
 
     std::string ALeonHorrorDoor::GetInteractPrompt(const APawn& InInstigator) const {
+        if (!HasPower() && !bOpen)
+            return "No power";
         if (bLocked) {
             const auto* inventory = InventoryOf(InInstigator);
             if (inventory && inventory->HasItem(RequiredKey))
@@ -306,6 +309,10 @@ namespace Leon {
     }
 
     bool ALeonHorrorDoor::Interact(APawn& InInstigator) {
+        if (!HasPower() && !bOpen) {
+            PlayDoorSound("Locked");
+            return false;
+        }
         if (bLocked) {
             const auto* inventory = InventoryOf(InInstigator);
             if (!inventory || !inventory->HasItem(RequiredKey)) {

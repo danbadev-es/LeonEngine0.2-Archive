@@ -11,6 +11,7 @@ set(LEONHORROR_GAME_SOURCES
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorFlashlight.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorInteractable.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorPlayerController.cpp"
+    "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorPower.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ALeonHorrorHUD.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/ULeonHorrorInventoryComponent.cpp"
     "${LEONHORROR_ROOT}/Source/LeonHorror/Private/FLeonHorrorArchetypes.cpp"
@@ -32,6 +33,7 @@ set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/EnemyTests.cpp"
     "${LEONHORROR_ROOT}/Tests/SaveTests.cpp"
     "${LEONHORROR_ROOT}/Tests/HudTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/PowerTests.cpp"
     "${LEONHORROR_ROOT}/Tests/SliceMapTests.cpp"
     "${LEONHORROR_ROOT}/Tests/RenderTests.cpp"
 )

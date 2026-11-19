@@ -55,6 +55,7 @@ namespace Leon {
      *     Width, Height and Thickness size what it blocks (default 0.9 x 2.05 x 0.05 m).
      * Partner names the other leaf of a double door: the two open, close and unlock together.
      * Sound picks the set of noises: Wood (default), Swing or Metal.
+     * PowerGroup makes its lock electric: it cannot be opened while that group has no power.
      * Unlocking does not consume the key. An open door blocks nothing, hinged or not.
      */
     class ALeonHorrorDoor : public ALeonHorrorInteractable {
@@ -77,6 +78,10 @@ namespace Leon {
         bool IsHinged() const { return bHinged; }
         float GetSwingDegrees() const { return SwingDegrees; }
         void SetPartnerName(const std::string& InName) { PartnerName = InName; }
+        /** Told by the game mode when the power of its group comes or goes. */
+        void SetPowered(bool bInPowered) { bPowered = bInPowered; }
+        bool NeedsPower() const { return bNeedsPower; }
+        bool HasPower() const { return !bNeedsPower || bPowered; }
 
         bool IsLocked() const { return bLocked; }
         bool IsOpen() const { return bOpen; }
@@ -117,6 +122,8 @@ namespace Leon {
         glm::vec3 ClosedRotation{0.0f};
         std::string PartnerName;
         std::string SoundSet = "Wood";
+        bool bNeedsPower = false;
+        bool bPowered = false;
     };
 
     /** Something to read. Properties: Title, Text ("\n" for line breaks). */

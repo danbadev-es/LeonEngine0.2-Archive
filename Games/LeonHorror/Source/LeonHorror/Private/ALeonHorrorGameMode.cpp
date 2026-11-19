@@ -42,9 +42,12 @@ namespace Leon {
             // nothing and enemies walk straight at their goal.
             if (World)
                 World->RebuildNavigation();
+            // Everything starts without power; a save then switches back on what was on.
+            InitialisePower();
             ApplyPendingSaveFromInstance();
         }
         ElapsedPlaySeconds += DeltaSeconds;
+        TickFlicker();
         TickSmokeRun();
     }
 
@@ -183,6 +186,7 @@ namespace Leon {
             save.Doors[guid] = {door.bLocked, door.bOpen};
         save.DeadEnemies = DeadEnemies;
         save.ReadNotes = ReadNotes;
+        save.PoweredGroups = PoweredGroups;
         return save;
     }
 
@@ -193,6 +197,13 @@ namespace Leon {
         CollectedPickups = InSave.CollectedPickups;
         DeadEnemies = InSave.DeadEnemies;
         ReadNotes = InSave.ReadNotes;
+        // Power first: a door with an electric lock is then set by its saved state below.
+        const std::set<std::string> wasPowered = PoweredGroups;
+        PoweredGroups = InSave.PoweredGroups;
+        for (const std::string& group : wasPowered)
+            ApplyPowerGroup(group, IsPowered(group));
+        for (const std::string& group : PoweredGroups)
+            ApplyPowerGroup(group, true);
         DoorStates.clear();
         for (const auto& [guid, door] : InSave.Doors)
             DoorStates[guid] = {door.bLocked, door.bOpen};

@@ -7,6 +7,7 @@
 #include "LeonHorror/ALeonHorrorHUD.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ALeonHorrorPlayerController.hpp"
+#include "LeonHorror/ALeonHorrorPower.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
 
 namespace Leon {
@@ -25,6 +26,8 @@ namespace Leon {
         InRegistry.RegisterClass<ALeonHorrorNote>("ALeonHorrorNote");
         InRegistry.RegisterClass<ALeonHorrorSavePoint>("ALeonHorrorSavePoint");
         InRegistry.RegisterClass<ALeonHorrorExit>("ALeonHorrorExit");
+        InRegistry.RegisterClass<ALeonHorrorAmbientSound>("ALeonHorrorAmbientSound");
+        InRegistry.RegisterClass<ALeonHorrorFuseBox>("ALeonHorrorFuseBox");
 
         OutHooks.GameInstanceFactory = []() -> TRef<UGameInstance> {
             return CreateRef<ULeonHorrorGameInstance>("LeonHorrorGameInstance");

@@ -43,6 +43,8 @@ namespace Leon {
         std::map<std::string, FDoor> Doors;
         std::set<std::string> DeadEnemies;
         std::set<std::string> ReadNotes;
+        /** Power groups that have been switched on. */
+        std::set<std::string> PoweredGroups;
 
         std::string ToText() const;
         /** Returns false, leaving OutSave untouched, when the text is not a save this build can read. */
