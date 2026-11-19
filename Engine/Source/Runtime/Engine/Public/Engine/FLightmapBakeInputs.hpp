@@ -21,6 +21,10 @@ namespace Leon {
         uint64_t DeterministicSeed = 0x4C454F4E4C4D4153ull; // "LEONLMAS"
         float TexelPadding = 2.0f;
         ELightingBuildQuality LightingBuildQuality = ELightingBuildQuality::Draft;
+        /** Light probes: whether the bake fills a grid of them, and the metres between two. */
+        bool bLightProbes = true;
+        float LightProbeSpacing = 1.5f;
+        float LightProbeVerticalSpacing = 1.0f;
     };
 
     inline void ApplyLightingBuildQuality(ELightingBuildQuality InQuality, FLightmassSettings& OutSettings) {
@@ -67,7 +71,11 @@ namespace Leon {
          */
         static uint64_t ComputeHash(const UWorld& InWorld, const FLightmassSettings& InSettings);
 
-        /** Compares the stored hash with the world as loaded and stops lightmaps being used when stale. */
+        /**
+         * Compares the stored hash with the world as loaded and stops lightmaps being used when stale.
+         * The map's light probes are loaded here too, under the same rule: only from a file that
+         * carries the hash the map does, and only when that hash is the world's.
+         */
         static void RefreshRuntimeTrust(UWorld& InWorld);
     };
 

@@ -2,6 +2,7 @@
 
 #include "Lightmass/FLightmapBuilder.hpp"
 #include "RenderCore/FLight.hpp"
+#include "RenderCore/FLightProbeGrid.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -81,6 +82,25 @@ namespace Leon {
         uint32_t NumThreads = 0;
     };
 
+    /** Where the light probes of a level go and how carefully each is measured. */
+    struct FLightProbeBakeSettings {
+        /** The volume to fill: the playable part of the level. */
+        glm::vec3 BoundsMin{0.0f};
+        glm::vec3 BoundsMax{0.0f};
+        /** Metres between probes along the ground (X and Z) and upwards (Y). */
+        float Spacing = 1.5f;
+        float VerticalSpacing = 1.0f;
+        /** With more probes than this the spacing is widened until they fit. */
+        uint32_t MaxProbes = 65536;
+        /** Directions looked along from each probe. */
+        uint32_t SamplesPerProbe = 256;
+        /**
+         * A probe that sees the back of surfaces in more than this share of its directions is inside
+         * a wall or outside the level: it is marked not valid.
+         */
+        float MaxBackFaceShare = 0.25f;
+    };
+
     /**
      * @brief CPU path tracer for diffuse irradiance lightmaps.
      * Direct lights + cosine-weighted environment (miss = sky) + optional GI bounces.
@@ -109,6 +129,23 @@ namespace Leon {
                                float InMaxT);
 
         static glm::vec3 CosineSampleHemisphere(const glm::vec3& InNormal, float InU1, float InU2);
+
+        /**
+         * The grid BakeProbes fills for these settings, without the light: its origin, spacing and
+         * counts. Probes are centred in the volume; none sits on its faces unless the volume is thinner
+         * than the spacing.
+         */
+        static void LayOutProbes(const FLightProbeBakeSettings& InProbeSettings, FLightProbeGrid& OutGrid);
+
+        /**
+         * Light probes: the diffuse light arriving at each point of a grid, from every direction, as
+         * first-order spherical harmonics (FLightProbeGrid). What a probe holds is what a lightmap texel
+         * there would: direct light of Static lights, light bounced off the level from Static and
+         * Stationary lights, the sky and emissive surfaces. The direct light of Stationary lights is
+         * not in it: the game adds that itself. Uses the scene as Bake does (the atlas is not needed).
+         */
+        static void BakeProbes(const FLightBakerScene& InScene, const FLightBakerSettings& InSettings,
+                               const FLightProbeBakeSettings& InProbeSettings, FLightProbeGrid& OutGrid);
     };
 
 } // namespace Leon

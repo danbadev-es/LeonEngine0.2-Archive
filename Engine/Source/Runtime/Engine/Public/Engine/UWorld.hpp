@@ -168,6 +168,12 @@ namespace Leon {
 
         bool AreLightmapsTrusted() const override { return bLightmapsTrusted; }
         uint64_t GetStaticLightingHash() const override;
+        bool SampleLightProbes(const glm::vec3& InPosition, FLightProbeSample& OutSample) const override {
+            return bLightmapsTrusted && LightProbes.Sample(InPosition, OutSample);
+        }
+        /** The baked light probes of the map; empty when it has none. Set when the map loads (FLightmapBakeInputs). */
+        void SetLightProbes(FLightProbeGrid InGrid) { LightProbes = std::move(InGrid); }
+        const FLightProbeGrid& GetLightProbes() const { return LightProbes; }
 
         // The rest of IRenderScene.
         glm::mat4 GetEntityWorldMatrix(entt::entity InEntity, const FTransformComponent& InTransform) const override;
@@ -279,6 +285,7 @@ namespace Leon {
         int32_t ActorIterationDepth = 0;
         bool bPaused = false;
         bool bLightmapsTrusted = true;
+        FLightProbeGrid LightProbes;
         std::vector<std::string> EditorFolders;
 
         bool bHasPendingRendererDefaults = false;

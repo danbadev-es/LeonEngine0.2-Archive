@@ -40,6 +40,10 @@ cbuffer DrawConstants : register(b3) {
     float4 u_ProbeBoxMin[2];    // xyz = lower corner of the probe's box, w = intensity
     float4 u_ProbeBoxMax[2];    // xyz = upper corner, w = the probe's cube in t_ReflectionProbes (-1 = no probe)
     float4 u_ProbeCapture[2];   // xyz = where the cube was captured, w = metres over which the probe fades out
+    // Baked ambient light where the object is, from the map's light probes: one row per colour channel,
+    // irradiance on a surface of normal n = dot(row, float4(n, 1)). See RenderCore/FLightProbeGrid.hpp.
+    float4 u_AmbientSH[3];
+    int4 u_DrawFlags2;          // x = u_AmbientSH holds the ambient light (otherwise the sky gives it)
 };
 
 #ifdef INSTANCED
@@ -304,6 +308,14 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
     } else {
         diffuseIBL = GetHemisphereIrradiance(N) * albedo / kPi;
         reflection = SampleEnvironmentAtmosphere(R);
+    }
+    // Things without a lightmap (characters, whatever moves) take their diffuse ambient from the light
+    // probes baked around them, when the map has them: the light of the room, not of the sky.
+    if (u_DrawFlags2.x == 1) {
+        const float4 normal = float4(N, 1.0);
+        const float3 probeIrradiance =
+            max(float3(dot(u_AmbientSH[0], normal), dot(u_AmbientSH[1], normal), dot(u_AmbientSH[2], normal)), 0.0);
+        diffuseIBL = probeIrradiance * albedo / kPi;
     }
     // A probe of the room replaces the sky where the pixel is inside its box: the sky is not what a
     // closed room reflects. Two probes share the pixel by their weights; what they leave is the sky's.

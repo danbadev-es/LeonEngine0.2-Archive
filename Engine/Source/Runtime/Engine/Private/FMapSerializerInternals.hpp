@@ -223,6 +223,24 @@ namespace Leon {
             Indent(ss, 2);
             ss << "LightmapBakeHash: \"" << std::hex << ws.LightmapBakeHash << std::dec << "\"\n";
         }
+        // Light probes: only what differs from the defaults, so maps that never heard of them stay as they are.
+        const FWorldSettingsComponent defaults;
+        if (ws.bLightProbes != defaults.bLightProbes) {
+            Indent(ss, 2);
+            ss << "LightProbes: " << (ws.bLightProbes ? "true" : "false") << "\n";
+        }
+        if (ws.LightProbeSpacing != defaults.LightProbeSpacing) {
+            Indent(ss, 2);
+            ss << "LightProbeSpacing: " << ws.LightProbeSpacing << "\n";
+        }
+        if (ws.LightProbeVerticalSpacing != defaults.LightProbeVerticalSpacing) {
+            Indent(ss, 2);
+            ss << "LightProbeVerticalSpacing: " << ws.LightProbeVerticalSpacing << "\n";
+        }
+        if (!ws.LightProbeAssetPath.empty()) {
+            Indent(ss, 2);
+            ss << "LightProbeAsset: " << QuoteMapString(ws.LightProbeAssetPath) << "\n";
+        }
     }
 
     inline std::vector<float> ParseFloatArray(const std::string& valStr) {

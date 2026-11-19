@@ -1,5 +1,7 @@
 #include "Engine/FLightmapBakeInputs.hpp"
 
+#include "Engine/FLightProbeAsset.hpp"
+
 #include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FAssetPath.hpp"
@@ -78,6 +80,9 @@ namespace Leon {
         OutSettings.TexelPadding = Ws.TexelPadding;
         OutSettings.WorldScale = Ws.WorldScale;
         OutSettings.LightingBuildQuality = Ws.LightingBuildQuality;
+        OutSettings.bLightProbes = Ws.bLightProbes;
+        OutSettings.LightProbeSpacing = Ws.LightProbeSpacing;
+        OutSettings.LightProbeVerticalSpacing = Ws.LightProbeVerticalSpacing;
         if (!Ws.LightmapAssetPath.empty())
             OutLightmapVirtual = Ws.LightmapAssetPath;
     }
@@ -100,6 +105,17 @@ namespace Leon {
         hash = HashBytes(hash, &InSettings.DeterministicSeed, sizeof(InSettings.DeterministicSeed));
         uint8_t quality = static_cast<uint8_t>(InSettings.LightingBuildQuality);
         hash = HashBytes(hash, &quality, sizeof(quality));
+        // The light probe settings count only where a map changed them: with the defaults the hash is
+        // what it was before probes existed, so the bakes of older maps stay valid.
+        const FLightmassSettings probeDefaults;
+        if (InSettings.bLightProbes != probeDefaults.bLightProbes ||
+            InSettings.LightProbeSpacing != probeDefaults.LightProbeSpacing ||
+            InSettings.LightProbeVerticalSpacing != probeDefaults.LightProbeVerticalSpacing) {
+            const uint8_t probes = InSettings.bLightProbes ? 1 : 0;
+            hash = HashBytes(hash, &probes, sizeof(probes));
+            hash = HashBytes(hash, &InSettings.LightProbeSpacing, sizeof(InSettings.LightProbeSpacing));
+            hash = HashBytes(hash, &InSettings.LightProbeVerticalSpacing, sizeof(InSettings.LightProbeVerticalSpacing));
+        }
 
         for (const auto& actorRef : InWorld.GetAllActors()) {
             if (!actorRef)
@@ -204,6 +220,7 @@ namespace Leon {
 
     void FLightmapBakeInputs::RefreshRuntimeTrust(UWorld& InWorld) {
         InWorld.SetLightmapsTrusted(true);
+        InWorld.SetLightProbes(FLightProbeGrid{});
         FWorldSettingsComponent* ws = FindWorldSettings(InWorld);
         if (!ws || !ws->bStaticLighting)
             return;
@@ -218,7 +235,26 @@ namespace Leon {
                           "Bake again with Tools/bake_lightmaps.py",
                           ws->LightmapBakeHash, current);
             InWorld.SetLightmapsTrusted(false);
+            return;
         }
+
+        // The light probes belong to the same bake: a file with another hash is from another one.
+        if (ws->LightProbeAssetPath.empty())
+            return;
+        FLightProbeGrid probes;
+        uint64_t probeHash = 0;
+        const std::string probePath = UAssetManager::ResolveVirtualPath(ws->LightProbeAssetPath);
+        if (!FLightProbeAsset::Load(probePath, probes, probeHash)) {
+            LE_CORE_WARN("Light probes: '{0}' is missing or damaged: characters take their ambient light from the sky",
+                         probePath);
+            return;
+        }
+        if (probeHash != ws->LightmapBakeHash) {
+            LE_CORE_ERROR("Light probes: '{0}' is from another bake (file={1:x} map={2:x}): not using it. Bake again",
+                          probePath, probeHash, ws->LightmapBakeHash);
+            return;
+        }
+        InWorld.SetLightProbes(std::move(probes));
     }
 
 } // namespace Leon

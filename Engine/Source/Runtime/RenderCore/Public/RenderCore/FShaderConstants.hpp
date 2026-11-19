@@ -116,6 +116,9 @@ namespace Leon {
         glm::vec4 ProbeBoxMin[2]{glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)};
         glm::vec4 ProbeBoxMax[2]{glm::vec4(0.0f, 0.0f, 0.0f, -1.0f), glm::vec4(0.0f, 0.0f, 0.0f, -1.0f)};
         glm::vec4 ProbeCapture[2]{glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)};
+        // Baked ambient light where the object is (FLightProbeSample: red, green, blue); used when DrawFlags2.x is 1.
+        glm::vec4 AmbientSH[3]{glm::vec4(0.0f), glm::vec4(0.0f), glm::vec4(0.0f)};
+        glm::ivec4 DrawFlags2{0};
     };
 
     /** Copies of one mesh drawn in a single call (PBR_Lit.hlsl compiled with INSTANCED). */

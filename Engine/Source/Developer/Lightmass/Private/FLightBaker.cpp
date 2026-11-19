@@ -699,4 +699,222 @@ namespace Leon {
         }
     }
 
+    // --- Light probes ---------------------------------------------------------------------------
+
+    void FLightBaker::LayOutProbes(const FLightProbeBakeSettings& InProbeSettings, FLightProbeGrid& OutGrid) {
+        const glm::vec3 low = glm::min(InProbeSettings.BoundsMin, InProbeSettings.BoundsMax);
+        const glm::vec3 high = glm::max(InProbeSettings.BoundsMin, InProbeSettings.BoundsMax);
+        const glm::vec3 extent = high - low;
+        const uint32_t maxProbes = std::max(InProbeSettings.MaxProbes, 1u);
+        glm::vec3 spacing(std::max(InProbeSettings.Spacing, 0.05f), std::max(InProbeSettings.VerticalSpacing, 0.05f),
+                          std::max(InProbeSettings.Spacing, 0.05f));
+        glm::uvec3 counts(1);
+        for (int attempt = 0; attempt < 256; ++attempt) {
+            uint64_t total = 1;
+            for (int axis = 0; axis < 3; ++axis) {
+                counts[axis] = static_cast<uint32_t>(std::floor(extent[axis] / spacing[axis] + 1.0e-4f)) + 1;
+                total *= counts[axis];
+            }
+            if (total <= maxProbes)
+                break;
+            // Too many: the same grid a little coarser, until it fits.
+            spacing *= 1.1f;
+        }
+        OutGrid = FLightProbeGrid{};
+        OutGrid.Spacing = spacing;
+        OutGrid.Origin = low + 0.5f * (extent - glm::vec3(counts - glm::uvec3(1)) * spacing);
+        OutGrid.Resize(counts);
+    }
+
+    void FLightBaker::BakeProbes(const FLightBakerScene& InScene, const FLightBakerSettings& InSettings,
+                                 const FLightProbeBakeSettings& InProbeSettings, FLightProbeGrid& OutGrid) {
+        LayOutProbes(InProbeSettings, OutGrid);
+        if (!CurrentTree(InScene))
+            BuildAcceleration(InScene);
+        GNormalFallbacks.store(0);
+
+        const uint32_t samples = std::max(InProbeSettings.SamplesPerProbe, 1u);
+        const size_t probeCount = OutGrid.ProbeCount();
+        // Another sequence than the lightmap's, so the two do not repeat each other's pattern.
+        const uint64_t seed = InSettings.Seed ^ 0x50524F4245534831ull;
+        const float solidAnglePerSample = 4.0f * kPI / static_cast<float>(samples);
+
+        // Every probe is worked out from the scene alone and written to its own slot: threads share
+        // them out and the result is the same however many there are.
+        const auto bakeProbe = [&](size_t InIndex) {
+            const uint32_t x = static_cast<uint32_t>(InIndex % OutGrid.Counts.x);
+            const uint32_t y = static_cast<uint32_t>((InIndex / OutGrid.Counts.x) % OutGrid.Counts.y);
+            const uint32_t z = static_cast<uint32_t>(InIndex / (static_cast<size_t>(OutGrid.Counts.x) * OutGrid.Counts.y));
+            const glm::vec3 position = OutGrid.PositionOf(x, y, z);
+            const uint32_t probeId = static_cast<uint32_t>(InIndex);
+            // Each probe turns the shared pattern by its own amount.
+            const float turnU = RadicalInverseVdC(HashCombine(seed, probeId, 0x1F123BB5u, 0));
+            const float turnV = RadicalInverseVdC(HashCombine(seed, probeId, 0x5F356495u, 1));
+
+            FLightProbeSample light;
+            uint32_t backFaces = 0;
+            for (uint32_t s = 0; s < samples; ++s) {
+                glm::vec2 xi = HammersleyLocal(s, samples);
+                xi.x = std::fmod(xi.x + turnU, 1.0f);
+                xi.y = std::fmod(xi.y + turnV, 1.0f);
+                // Uniform over the sphere.
+                const float height = 1.0f - 2.0f * xi.x;
+                const float ring = std::sqrt(std::max(1.0f - height * height, 0.0f));
+                const float angle = 2.0f * kPI * xi.y;
+                const glm::vec3 dir(ring * std::cos(angle), height, ring * std::sin(angle));
+
+                float tHit;
+                uint32_t hitTri;
+                glm::vec3 bary;
+                if (!IntersectScene(InScene, position, dir, 1e6f, tHit, hitTri, bary)) {
+                    light.AddRadiance(dir, SampleBakeEnvironment(InScene, dir) * solidAnglePerSample);
+                    continue;
+                }
+                const auto& tri = InScene.Triangles[hitTri];
+                const auto& hv0 = InScene.Vertices[tri.I0];
+                const auto& hv1 = InScene.Vertices[tri.I1];
+                const auto& hv2 = InScene.Vertices[tri.I2];
+                const glm::vec3 surfaceNormal = SurfaceNormal(hv0, hv1, hv2, bary);
+                if (glm::dot(surfaceNormal, dir) > 0.0f) {
+                    // The back of a surface: nothing a place in the open would see. It sends no light.
+                    ++backFaces;
+                    continue;
+                }
+                if (InSettings.NumIndirectBounces == 0)
+                    continue;
+
+                // The light the surface sends back, and what reaches it in turn: the same walk the
+                // lightmap takes from a texel.
+                glm::vec3 radiance = SurfaceOutgoingRadiance(InScene, hv0, hv1, hv2, bary, dir);
+                glm::vec3 curPos = FLightmapUV::Interpolate(hv0.Position, hv1.Position, hv2.Position, bary);
+                glm::vec3 curN = FacingNormal(surfaceNormal, dir);
+                glm::vec3 throughput = FLightmapUV::Interpolate(hv0.Albedo, hv1.Albedo, hv2.Albedo, bary) *
+                                       (1.0f - (hv0.Metallic * bary.x + hv1.Metallic * bary.y + hv2.Metallic * bary.z));
+                for (uint32_t bounce = 1; bounce < InSettings.NumIndirectBounces; ++bounce) {
+                    const uint32_t hb = HashCombine(seed, probeId, s, bounce);
+                    const glm::vec3 dir2 =
+                        CosineSampleHemisphere(curN, RadicalInverseVdC(hb), RadicalInverseVdC(hb ^ 0xA5A5A5A5u));
+                    float t2;
+                    uint32_t tri2;
+                    glm::vec3 bary2;
+                    if (!IntersectScene(InScene, curPos + curN * kEpsilon * 2.0f, dir2, 1e6f, t2, tri2, bary2)) {
+                        radiance += throughput * SampleBakeEnvironment(InScene, dir2);
+                        break;
+                    }
+                    const auto& tref = InScene.Triangles[tri2];
+                    const auto& w0 = InScene.Vertices[tref.I0];
+                    const auto& w1 = InScene.Vertices[tref.I1];
+                    const auto& w2 = InScene.Vertices[tref.I2];
+                    radiance += throughput * SurfaceOutgoingRadiance(InScene, w0, w1, w2, bary2, dir2);
+                    curPos = FLightmapUV::Interpolate(w0.Position, w1.Position, w2.Position, bary2);
+                    curN = FacingNormal(SurfaceNormal(w0, w1, w2, bary2), dir2);
+                    throughput *= FLightmapUV::Interpolate(w0.Albedo, w1.Albedo, w2.Albedo, bary2) *
+                                  (1.0f - (w0.Metallic * bary2.x + w1.Metallic * bary2.y + w2.Metallic * bary2.z));
+                }
+                light.AddRadiance(dir, radiance * (InSettings.IndirectIntensity * solidAnglePerSample));
+            }
+
+            // The lights that are wholly baked shine on the probe itself. A light is a single direction:
+            // it adds its irradiance on a surface facing it. (Stationary lights are left to the game.)
+            for (const auto& dl : InScene.DirectionalLights) {
+                if (!dl.bContributeDirect)
+                    continue;
+                const glm::vec3 L = glm::normalize(-dl.Light.Direction);
+                if (!IsShadowed(InScene, position, L, 1e6f))
+                    light.AddRadiance(L, dl.Light.Color * dl.Light.Intensity);
+            }
+            for (const auto& pl : InScene.PointLights) {
+                if (!pl.bContributeDirect)
+                    continue;
+                const glm::vec3 toLight = pl.Light.Position - position;
+                const float dist = glm::length(toLight);
+                if (dist < 1e-5f || dist > pl.Light.Radius)
+                    continue;
+                const glm::vec3 L = toLight / dist;
+                if (!IsShadowed(InScene, position, L, dist - kEpsilon))
+                    light.AddRadiance(L, pl.Light.Color * pl.Light.Intensity * PointAttenuation(dist, pl.Light.Radius));
+            }
+            for (const auto& sl : InScene.SpotLights) {
+                if (!sl.bContributeDirect)
+                    continue;
+                const glm::vec3 toLight = sl.Light.Position - position;
+                const float dist = glm::length(toLight);
+                if (dist < 1e-5f || dist > sl.Light.Radius)
+                    continue;
+                const float cone = SpotConeFactor(sl.Light.Direction, toLight, sl.Light.CutOff, sl.Light.OuterCutOff);
+                const glm::vec3 L = toLight / dist;
+                if (cone > 0.0f && !IsShadowed(InScene, position, L, dist - kEpsilon))
+                    light.AddRadiance(L, sl.Light.Color * sl.Light.Intensity * PointAttenuation(dist, sl.Light.Radius) * cone);
+            }
+
+            const bool bFinite = IsFinite(glm::vec3(light.Red)) && IsFinite(glm::vec3(light.Green)) &&
+                                 IsFinite(glm::vec3(light.Blue)) && std::isfinite(light.Red.w) &&
+                                 std::isfinite(light.Green.w) && std::isfinite(light.Blue.w);
+            const bool bInTheOpen = static_cast<float>(backFaces) <=
+                                    InProbeSettings.MaxBackFaceShare * static_cast<float>(samples);
+            OutGrid.Probes[InIndex] = bFinite ? light : FLightProbeSample{};
+            OutGrid.Valid[InIndex] = (bFinite && bInTheOpen) ? 1 : 0;
+        };
+
+        uint32_t threadCount = InSettings.NumThreads > 0 ? InSettings.NumThreads : std::thread::hardware_concurrency();
+        threadCount = static_cast<uint32_t>(std::clamp<size_t>(threadCount, 1, std::max<size_t>(probeCount, 1)));
+        std::atomic<size_t> nextProbe{0};
+        const auto worker = [&]() {
+            for (size_t index = nextProbe.fetch_add(1); index < probeCount; index = nextProbe.fetch_add(1))
+                bakeProbe(index);
+        };
+        std::vector<std::thread> threads;
+        threads.reserve(threadCount - 1);
+        for (uint32_t i = 1; i < threadCount; ++i)
+            threads.emplace_back(worker);
+        worker();
+        for (std::thread& thread : threads)
+            thread.join();
+
+        // A probe that is not valid takes the light of the valid ones next to it, a few probes deep. It
+        // stays marked: the game reads it only where no valid probe is in reach, and then finds the
+        // light of the nearest room instead of darkness.
+        std::vector<uint8_t> filled = OutGrid.Valid;
+        constexpr int kFillPasses = 8;
+        for (int pass = 0; pass < kFillPasses; ++pass) {
+            std::vector<uint8_t> nextFilled = filled;
+            bool bChanged = false;
+            for (uint32_t z = 0; z < OutGrid.Counts.z; ++z) {
+                for (uint32_t y = 0; y < OutGrid.Counts.y; ++y) {
+                    for (uint32_t x = 0; x < OutGrid.Counts.x; ++x) {
+                        const size_t index = OutGrid.IndexOf(x, y, z);
+                        if (filled[index])
+                            continue;
+                        FLightProbeSample sum;
+                        float weight = 0.0f;
+                        const int offsets[6][3] = {{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}};
+                        for (const auto& offset : offsets) {
+                            const int nx = static_cast<int>(x) + offset[0];
+                            const int ny = static_cast<int>(y) + offset[1];
+                            const int nz = static_cast<int>(z) + offset[2];
+                            if (nx < 0 || ny < 0 || nz < 0 || nx >= static_cast<int>(OutGrid.Counts.x) ||
+                                ny >= static_cast<int>(OutGrid.Counts.y) || nz >= static_cast<int>(OutGrid.Counts.z))
+                                continue;
+                            const size_t neighbour = OutGrid.IndexOf(static_cast<uint32_t>(nx), static_cast<uint32_t>(ny),
+                                                                     static_cast<uint32_t>(nz));
+                            if (!filled[neighbour])
+                                continue;
+                            sum.AddScaled(OutGrid.Probes[neighbour], 1.0f);
+                            weight += 1.0f;
+                        }
+                        if (weight > 0.0f) {
+                            OutGrid.Probes[index] = FLightProbeSample{};
+                            OutGrid.Probes[index].AddScaled(sum, 1.0f / weight);
+                            nextFilled[index] = 1;
+                            bChanged = true;
+                        }
+                    }
+                }
+            }
+            filled = std::move(nextFilled);
+            if (!bChanged)
+                break;
+        }
+    }
+
 } // namespace Leon

@@ -8,9 +8,11 @@
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
 #include "Scene/Components.hpp"
+#include "Engine/FLightProbeAsset.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/ANavMeshBoundsVolume.hpp"
 #include "Lightmass/FLightBaker.hpp"
 #include "Lightmass/FLightmapBuilder.hpp"
 #include "RenderCore/FVertexLayout.hpp"
@@ -23,6 +25,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -690,6 +693,20 @@ namespace Leon {
                 return false;
             }
             ss << ", Atlas " << atlas.GetWidth() << "x" << atlas.GetHeight();
+            if (FWorldSettingsComponent* ws = FindWorldSettings(*world); ws && !ws->LightProbeAssetPath.empty()) {
+                FLightProbeGrid probes;
+                uint64_t probeHash = 0;
+                const fs::path probesAbs = ResolveLightmapAbsolutePath(InMapPath, ws->LightProbeAssetPath);
+                if (!FLightProbeAsset::Load(probesAbs.string(), probes, probeHash)) {
+                    OutMessage = ss.str() + " — FAIL: missing or invalid light probes " + probesAbs.string();
+                    return false;
+                }
+                if (probeHash != expected) {
+                    OutMessage = ss.str() + " — FAIL: light probes are from another bake";
+                    return false;
+                }
+                ss << ", Light probes " << probes.Counts.x << "x" << probes.Counts.y << "x" << probes.Counts.z;
+            }
             if (badCharts > 0) {
                 OutMessage = ss.str() + " — FAIL: " + std::to_string(badCharts) + " meshes missing chart metadata";
                 return false;
@@ -737,9 +754,20 @@ namespace Leon {
             bool bAtlasMatch = existing.LoadFromFile(lightmapAbs.string()) && existing.GetContentHash() != 0 &&
                                existing.GetContentHash() == bakeHash;
             bool bWorldMatch = false;
-            if (FWorldSettingsComponent* ws = FindWorldSettings(*world))
+            // A bake made before light probes existed, or without them, is not what was asked for now.
+            bool bProbesMatch = !settings.bLightProbes;
+            if (FWorldSettingsComponent* ws = FindWorldSettings(*world)) {
                 bWorldMatch = ws->LightmapBakeHash != 0 && ws->LightmapBakeHash == bakeHash;
-            if (bAtlasMatch && bWorldMatch) {
+                if (settings.bLightProbes && !ws->LightProbeAssetPath.empty()) {
+                    FLightProbeGrid existingProbes;
+                    uint64_t probeHash = 0;
+                    bProbesMatch = FLightProbeAsset::Load(
+                                       ResolveLightmapAbsolutePath(InMapPath, ws->LightProbeAssetPath).string(),
+                                       existingProbes, probeHash) &&
+                                   probeHash == bakeHash;
+                }
+            }
+            if (bAtlasMatch && bWorldMatch && bProbesMatch) {
                 result.bSuccess = true;
                 result.Message = "Lightmap cache valid";
                 result.LightmapPath = lightmapAbs.string();
@@ -881,6 +909,67 @@ namespace Leon {
         std::vector<float> pixels;
         FLightBaker::Bake(scene, bakerSettings, pixels);
 
+        // Light probes: the same scene, measured at points in the air instead of on the surfaces.
+        FLightProbeGrid probes;
+        const std::string probesVirtual = fs::path(lightmapVirtual).replace_extension(".lprobes").generic_string();
+        const fs::path probesAbs = ResolveLightmapAbsolutePath(InMapPath, probesVirtual);
+        if (settings.bLightProbes) {
+            FLightProbeBakeSettings probeSettings;
+            probeSettings.Spacing = settings.LightProbeSpacing;
+            probeSettings.VerticalSpacing = settings.LightProbeVerticalSpacing;
+            probeSettings.SamplesPerProbe = settings.LightingBuildQuality == ELightingBuildQuality::Production
+                                                ? 256u
+                                                : (settings.LightingBuildQuality == ELightingBuildQuality::Preview ? 64u : 128u);
+            // Where the level has geometry...
+            glm::vec3 low(1.0e30f);
+            glm::vec3 high(-1.0e30f);
+            for (const FBakeVertex& vertex : scene.Vertices) {
+                low = glm::min(low, vertex.Position);
+                high = glm::max(high, vertex.Position);
+            }
+            // ...and, when the map says where the game is played, only there.
+            glm::vec3 playLow(1.0e30f);
+            glm::vec3 playHigh(-1.0e30f);
+            bool bHasPlayVolume = false;
+            for (auto& actorRef : world->GetAllActors()) {
+                if (const auto* volume = dynamic_cast<const ANavMeshBoundsVolume*>(actorRef.get())) {
+                    glm::vec3 volumeLow;
+                    glm::vec3 volumeHigh;
+                    volume->GetBounds(volumeLow, volumeHigh);
+                    playLow = glm::min(playLow, glm::min(volumeLow, volumeHigh));
+                    playHigh = glm::max(playHigh, glm::max(volumeLow, volumeHigh));
+                    bHasPlayVolume = true;
+                }
+            }
+            if (bHasPlayVolume) {
+                const glm::vec3 clippedLow = glm::max(low, playLow);
+                const glm::vec3 clippedHigh = glm::min(high, playHigh);
+                // A play volume that misses the geometry altogether says nothing useful.
+                if (clippedLow.x <= clippedHigh.x && clippedLow.y <= clippedHigh.y && clippedLow.z <= clippedHigh.z) {
+                    low = clippedLow;
+                    high = clippedHigh;
+                }
+            }
+            probeSettings.BoundsMin = low;
+            probeSettings.BoundsMax = high;
+            LogLM("Baking light probes...");
+            const auto probeStart = std::chrono::steady_clock::now();
+            FLightBaker::BakeProbes(scene, bakerSettings, probeSettings, probes);
+            const float probeSeconds =
+                std::chrono::duration<float>(std::chrono::steady_clock::now() - probeStart).count();
+            size_t validProbes = 0;
+            for (const uint8_t valid : probes.Valid)
+                validProbes += valid ? 1 : 0;
+            LogLM("Light probes: " + std::to_string(probes.Counts.x) + " x " + std::to_string(probes.Counts.y) + " x " +
+                  std::to_string(probes.Counts.z) + " every " + std::to_string(probes.Spacing.x) + " m (" +
+                  std::to_string(probes.Spacing.y) + " m up), " + std::to_string(validProbes) + " of " +
+                  std::to_string(probes.ProbeCount()) + " in the open, " + std::to_string(probeSeconds) + " s");
+            if (!FLightProbeAsset::Save(probesAbs.string(), probes, bakeHash)) {
+                result.Message = "Failed to write light probes";
+                return result;
+            }
+        }
+
         LogLM("Writing lightmaps...");
         fs::create_directories(lightmapAbs.parent_path());
         FLightmapAsset asset;
@@ -912,6 +1001,11 @@ namespace Leon {
         ws->TexelPadding = settings.TexelPadding;
         ws->WorldScale = settings.WorldScale;
         ws->LightingBuildQuality = settings.LightingBuildQuality;
+        ws->bLightProbes = settings.bLightProbes;
+        ws->LightProbeSpacing = settings.LightProbeSpacing;
+        ws->LightProbeVerticalSpacing = settings.LightProbeVerticalSpacing;
+        // A map baked without probes names none: an older file next to it is not this bake's.
+        ws->LightProbeAssetPath = settings.bLightProbes ? probesVirtual : std::string();
 
         if (!serializer.Serialize(InMapPath)) {
             LogLM("Warning: failed to write lightmap metadata back to map");
@@ -941,7 +1035,9 @@ namespace Leon {
             }
             writtenSettings->LightmapBakeHash = asLoaded;
             asset.SetContentHash(asLoaded);
-            if (!asset.SaveToFile(lightmapAbs.string()) || !reader.Serialize(InMapPath)) {
+            const bool bProbesRestamped =
+                !settings.bLightProbes || FLightProbeAsset::Save(probesAbs.string(), probes, asLoaded);
+            if (!bProbesRestamped || !asset.SaveToFile(lightmapAbs.string()) || !reader.Serialize(InMapPath)) {
                 LogLM("Warning: failed to restamp the bake hash");
                 break;
             }

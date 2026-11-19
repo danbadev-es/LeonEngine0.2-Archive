@@ -61,6 +61,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Asset/TextureCompressionTests.cpp
     Core/MulticastDelegateTests.cpp
     Lightmass/BakeHashTests.cpp
+    Lightmass/LightProbeTests.cpp
     RHI/ShaderConstantLayoutTests.cpp
     Shader/PostProcessPipelineTests.cpp
     Asset/MeshImportTests.cpp
@@ -77,6 +78,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Shader/PostProcessLookTests.cpp
     Shader/PBRShaderIBLTests.cpp
     Shader/PBRShaderReflectionProbeTests.cpp
+    Shader/PBRShaderLightProbeTests.cpp
     Shader/PBRShaderPlanarReflectionTests.cpp
     Shader/PBRShaderPlanarHDRTests.cpp
     Shader/ShadowBiasTests.cpp

@@ -75,6 +75,7 @@ namespace Leon {
         ActorIterationDepth = 0;
         bPaused = false;
         bLightmapsTrusted = true;
+        LightProbes = FLightProbeGrid{};
         EditorFolders.clear();
         TransientParticleEntity = entt::null;
         TransientParticles.clear();

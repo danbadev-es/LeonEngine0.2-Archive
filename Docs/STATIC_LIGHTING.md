@@ -72,16 +72,76 @@ See `Docs/RENDERER_CONTRACT.md` for equations, mobility, and cache versions.
 | Dyn + Baked | 34 | `Lo + baked` without IBL |
 | Lit | 0 (F12) | Full composite |
 
+## Light probes: baked ambient light for what has no lightmap
+
+Only Static geometry reads the lightmap. Characters and everything that moves used to take their
+ambient light from the sky alone: black in a dark level, and without any of the light the walls bounce.
+The bake now also measures the light in the air, at the points of a grid, and the game gives each such
+object the light of the grid where it stands.
+
+- **What a probe holds.** The diffuse light arriving from every direction, as first-order spherical
+  harmonics folded with the cosine lobe: four numbers per colour channel, `irradiance(n) =
+  dot(coefficients, (n.x, n.y, n.z, 1))`, never below zero (`RenderCore/FLightProbeGrid.hpp`). That is
+  a level and a direction: enough for "redder from the side of the red wall", not for two lights on
+  opposite sides at once (they cancel into a level). Second order would hold that, at nine numbers per
+  channel and more than twice the constants of every draw, for one sample per object: not taken.
+- **What goes into it** (`FLightBaker::BakeProbes`): what a lightmap texel there would get. Static
+  lights light the probe directly (each adds its irradiance along its direction, if nothing is in the
+  way); every ray that reaches a surface brings what that surface sends back, lit by Static **and**
+  Stationary lights, with the same bounces as the lightmap (`NumIndirectBounces`, `IndirectIntensity`);
+  rays that reach nothing bring the sky; emissive surfaces are included. The direct light of Stationary
+  lights is not: the game adds it per pixel, as for lightmapped surfaces. Baked ambient occlusion is
+  not applied.
+- **The grid.** Regular, axis-aligned, centred in a volume: the bounds of the Static geometry, cut to
+  the map's `ANavMeshBoundsVolume` actors when it has any. `LightProbeSpacing` (1.5 m) along the
+  ground, `LightProbeVerticalSpacing` (1 m) upwards; at most 65 536 probes (the spacing is widened to
+  fit). 64 / 128 / 256 directions per probe for Preview / Draft / Production.
+- **Probes in walls.** A probe that sees the back of surfaces in more than a quarter of its directions
+  is inside something or outside the level. It is marked not valid, takes the average of the valid
+  probes next to it (several probes deep) and is used only where no valid probe is in reach.
+- **File.** `Content/Lightmaps/<Map>.lprobes` (`Engine/FLightProbeAsset.hpp`), little endian: magic
+  `LLPV`, version 1, the bake hash (uint64), origin and spacing (3 float32 each), counts (3 uint32), a
+  reserved uint32; then one validity byte per probe; then twelve float16 per probe (red xyzw, green
+  xyzw, blue xyzw). Probe (x, y, z) is entry `x + countX * (y + countY * z)`. 25 bytes a probe.
+- **Trust.** The file carries the hash of the bake, like the lightmap. `RefreshRuntimeTrust` loads it
+  only when the lightmaps are trusted and the file's hash is the map's; otherwise the world has no
+  probes and says why in the log. `ValidateMap` checks the same. A bake is not "cache valid" while the
+  probes it should have are missing.
+- **Runtime.** `IRenderScene::SampleLightProbes(position)` blends the eight probes around a point
+  (valid ones only; outside the grid, the nearest point of it). The renderer asks once per draw
+  without a lightmap, at the middle of its bounds (movable and stationary meshes, skinned meshes,
+  static ones the bake did not cover), and passes the twelve numbers in the draw constants
+  (`u_AmbientSH`, `u_DrawFlags2.x`); `PBR_Lit.hlsl` uses them in place of the sky's irradiance. Specular
+  is not touched (sky or reflection probes). A map without probes is drawn exactly as before.
+
+Map keys (`WorldSettings:`), written only when they differ from the default:
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `LightProbes: true\|false` | `true` | The bake fills a grid of probes |
+| `LightProbeSpacing` | 1.5 | Metres between probes along X and Z |
+| `LightProbeVerticalSpacing` | 1 | Metres between probes along Y |
+| `LightProbeAsset` | (written by the bake) | Virtual path of the `.lprobes` file |
+
+The three settings enter the bake hash only when a map changes them, so bakes made before probes
+existed stay valid; such maps get their probes the next time they are baked.
+
+Limits: one sample per object, so a long object is lit as its middle is; probes are blended across
+walls (a probe on the other side of a thin wall counts as much as one on this side: keep rooms at
+least a probe spacing apart from what they must not share light with, or lower the spacing); no light
+from Movable lights; nothing moves the grid at run time (a door that opens changes nothing).
+
 ## Modules
 
 - `FLightmass` — orchestration (tool entry)
 - `FLightmapBuilder` — atlas pack
-- `FLightBaker` — shading (same attenuation model as `FLight` / PBR)
+- `FLightBaker` — shading (same attenuation model as `FLight` / PBR); `BakeProbes` for the light probes
+- `FLightProbeGrid` (RenderCore) / `FLightProbeAsset` (Engine) — the probes in memory and on disk
 - `FLightmapAsset` / `FLightmapUV` — asset + UV helpers
 
 ## Limits (vs Unreal)
 
-No GPU Lightmass, no volumetric lightmaps, no photon mapping, no true Stationary shadow-map baking. Procedural primitives write non-overlapping UV1 (cube 2×3 atlas, cylinder side+caps). Runtime samples UV1 (`u_LightmapUseTexCoord` stays 0). Imported meshes store generated UV1 in `.lmesh`.
+No GPU Lightmass, no photon mapping, no true Stationary shadow-map baking. Procedural primitives write non-overlapping UV1 (cube 2×3 atlas, cylinder side+caps). Runtime samples UV1 (`u_LightmapUseTexCoord` stays 0). Imported meshes store generated UV1 in `.lmesh`.
 
 ## Sandbox maps
 

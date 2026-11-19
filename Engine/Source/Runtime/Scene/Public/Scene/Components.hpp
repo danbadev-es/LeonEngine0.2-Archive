@@ -65,6 +65,13 @@ namespace Leon {
         float WorldScale = 1.0f;
         std::string LightmapAssetPath;
         uint64_t LightmapBakeHash = 0;
+        /** The bake also fills a grid of light probes: ambient light for characters and whatever moves. */
+        bool bLightProbes = true;
+        /** Metres between probes, along the ground and upwards. */
+        float LightProbeSpacing = 1.5f;
+        float LightProbeVerticalSpacing = 1.0f;
+        /** Written by the bake: the probes on disk (.lprobes). Empty = the map has none. */
+        std::string LightProbeAssetPath;
 
         FWorldSettingsComponent() = default;
         FWorldSettingsComponent(const FWorldSettingsComponent&) = default;

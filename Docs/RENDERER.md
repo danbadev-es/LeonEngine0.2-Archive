@@ -72,7 +72,7 @@ Fixed for every shader and every backend (`RHITypes.hpp`, `Engine/Shaders/Common
 | `b0` | Frame: camera. `FrameConstants` in `Common.hlsli` |
 | `b1` | Pass: lights, fog, shadows, reflections — or a post-process pass's parameters |
 | `b2` | Material |
-| `b3` | Draw: object transform, lightmap placement, per-draw flags, the reflection probes the object reads |
+| `b3` | Draw: object transform, lightmap placement, per-draw flags, the reflection probes the object reads, its baked ambient light |
 | `b4` | Extra: bone palette |
 | `t0`..`t15` | Textures. The surface shader's slots are listed in `PBR_Lit.hlsl` |
 | `s0`..`s4` | Static samplers: linear wrap, linear clamp, point clamp, point wrap, shadow comparison |
@@ -241,6 +241,15 @@ rooms is a blend of two cubes, not a view through the door; the reflection is of
 captured, so an open door, a moved crate or a character is not in it; with a black sky the fade
 outside the last box goes to black. Placing or moving a probe does not make the lightmap bake stale.
 There is nothing in the editor to edit the block; probes are captured again when their actor moves.
+
+## Ambient light for characters and moving things
+
+What has no lightmap takes its diffuse ambient light from the map's light probes when it has them:
+one sample per draw at the middle of its bounds (`IRenderScene::SampleLightProbes`), twelve numbers in
+the draw constants, evaluated with the pixel's normal in `PBR_Lit.hlsl` in place of the sky's
+irradiance. Draws that would otherwise be instanced together are only batched when their samples are
+equal. Debug view 35 shows the term. How the probes are baked, stored and trusted is in
+[STATIC_LIGHTING.md](STATIC_LIGHTING.md).
 
 ## The final image: the look of a map
 

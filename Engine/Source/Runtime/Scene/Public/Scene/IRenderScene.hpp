@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderCore/FLightProbeGrid.hpp"
 #include "Scene/Components.hpp"
 
 #include <entt/entt.hpp>
@@ -31,6 +32,14 @@ namespace Leon {
          * from the lit static scene (reflection probe captures) is kept on disk under this number.
          */
         virtual uint64_t GetStaticLightingHash() const { return 0; }
+
+        /**
+         * The baked ambient light at a point, from the map's light probes. False when the world has
+         * none it trusts: the sky then gives the ambient light, as it always did.
+         */
+        virtual bool SampleLightProbes(const glm::vec3& /*InPosition*/, FLightProbeSample& /*OutSample*/) const {
+            return false;
+        }
 
         /**
          * Where an entity is in the world. For an entity that belongs to an actor this follows what the

@@ -231,6 +231,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Engine/Private/UIpNetDriver.cpp
     Source/Runtime/Engine/Private/FGraphicsQuality.cpp
     Source/Runtime/Engine/Private/FLightmapBakeInputs.cpp
+    Source/Runtime/Engine/Private/FLightProbeAsset.cpp
     Source/Runtime/Gameplay/Private/AActor.cpp
     Source/Runtime/Gameplay/Private/ACameraActor.cpp
     Source/Runtime/Gameplay/Private/ACharacter.cpp

@@ -371,6 +371,14 @@ namespace Leon {
                         ws.LightmapAssetPath = val;
                     else if (key == "LightmapBakeHash")
                         ws.LightmapBakeHash = std::strtoull(val.c_str(), nullptr, 16);
+                    else if (key == "LightProbes")
+                        ws.bLightProbes = (val == "true");
+                    else if (key == "LightProbeSpacing")
+                        ws.LightProbeSpacing = std::stof(val);
+                    else if (key == "LightProbeVerticalSpacing")
+                        ws.LightProbeVerticalSpacing = std::stof(val);
+                    else if (key == "LightProbeAsset")
+                        ws.LightProbeAssetPath = val;
                     else
                         return false;
                     return true;

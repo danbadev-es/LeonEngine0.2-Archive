@@ -976,6 +976,96 @@ namespace Leon {
             CHECK(NewValidationErrors() == 0);
         }
 
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "Things without a lightmap take their ambient light from the light probes around them") {
+            REQUIRE(bReady);
+            SwitchFixtureLightsOff();
+            UsePlainPostProcess();
+            World->FindActorByName("Box")->GetComponent<FMeshComponent>().bVisible = false;
+            World->FindActorByName("Floor")->GetComponent<FMeshComponent>().bVisible = false;
+            // A grey sky, the same everywhere: what lights these things when the map has no probes.
+            AActor* environment = World->SpawnActor<AActor>("Environment");
+            auto& sky = environment->AddComponent<FSkyboxComponent>();
+            sky.bEnabled = false;
+            sky.SkyZenithColor = sky.HorizonColor = sky.GroundColor = glm::vec3(0.25f);
+            sky.EnvironmentIntensity = 1.0f;
+
+            // Two white balls that move, sharing one mesh and one material, three metres apart.
+            const TRef<FMaterialInstance> white = FloorMaterial->GetParent()->CreateInstance("White");
+            white->SetAlbedoColor({1.0f, 1.0f, 1.0f});
+            white->SetRoughness(1.0f);
+            const TRef<FVertexArray> ball = FMeshPrimitives::CreateSphere(0.5f);
+            const glm::vec3 leftBall(-1.5f, 1.0f, 3.0f);
+            const glm::vec3 rightBall(1.5f, 1.0f, 3.0f);
+            for (const glm::vec3& position : {leftBall, rightBall}) {
+                AActor* actor = World->SpawnActor<AActor>("Ball");
+                actor->SetActorLocation(position);
+                auto& mesh = actor->AddComponent<FMeshComponent>(ball);
+                mesh.MeshType = "Sphere";
+                mesh.MeshRadius = 0.5f;
+                mesh.Mobility = EComponentMobility::Movable;
+                actor->AddComponent<FMaterialComponent>(white);
+            }
+            Camera.SetPosition({0.0f, 1.0f, 8.0f});
+            Camera.SetRotation(0.0f, -90.0f);
+
+            // The colour of a ball a third of a metre to one side of its middle, on the half that faces us.
+            const auto sideOf = [this](const FImage& InImage, const glm::vec3& InBall, float InSide) {
+                const glm::vec4 clip =
+                    Camera.GetViewProjectionMatrix() * glm::vec4(InBall + glm::vec3(0.35f * InSide, 0.0f, 0.35f), 1.0f);
+                const uint32_t x = static_cast<uint32_t>((clip.x / clip.w * 0.5f + 0.5f) * static_cast<float>(kWidth));
+                const uint32_t y = static_cast<uint32_t>((0.5f - clip.y / clip.w * 0.5f) * static_cast<float>(kHeight));
+                const uint8_t* pixel = InImage.At(x, y);
+                return glm::ivec3(pixel[0], pixel[1], pixel[2]);
+            };
+
+            // No probes: the sky, grey, the same on both sides of both balls.
+            const FImage plain = Render();
+            for (const glm::vec3& position : {leftBall, rightBall}) {
+                const glm::ivec3 left = sideOf(plain, position, -1.0f);
+                const glm::ivec3 right = sideOf(plain, position, 1.0f);
+                CHECK(left.r > 40);
+                CHECK(std::abs(left.r - left.b) < 6);
+                CHECK(std::abs(left.r - right.r) < 6);
+            }
+
+            // Probes: where the left ball is, red light comes from the left; where the right one is,
+            // blue light from the right. One probe each, exactly where the balls are.
+            FLightProbeGrid grid;
+            grid.Origin = leftBall;
+            grid.Spacing = {3.0f, 1.0f, 1.0f};
+            grid.Resize({2, 1, 1});
+            grid.Probes[0].AddRadiance({-1.0f, 0.0f, 0.0f}, {3.0f, 0.2f, 0.2f});
+            grid.Probes[1].AddRadiance({1.0f, 0.0f, 0.0f}, {0.2f, 0.2f, 3.0f});
+            World->SetLightProbes(grid);
+            const FImage probed = Render();
+            const glm::ivec3 redSide = sideOf(probed, leftBall, -1.0f);
+            const glm::ivec3 darkSide = sideOf(probed, leftBall, 1.0f);
+            CAPTURE(redSide.r);
+            CAPTURE(redSide.g);
+            CAPTURE(darkSide.r);
+            CHECK(redSide.r > 120);
+            CHECK(redSide.r > redSide.g * 2);
+            CHECK(redSide.r > darkSide.r + 60);
+            // The other ball has its own light, although it is the same mesh with the same material:
+            // the two are not drawn as copies of one.
+            const glm::ivec3 blueSide = sideOf(probed, rightBall, 1.0f);
+            const glm::ivec3 otherSide = sideOf(probed, rightBall, -1.0f);
+            CAPTURE(blueSide.b);
+            CAPTURE(blueSide.r);
+            CHECK(blueSide.b > 120);
+            CHECK(blueSide.b > blueSide.r * 2);
+            CHECK(blueSide.b > otherSide.b + 60);
+
+            // A bake that is not trusted takes its probes with it: the sky again, as without them.
+            World->SetLightmapsTrusted(false);
+            const FImage untrusted = Render();
+            uint32_t different = 0;
+            for (size_t i = 0; i < plain.Pixels.size(); ++i)
+                different += plain.Pixels[i] != untrusted.Pixels[i] ? 1 : 0;
+            CHECK(different == 0);
+            CHECK(NewValidationErrors() == 0);
+        }
+
         TEST_CASE_FIXTURE(FWorldRenderFixture, "The GPU time of each stage reaches the frame profiler") {
             REQUIRE(bReady);
             // Results lag by the frames the device keeps in flight: draw a few.

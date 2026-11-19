@@ -927,6 +927,11 @@ namespace Leon::TestGPU {
                                                      InShader.Float("u_ProbeBlend" + index, 0.5f));
             }
 
+            // Baked ambient light: "u_AmbientSH0".."u_AmbientSH2" (red, green, blue), used when "u_UseLightProbe" is 1.
+            for (int channel = 0; channel < 3; ++channel)
+                draw.AmbientSH[channel] = InShader.Vec4("u_AmbientSH" + std::to_string(channel), glm::vec4(0.0f));
+            draw.DrawFlags2 = glm::ivec4(InShader.Int("u_UseLightProbe", 0), 0, 0, 0);
+
             InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
             InCommands.SetConstants(ERHIConstantSlot::Pass, &pass, sizeof(pass));
             InCommands.SetConstants(ERHIConstantSlot::Material, &material, sizeof(material));

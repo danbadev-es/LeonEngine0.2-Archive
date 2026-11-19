@@ -128,6 +128,9 @@ namespace Leon {
             glm::vec3 WorldMax{0.0f};
             /** The reflection probes the draw reads, as cubes of the probe array; -1 = none. */
             int32_t Probes[kReflectionProbesPerDraw] = {-1, -1};
+            /** Baked ambient light where the object is, for what has no lightmap; valid when bAmbient. */
+            FLightProbeSample Ambient;
+            bool bAmbient = false;
         };
 
         /** One section of a skinned mesh to outline. */
@@ -895,6 +898,9 @@ namespace Leon {
             TransformAABB(InLocalMin, InLocalMax, InModel, draw.WorldMin, draw.WorldMax);
             if (!probeBoxes.empty())
                 SelectReflectionProbes(probeBoxes, draw.WorldMin, draw.WorldMax, draw.Probes);
+            // One sample for the whole object, at the middle of its bounds.
+            if (!InLightmap)
+                draw.bAmbient = World->SampleLightProbes(0.5f * (draw.WorldMin + draw.WorldMax), draw.Ambient);
             if (bTransparent) {
                 draw.DistanceSq = TransparentSortDistanceSq(InModel, InLocalMin, InLocalMax, cameraPosition);
                 collectTransparent->push_back(draw);
@@ -1200,7 +1206,10 @@ namespace Leon {
                        InA.IndexCount == InB.IndexCount && InA.FirstIndex == InB.FirstIndex &&
                        InA.bReceiveShadows == InB.bReceiveShadows && InA.bPlanar == InB.bPlanar &&
                        InA.LightmapScale == InB.LightmapScale && InA.LightmapBias == InB.LightmapBias &&
-                       InA.Probes[0] == InB.Probes[0] && InA.Probes[1] == InB.Probes[1];
+                       InA.Probes[0] == InB.Probes[0] && InA.Probes[1] == InB.Probes[1] &&
+                       InA.bAmbient == InB.bAmbient &&
+                       (!InA.bAmbient || (InA.Ambient.Red == InB.Ambient.Red && InA.Ambient.Green == InB.Ambient.Green &&
+                                          InA.Ambient.Blue == InB.Ambient.Blue));
             };
             static FInstanceConstants instances;
             for (size_t index = 0; index < InDraws.size();) {
@@ -1257,6 +1266,12 @@ namespace Leon {
                 constants.LightmapScaleBias = glm::vec4(draw.LightmapScale, draw.LightmapBias);
                 constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, (draw.bReceiveShadows && bInShadows) ? 1 : 0,
                                                  (draw.bPlanar && bInReflections) ? 1 : 0);
+                if (draw.bAmbient) {
+                    constants.AmbientSH[0] = draw.Ambient.Red;
+                    constants.AmbientSH[1] = draw.Ambient.Green;
+                    constants.AmbientSH[2] = draw.Ambient.Blue;
+                    constants.DrawFlags2.x = 1;
+                }
                 for (uint32_t slot = 0; bInReflections && slot < kReflectionProbesPerDraw; ++slot) {
                     if (draw.Probes[slot] < 0)
                         continue;
