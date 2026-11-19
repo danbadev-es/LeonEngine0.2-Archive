@@ -137,6 +137,16 @@ class Level:
             f"      Intensity: {num(intensity)}", f"      Radius: {num(radius)}", f"      CutOff: {num(inner)}",
             f"      OuterCutOff: {num(outer)}", f"      Mobility: {mobility}"])
 
+    def reflection_probe(self, name: str, centre, half_size, capture_offset=(0.0, 0.0, 0.0), intensity: float = 1.0,
+                         blend_distance: float = 0.3) -> None:
+        """
+        What a room reflects (Docs/RENDERER.md, "Reflection probes"): a box, wall to wall and floor to
+        ceiling, and the point inside it the room is seen from. At most 32 in a map.
+        """
+        self.add(self.head(name, "AReflectionProbe", centre) + [
+            "    ReflectionProbe:", f"      Extent: {vec(half_size)}", f"      CaptureOffset: {vec(capture_offset)}",
+            f"      Intensity: {num(intensity)}", f"      BlendDistance: {num(blend_distance)}"])
+
     def player_start(self, loc, yaw: float = 0.0) -> None:
         """The player starts looking along -Z (north on a plan drawn in Blender)."""
         self.add(self.head("PlayerStart", "APlayerStart", loc, rot=(0, yaw, 0)))

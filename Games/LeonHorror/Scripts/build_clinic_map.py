@@ -160,6 +160,17 @@ class Clinic:
             for part in ("Floor", "Walls", "Ceiling", "Skirting"):
                 self.lv.static_mesh(f"{room}_{part}", f"SM_Clinic_{room}_{part}", collision=part != "Skirting")
 
+    def probes(self) -> None:
+        """One reflection probe a room: its box is the room, seen from head height near the middle."""
+        # Where the middle of the room is inside furniture, the room is seen from beside it (east, north).
+        aside = {"Theatre": (1.4, -1.2), "XRay": (-1.4, 0.0), "Reception": (0.0, -1.4), "Ward": (0.0, 0.3)}
+        for name, room in self.rooms.items():
+            centre = (room.centre[0], room.centre[1], H * 0.5)
+            east, north = aside.get(name, (0.0, 0.0))
+            # Engine axes: X east, Y up, Z south.
+            self.lv.reflection_probe(f"Probe_{name}", from_blender(centre), (room.width * 0.5, H * 0.5, room.depth * 0.5),
+                                     capture_offset=(east, 1.55 - H * 0.5, -north))
+
     def doors(self) -> None:
         locks = {"Consult2": "Key.Consult", "Pharmacy": "Key.Pharmacy", "Storage": "Key.Storage", "Bay": "Key.Bay"}
         powered = {"Morgue": "North"}
@@ -496,6 +507,7 @@ class Clinic:
         lv.actor("Music", "ALeonHorrorAmbientSound", (0, 0, 0), props={"Sound": "/Game/Audio/MUS_Clinic_Ambience", "Volume": "0.5", "Music": "true"})
 
         self.shells()
+        self.probes()
         self.doors()
         self.reception()
         self.waiting()

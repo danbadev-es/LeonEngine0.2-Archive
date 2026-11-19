@@ -1245,6 +1245,198 @@ Actors:
       LightmapScale: [0.0009765625, 0.03125]
       LightmapBias: [0.9313965, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Probe_Reception"
+    Class: "AReflectionProbe"
+    GUID: "a0f65cc1288c1a63f5e7a487ba4b2673"
+    Transform:
+      Translation: [4.2, 1.4, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [4.2, 1.4, 3]
+      CaptureOffset: [0, 0.15, 1.4]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Waiting"
+    Class: "AReflectionProbe"
+    GUID: "4976606e5cdfa69aec93f1276ea15732"
+    Transform:
+      Translation: [11.4, 1.4, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 3]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Corridor"
+    Class: "AReflectionProbe"
+    GUID: "ff92c3d6c5e406437b6faa8b2c567214"
+    Transform:
+      Translation: [7.2, 1.4, -15]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [1.2, 1.4, 9]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Consult1"
+    Class: "AReflectionProbe"
+    GUID: "9709c0e725784865925d4db0cb02eedb"
+    Transform:
+      Translation: [3, 1.4, -8.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 2.25]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Consult2"
+    Class: "AReflectionProbe"
+    GUID: "3b354a7639ca21700148f9a13c587a86"
+    Transform:
+      Translation: [3, 1.4, -12.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 2.25]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Pharmacy"
+    Class: "AReflectionProbe"
+    GUID: "69b8d773ba321f659119c748a955f691"
+    Transform:
+      Translation: [3, 1.4, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 2]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Staff"
+    Class: "AReflectionProbe"
+    GUID: "d5271404431436c721805b397056ab8b"
+    Transform:
+      Translation: [3, 1.4, -21.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 2.5]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Ward"
+    Class: "AReflectionProbe"
+    GUID: "e1be6211cf04de1e885704a6de55840f"
+    Transform:
+      Translation: [11.4, 1.4, -9.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 3.5]
+      CaptureOffset: [0, 0.15, -0.3]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_XRay"
+    Class: "AReflectionProbe"
+    GUID: "a877a1762a5c6ffdb03c365ba3216ae6"
+    Transform:
+      Translation: [11.4, 1.4, -15.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 2.25]
+      CaptureOffset: [-1.4, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Toilets"
+    Class: "AReflectionProbe"
+    GUID: "7a234889eac7b2d3819b820b80a75933"
+    Transform:
+      Translation: [11.4, 1.4, -18.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 1.25]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Storage"
+    Class: "AReflectionProbe"
+    GUID: "40f3b8f9ca2c5a76a0736d7598c845d3"
+    Transform:
+      Translation: [11.4, 1.4, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 2]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Service"
+    Class: "AReflectionProbe"
+    GUID: "f298f7d7a2d530b5326df095b6473e3c"
+    Transform:
+      Translation: [7.2, 1.4, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [7.2, 1.4, 1.2]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Theatre"
+    Class: "AReflectionProbe"
+    GUID: "89ed23cc225cb8a8071e3a970de7f0c5"
+    Transform:
+      Translation: [3, 1.4, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [3, 1.4, 3]
+      CaptureOffset: [1.4, 0.15, 1.2]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Morgue"
+    Class: "AReflectionProbe"
+    GUID: "b380cac53b9e0f5abe7800b0eb3adecb"
+    Transform:
+      Translation: [8, 1.4, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [2, 1.4, 3]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Plant"
+    Class: "AReflectionProbe"
+    GUID: "03bc4fb1984b5f5f0be0981b2a8008bf"
+    Transform:
+      Translation: [12.2, 1.4, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [2.2, 1.4, 3]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
+  - Name: "Probe_Bay"
+    Class: "AReflectionProbe"
+    GUID: "0bee86146bc97148068fdc2bc76901db"
+    Transform:
+      Translation: [16.2, 1.4, -26]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ReflectionProbe:
+      Extent: [1.8, 1.4, 2]
+      CaptureOffset: [0, 0.15, 0]
+      Intensity: 1
+      BlendDistance: 0.3
   - Name: "Door_Corridor_Frame"
     Class: "AActor"
     GUID: "54519fd6bb8d11d5f6de4196c1cce2a7"
