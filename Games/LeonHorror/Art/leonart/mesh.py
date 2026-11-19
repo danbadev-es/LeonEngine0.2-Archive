@@ -64,6 +64,41 @@ class Mesh:
         face.material_index = self.slot(material)
         return face
 
+    def text(self, string, origin, height, material, fit_width=0.0):
+        """
+        Lettering as flat faces: centred on `origin`, in the XZ plane, read from -Y. `height` is the
+        height of a capital; with fit_width the line is narrowed to fit that width if it is longer.
+        """
+        curve = bpy.data.curves.new("Lettering", "FONT")
+        curve.body = string
+        curve.align_x = "CENTER"
+        curve.align_y = "CENTER"
+        # A capital of Blender's font is about 0.7 of its size.
+        curve.size = height / 0.7
+        holder = bpy.data.objects.new("Lettering", curve)
+        bpy.context.scene.collection.objects.link(holder)
+        bpy.context.view_layer.update()
+        letters = bpy.data.meshes.new_from_object(holder)
+        index = self.slot(material)
+        if letters.vertices:
+            low = min(v.co.x for v in letters.vertices)
+            high = max(v.co.x for v in letters.vertices)
+            bottom = min(v.co.y for v in letters.vertices)
+            top = max(v.co.y for v in letters.vertices)
+            squeeze = min(1.0, fit_width / (high - low)) if fit_width > 0.0 and high > low else 1.0
+            middle_x, middle_y = (low + high) * 0.5, (bottom + top) * 0.5
+            ox, oy, oz = origin
+            for polygon in letters.polygons:
+                corners = [letters.vertices[i].co for i in polygon.vertices]
+                try:
+                    face = self.bm.faces.new([self.vert((ox + (c.x - middle_x) * squeeze, oy, oz + (c.y - middle_y))) for c in corners])
+                except ValueError:
+                    continue  # a sliver the font gave twice
+                face.material_index = index
+        bpy.data.meshes.remove(letters)
+        bpy.data.objects.remove(holder)
+        bpy.data.curves.remove(curve)
+
     def box(self, low, high, material, skip=""):
         """
         Axis-aligned box from corner `low` to corner `high`. `skip` names faces to leave out, any of

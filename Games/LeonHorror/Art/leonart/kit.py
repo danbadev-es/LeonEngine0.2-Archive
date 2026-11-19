@@ -165,6 +165,7 @@ shell.register(PIECES)
 
 from . import props  # noqa: E402,F401  (registers the furniture)
 from . import props_small  # noqa: E402,F401  (registers the other doors and the items)
+from . import signs  # noqa: E402,F401  (registers the door signs)
 
 
 def run(args):
