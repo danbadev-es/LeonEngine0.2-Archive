@@ -36,6 +36,10 @@ Pipeline:
 4. UV1 (generate + persist if missing)
 5. Atlas (`FLightmapBuilder`, `TexelPadding`)
 6. CPU bake (`FLightBaker`): stores **diffuse irradiance** `E = ∫ Li max(N·ω,0) dω`. Static lights contribute direct `E`; Static+Stationary contribute to GI. Cosine misses add sky `E += π L_env` (HDR or atmosphere, scaled by `EnvironmentIntensity`, not `IndirectIntensity`). `NumIndirectBounces == 0` skips GI but still includes environment miss. Receptor emissive is not stored. Bake AO can scale stored `E`. Bake-input hash algorithm version **5** (content hash of mesh/material/HDR files).
+   A vertex normal of no length (a mesh exported without normals, or corner normals that cancel out) is
+   replaced by the triangle's plane, and a texel that still comes out not-a-number or infinite is
+   filled from its neighbours; the baker reports how many of each there were. Such a texel on screen
+   used to be spread into black rectangles by the bloom.
 7. Write `.llightmap` (`ContentHash` = bake input hash)
 8. Stamp `.lmap` chart metadata + `LightmapBakeHash`
 

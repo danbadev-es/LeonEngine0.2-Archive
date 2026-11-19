@@ -256,6 +256,10 @@ Where each part happens, and why there:
 - **Chromatic aberration, colour grading, vignette**: in the tone mapping pass (`ToneMapping.hlsl`).
   Aberration reads red and blue of the HDR scene a little further from / nearer to the centre; grading
   and the vignette work on the encoded colour, before the luma that anti-aliasing reads is written.
+- **Bloom** drops what it cannot work with in its bright pass (`Bloom.hlsl`, `UsableSceneColor`): a
+  pixel that is not a number or infinite glows with nothing, and one brighter than 512 is cut down to
+  that. The levels below average their neighbours, so one such pixel would otherwise blank a
+  rectangle at every level.
 - **Film grain**: at the end of the FXAA pass (`FXAA.hlsl`), after the anti-aliased colour is resolved.
   Before it, FXAA would take grain for edges and smear it. The pass runs (as a copy) with FXAA off too.
 

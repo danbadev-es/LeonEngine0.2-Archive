@@ -2,6 +2,7 @@
 #include "GPU/HeadlessDevice.hpp"
 #include <vector>
 #include <cmath>
+#include <limits>
 
 TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
 
@@ -69,6 +70,58 @@ TEST_SUITE("Shader GPU - Post-Processing Bloom Pipeline") {
         CHECK(pixelBlack.b == doctest::Approx(0.0f).epsilon(1e-5f));
 
         gl.DestroyTexture(hdrTex);
+    }
+
+    TEST_CASE("the bright pass lets nothing through that is not a number, infinite or absurdly bright") {
+        Leon::TestGPU::FHeadlessDevice gl;
+        REQUIRE(gl.IsValid());
+        auto shader = Leon::TestGPU::FTestShader::Create("BloomBrightPass");
+        REQUIRE(shader != nullptr);
+        shader->Bind();
+        gl.BindDefaultTextures();
+        shader->SetFloat("u_Threshold", 1.0f);
+        shader->SetFloat("u_SoftKnee", 0.5f);
+
+        const float notANumber = std::numeric_limits<float>::quiet_NaN();
+        const float infinite = std::numeric_limits<float>::infinity();
+        const auto brightPassOf = [&](float InR, float InG, float InB) {
+            const float value[4] = {InR, InG, InB, 1.0f};
+            auto source = gl.CreateEmpty2D(1, 1, Leon::ERHIFormat::RGBA32_Float);
+            gl.Upload(source, value);
+            gl.BindTexture(0, source);
+            gl.BindFramebuffer(1, 1);
+            gl.DrawQuad();
+            const glm::vec4 pixel = gl.ReadPixel(0, 0);
+            gl.DestroyTexture(source);
+            return glm::vec3(pixel);
+        };
+
+        // One bad channel is enough to drop the pixel: it glows with nothing.
+        for (const glm::vec3& bad : {glm::vec3(notANumber), glm::vec3(2.0f, notANumber, 2.0f), glm::vec3(infinite),
+                                     glm::vec3(3.0f, 3.0f, -infinite), glm::vec3(infinite, notANumber, 1.0f)}) {
+            const glm::vec3 out = brightPassOf(bad.r, bad.g, bad.b);
+            CHECK(out.r == 0.0f);
+            CHECK(out.g == 0.0f);
+            CHECK(out.b == 0.0f);
+        }
+
+        // A value no light produces on purpose is cut down, keeping its colour; it stays finite and bounded.
+        const glm::vec3 huge = brightPassOf(4.0e6f, 2.0e6f, 1.0e6f);
+        CHECK(std::isfinite(huge.r));
+        CHECK(huge.r < 1500.0f);
+        CHECK(huge.r > 100.0f);
+        CHECK(huge.g / huge.r == doctest::Approx(0.5f).epsilon(0.01));
+        CHECK(huge.b / huge.r == doctest::Approx(0.25f).epsilon(0.01));
+        // The largest value a half-float target holds, where an overflowing highlight ends up.
+        const glm::vec3 saturated = brightPassOf(65504.0f, 65504.0f, 65504.0f);
+        CHECK(saturated.r == doctest::Approx(511.0f).epsilon(0.01));
+
+        // Ordinary bright pixels are untouched: L = 5 over a threshold of 1 keeps 4.
+        const glm::vec3 ordinary = brightPassOf(5.0f, 5.0f, 5.0f);
+        CHECK(ordinary.r == doctest::Approx(4.0f).epsilon(0.02));
+        const glm::vec3 lamp = brightPassOf(200.0f, 200.0f, 200.0f);
+        CHECK(lamp.r == doctest::Approx(199.0f).epsilon(0.01));
+        CHECK(gl.ValidationErrors() == 0);
     }
 
     TEST_CASE("Bloom Downsampling & Upsampling Filter Mathematical Energy Bounds") {

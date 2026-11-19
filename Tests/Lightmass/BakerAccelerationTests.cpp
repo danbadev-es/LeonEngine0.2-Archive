@@ -209,6 +209,44 @@ namespace Leon {
             CHECK(underBlocker < inTheOpen * 0.25f);
         }
 
+        TEST_CASE("vertices without a normal, or with normals that cancel out, bake like the triangle's plane") {
+            FLightBakerSettings settings;
+            settings.SamplesPerTexel = 8;
+            settings.NumIndirectBounces = 2;
+            settings.NumThreads = 2;
+            const FLightBakerScene reference = LitFloor();
+            std::vector<float> expected;
+            FLightBaker::Bake(reference, settings, expected);
+
+            // The floor exported without normals: every one of them is zero.
+            FLightBakerScene bare = LitFloor();
+            for (uint32_t i = 0; i < 4; ++i)
+                bare.Vertices[i].Normal = glm::vec3(0.0f);
+            // And the blocker with normals that cancel out half way along an edge: rays that reach it
+            // there find no direction to shade it by.
+            bare.Vertices[4].Normal = {0.0f, 1.0f, 0.0f};
+            bare.Vertices[5].Normal = {0.0f, -1.0f, 0.0f};
+            bare.Vertices[6].Normal = {0.0f, -1.0f, 0.0f};
+            std::vector<float> baked;
+            FLightBaker::Bake(bare, settings, baked);
+
+            REQUIRE(baked.size() == expected.size());
+            size_t notFinite = 0;
+            float floorDifference = 0.0f;
+            float brightest = 0.0f;
+            for (size_t i = 0; i < baked.size(); ++i) {
+                notFinite += std::isfinite(baked[i]) ? 0 : 1;
+                brightest = std::max(brightest, expected[i]);
+            }
+            CHECK(notFinite == 0);
+            // The floor is lit as with its real normals: straight up is the plane of its triangles. (The
+            // blocker's faked normals change what bounces off it, which is a small part of the light.)
+            for (size_t i = 0; i < baked.size(); i += 4)
+                floorDifference = std::max(floorDifference, std::abs(baked[i] - expected[i]));
+            REQUIRE(brightest > 1.0f);
+            CHECK(floorDifference < 0.1f * brightest);
+        }
+
         TEST_CASE("texels around a chart are filled several texels deep") {
             // The chart covers the middle of the atlas only; filtering reads beyond its edge.
             FLightBakerScene scene = LitFloor();

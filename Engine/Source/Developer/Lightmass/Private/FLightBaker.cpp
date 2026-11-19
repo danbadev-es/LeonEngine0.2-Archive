@@ -2,6 +2,7 @@
 #include "AssetPipeline/FLightmapUV.hpp"
 #include "RenderCore/FLightAttenuation.hpp"
 #include "RenderCore/FIBLMath.hpp"
+#include "Core/FLog.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -59,6 +60,33 @@ namespace Leon {
             OutT = t;
             OutBary = {1.0f - u - v, u, v};
             return true;
+        }
+
+        /** How often SurfaceNormal had to fall back during the bake in progress; reported at its end. */
+        std::atomic<uint64_t> GNormalFallbacks{0};
+
+        bool IsFinite(const glm::vec3& InValue) {
+            return std::isfinite(InValue.x) && std::isfinite(InValue.y) && std::isfinite(InValue.z);
+        }
+
+        /**
+         * The normal of a triangle at a point of it, from the normals of its corners. Corners without
+         * a normal (a mesh exported without them) or with normals that cancel out would give a vector
+         * of no length, and normalising that is not a number: it then poisons every texel that sees the
+         * surface. Such a point takes the triangle's own plane instead.
+         */
+        glm::vec3 SurfaceNormal(const FBakeVertex& InV0, const FBakeVertex& InV1, const FBakeVertex& InV2,
+                                const glm::vec3& InBary) {
+            const glm::vec3 shading = FLightmapUV::Interpolate(InV0.Normal, InV1.Normal, InV2.Normal, InBary);
+            const float shadingLength = glm::dot(shading, shading);
+            if (std::isfinite(shadingLength) && shadingLength > 1.0e-12f)
+                return shading / std::sqrt(shadingLength);
+            GNormalFallbacks.fetch_add(1, std::memory_order_relaxed);
+            const glm::vec3 plane = glm::cross(InV1.Position - InV0.Position, InV2.Position - InV0.Position);
+            const float planeLength = glm::dot(plane, plane);
+            if (std::isfinite(planeLength) && planeLength > 1.0e-20f)
+                return plane / std::sqrt(planeLength);
+            return {0.0f, 1.0f, 0.0f};
         }
 
     } // namespace
@@ -403,8 +431,7 @@ namespace Leon {
         albedo *= (1.0f - metallic);
         glm::vec3 emissive = FLightmapUV::Interpolate(V0.Emissive, V1.Emissive, V2.Emissive, Bary);
         glm::vec3 pos = FLightmapUV::Interpolate(V0.Position, V1.Position, V2.Position, Bary);
-        glm::vec3 n =
-            FacingNormal(glm::normalize(FLightmapUV::Interpolate(V0.Normal, V1.Normal, V2.Normal, Bary)), InRayDir);
+        glm::vec3 n = FacingNormal(SurfaceNormal(V0, V1, V2, Bary), InRayDir);
         glm::vec3 E = EvaluateDirectIrradiance(Scene, pos, n, false);
         return emissive + (albedo / kPI) * E;
     }
@@ -417,6 +444,7 @@ namespace Leon {
         if (W == 0 || H == 0)
             return;
 
+        GNormalFallbacks.store(0);
         std::vector<float> coverage(static_cast<size_t>(W) * H, 0.0f);
         std::vector<glm::vec3> positions(static_cast<size_t>(W) * H, glm::vec3(0.0f));
         std::vector<glm::vec3> normals(static_cast<size_t>(W) * H, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -460,7 +488,7 @@ namespace Leon {
                     coverage[idx] = 1.0f;
                     chartOf[idx] = static_cast<int>(tri.ChartIndex);
                     positions[idx] = FLightmapUV::Interpolate(v0.Position, v1.Position, v2.Position, bary);
-                    normals[idx] = glm::normalize(FLightmapUV::Interpolate(v0.Normal, v1.Normal, v2.Normal, bary));
+                    normals[idx] = SurfaceNormal(v0, v1, v2, bary);
                     glm::vec3 albedo = FLightmapUV::Interpolate(v0.Albedo, v1.Albedo, v2.Albedo, bary);
                     float metallic = v0.Metallic * bary.x + v1.Metallic * bary.y + v2.Metallic * bary.z;
                     albedos[idx] = albedo * (1.0f - metallic);
@@ -518,8 +546,7 @@ namespace Leon {
                     const auto& hv1 = InScene.Vertices[tri.I1];
                     const auto& hv2 = InScene.Vertices[tri.I2];
                     glm::vec3 hitPos = FLightmapUV::Interpolate(hv0.Position, hv1.Position, hv2.Position, bary);
-                    glm::vec3 hitN = FacingNormal(
-                        glm::normalize(FLightmapUV::Interpolate(hv0.Normal, hv1.Normal, hv2.Normal, bary)), dir);
+                    glm::vec3 hitN = FacingNormal(SurfaceNormal(hv0, hv1, hv2, bary), dir);
                     glm::vec3 hitAlbedo =
                         FLightmapUV::Interpolate(hv0.Albedo, hv1.Albedo, hv2.Albedo, bary) *
                         (1.0f - (hv0.Metallic * bary.x + hv1.Metallic * bary.y + hv2.Metallic * bary.z));
@@ -548,8 +575,7 @@ namespace Leon {
                         glm::vec3 LoNext = SurfaceOutgoingRadiance(InScene, w0, w1, w2, bary2, dir2);
                         Epath += throughput * LoNext;
                         curPos = FLightmapUV::Interpolate(w0.Position, w1.Position, w2.Position, bary2);
-                        curN = FacingNormal(
-                            glm::normalize(FLightmapUV::Interpolate(w0.Normal, w1.Normal, w2.Normal, bary2)), dir2);
+                        curN = FacingNormal(SurfaceNormal(w0, w1, w2, bary2), dir2);
                         float met = w0.Metallic * bary2.x + w1.Metallic * bary2.y + w2.Metallic * bary2.z;
                         glm::vec3 nextAlbedo =
                             FLightmapUV::Interpolate(w0.Albedo, w1.Albedo, w2.Albedo, bary2) * (1.0f - met);
@@ -607,10 +633,26 @@ namespace Leon {
         // filtering reads past the edge of a chart, and would otherwise fetch black.
         std::vector<glm::vec3> filtered(static_cast<size_t>(W) * H, glm::vec3(0.0f));
         std::vector<uint8_t> filled(static_cast<size_t>(W) * H, 0);
+        size_t notFinite = 0;
         for (size_t idx = 0; idx < filtered.size(); ++idx) {
             filtered[idx] = direct[idx] + indirect[idx];
             filled[idx] = coverage[idx] > 0.0f ? 1 : 0;
+            // A texel that is not a number must never reach the atlas: one of them on screen is spread
+            // over the whole picture by the bloom. It is filled from its neighbours like a texel outside
+            // every chart, and the count is reported so the cause gets looked at.
+            if (!IsFinite(filtered[idx])) {
+                filtered[idx] = glm::vec3(0.0f);
+                filled[idx] = 0;
+                ++notFinite;
+            }
         }
+        if (notFinite > 0)
+            LE_CORE_WARN("FLightBaker: {0} texels came out as not-a-number or infinite; filled from their neighbours",
+                         notFinite);
+        if (const uint64_t fallbacks = GNormalFallbacks.load(); fallbacks > 0)
+            LE_CORE_WARN("FLightBaker: {0} normals had no length (vertices without a normal, or normals that cancel "
+                         "out); the triangle's plane was used",
+                         fallbacks);
         constexpr int kDilationPasses = 4;
         for (int pass = 0; pass < kDilationPasses; ++pass) {
             std::vector<uint8_t> nextFilled = filled;

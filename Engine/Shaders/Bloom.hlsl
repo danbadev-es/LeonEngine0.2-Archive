@@ -28,8 +28,27 @@ float3 Tap(float2 InUV, float InOffsetX, float InOffsetY) {
     return t_Source.SampleLevel(s_LinearClamp, InUV + float2(InOffsetX, InOffsetY) * u_TexelSize.xy, 0.0).rgb;
 }
 
+// Brighter than anything a scene lights a pixel with on purpose; what is above it is a fault
+// (a highlight that overflowed, a division by nearly nothing) and is cut down to it.
+static const float kMaxBloomLuminance = 512.0;
+
+/**
+ * What the bright pass may work with. A pixel that is not a number, or infinite, glows with nothing:
+ * the levels below average their neighbours, so a single such pixel would otherwise turn into a
+ * rectangle of them at every level and blank a large part of the picture.
+ */
+float3 UsableSceneColor(float3 InColor) {
+    // Read from the bits: a comparison with itself is something a compiler may fold away.
+    const uint3 exponent = asuint(InColor) & 0x7F800000u;
+    if (any(exponent == 0x7F800000u))
+        return float3(0.0, 0.0, 0.0);
+    const float3 color = max(InColor, 0.0);
+    const float luma = Luminance(color);
+    return luma > kMaxBloomLuminance ? color * (kMaxBloomLuminance / luma) : color;
+}
+
 float4 PSBrightPass(FFullscreenOutput InPixel) : SV_Target {
-    const float3 color = t_Source.SampleLevel(s_LinearClamp, InPixel.TexCoord, 0.0).rgb;
+    const float3 color = UsableSceneColor(t_Source.SampleLevel(s_LinearClamp, InPixel.TexCoord, 0.0).rgb);
     const float luma = max(Luminance(color), 0.0);
 
     // A soft knee: the cut-off fades in instead of switching on at the threshold.
