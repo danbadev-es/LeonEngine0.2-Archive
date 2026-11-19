@@ -10,6 +10,13 @@ Run by Blender, not by the system Python:
 
 Use Games/LeonHorror/Scripts/import_animations.py, which wraps both steps and the import into .lanim.
 
+The Patient's and the Orderly's clips are in enemy_clips.py, written another way (posed with IK,
+keyed on every frame). One command authors and imports the ten of them and nothing else:
+
+    python Games/LeonHorror/Scripts/import_animations.py --enemies
+
+which runs this file with `--set enemies` (`--set mannequin` is the clips below, the default is both).
+
 How the engine reads the result (Engine/Source/Runtime/Assets/Private/FSkeletalImporter.cpp):
   * one clip per FBX, named after the file, when the file has a single animation stack;
   * only bone-local transforms are sampled, at 30 Hz, and matched to the skeleton by bone name;
@@ -23,12 +30,15 @@ import sys
 import bpy
 from mathutils import Euler, Quaternion, Vector
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import enemy_clips  # noqa: E402
+
 FPS = 30
 
 
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    args = {"mode": "author", "source": "", "rig": "", "out": "", "only": "", "preview": ""}
+    args = {"mode": "author", "source": "", "rig": "", "out": "", "only": "", "preview": "", "set": "all"}
     i = 0
     while i < len(argv):
         key = argv[i].lstrip("-")
@@ -360,10 +370,11 @@ def render_preview(name, frames, preview_dir):
         print("PREVIEW FAILED", name, error)
 
 
-def run_author(rig_path, out_dir, only, preview_dir):
-    clips = clip_poses()
+def run_author(rig_path, out_dir, only, preview_dir, which="all"):
+    wanted = [name for name in only.split(",") if name]
+    clips = clip_poses() if which in ("all", "mannequin") else {}
     for name, (keys, loop) in clips.items():
-        if only and name != only:
+        if wanted and name not in wanted:
             continue
         reset_scene()
         armature = import_fbx(rig_path)
@@ -382,6 +393,16 @@ def run_author(rig_path, out_dir, only, preview_dir):
             render_preview(name, key_frames[:4], preview_dir)
         export_armature(armature, os.path.join(out_dir, name + ".fbx"), 1, last_frame)
 
+    for name in (enemy_clips.CLIPS if which in ("all", "enemies") else ()):
+        if wanted and name not in wanted:
+            continue
+        reset_scene()
+        armature = import_fbx(rig_path)
+        last_frame = enemy_clips.author(armature, name)
+        if preview_dir:
+            render_preview(name, [1 + (last_frame - 1) * i // 3 for i in range(4)], preview_dir)
+        export_armature(armature, os.path.join(out_dir, name + ".fbx"), 1, last_frame)
+
 
 def main():
     args = parse_args()
@@ -390,7 +411,7 @@ def main():
     if args["mode"] == "roundtrip":
         run_roundtrip(args["source"], args["out"])
     else:
-        run_author(args["rig"], args["out"], args["only"], args["preview"])
+        run_author(args["rig"], args["out"], args["only"], args["preview"], args["set"])
 
 
 main()
