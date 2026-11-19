@@ -317,3 +317,6 @@ def write_flat(name, folder):
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(lines) + "\n")
     return path
+
+
+from . import materials_more  # noqa: E402,F401  (registers the rest of the library)
