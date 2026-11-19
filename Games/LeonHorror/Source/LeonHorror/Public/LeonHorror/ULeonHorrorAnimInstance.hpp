@@ -19,7 +19,18 @@ namespace Leon {
     };
 
     /** Single actions layered over locomotion with UAnimInstance::PlayOneShot. */
-    enum class ELeonHorrorAnimAction : uint8_t { MeleeSwing, PistolFire, HitReact, Interact, EnemyAttack };
+    enum class ELeonHorrorAnimAction : uint8_t {
+        MeleeSwing,
+        PistolFire,
+        HitReact,
+        Interact,
+        EnemyAttack,
+        PickUp,    ///< from table height
+        PickUpLow, ///< from the floor
+        OpenDoor,
+        Reload,
+        UseMedkit,
+    };
 
     /**
      * Animation graph for the horror characters: a locomotion blend driven by Speed / Direction, a
@@ -38,6 +49,8 @@ namespace Leon {
 
         /** Returns false when the clip for this action is not available. */
         bool PlayAction(ELeonHorrorAnimAction InAction);
+        /** Which way the player falls when killed: backwards when the blow came from the front. */
+        void SetDeathFromFront(bool bInFromFront);
         /** Holds the pistol aim pose on the upper body while true. */
         void SetAiming(bool bInAiming);
         bool IsAiming() const { return bAiming; }
@@ -64,6 +77,13 @@ namespace Leon {
         TRef<UAnimSequence> HitSequence;
         TRef<UAnimSequence> InteractSequence;
         TRef<UAnimSequence> EnemyAttackSequence;
+        TRef<UAnimSequence> PickUpSequence;
+        TRef<UAnimSequence> PickUpLowSequence;
+        TRef<UAnimSequence> OpenDoorSequence;
+        TRef<UAnimSequence> ReloadSequence;
+        TRef<UAnimSequence> UseMedkitSequence;
+        TRef<UAnimSequence> DeathFallingBackSequence;
+        TRef<UBlendSpace> HurtLocomotion;
         bool bAiming = false;
     };
 

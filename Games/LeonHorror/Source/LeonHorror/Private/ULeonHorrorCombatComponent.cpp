@@ -243,6 +243,10 @@ namespace Leon {
             return false;
         ReloadRemaining = Tuning.PistolReloadSeconds;
         LeonHorrorSound::Play("SFX_Pistol_Reload", 0.8f);
+        if (ALeonHorrorCharacter* player = GetPlayer()) {
+            if (auto* anim = player->GetHorrorAnim())
+                anim->PlayAction(ELeonHorrorAnimAction::Reload);
+        }
         return true;
     }
 

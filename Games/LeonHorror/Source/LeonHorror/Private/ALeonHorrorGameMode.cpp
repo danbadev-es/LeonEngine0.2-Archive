@@ -6,6 +6,7 @@
 #include "LeonHorror/ALeonHorrorPower.hpp"
 #include "LeonHorror/FLeonHorrorSound.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
+#include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 #include "LeonHorror/ULeonHorrorCombatComponent.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 #include "LeonHorror/ULeonHorrorGameInstance.hpp"
@@ -177,8 +178,11 @@ namespace Leon {
         if (health->GetHealth() >= health->GetMaxHealth())
             return false; // do not waste one at full health
         const bool bHadOne = inventory->HasItem(LeonHorrorItems::Medkit);
-        if (bHadOne)
+        if (bHadOne) {
             LeonHorrorSound::Play("SFX_Medkit", 0.8f);
+            if (auto* anim = InPlayer.GetHorrorAnim())
+                anim->PlayAction(ELeonHorrorAnimAction::UseMedkit);
+        }
         if (!inventory->RemoveItem(LeonHorrorItems::Medkit))
             return false;
         health->Heal(MedkitHealAmount);

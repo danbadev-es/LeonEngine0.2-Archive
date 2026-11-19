@@ -72,6 +72,7 @@ namespace Leon {
         /** Fades the current one-shot out over its BlendOut time (or InBlendOut when >= 0). */
         void StopOneShot(float InBlendOut = -1.0f);
         bool IsPlayingOneShot() const { return OneShotSequence != nullptr; }
+        const TRef<UAnimSequence>& GetOneShotSequence() const { return OneShotSequence; }
         float GetOneShotTime() const { return OneShotTime; }
         /** Current blend weight of the one-shot, 0..1. */
         float GetOneShotWeight() const;

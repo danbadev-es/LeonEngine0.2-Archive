@@ -1,5 +1,7 @@
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 
+#include "LeonHorror/FLeonHorrorArchetypes.hpp"
+
 #include "Assets/UAssetManager.hpp"
 
 namespace Leon {
@@ -66,7 +68,9 @@ namespace Leon {
         // Player: an authored walk forward; the run set covers strafing (while aiming), backing up
         // and sprinting. Speeds match FLeonHorrorPlayerTuning (walk 2.6 m/s, sprint 5 m/s).
         addAllDirections(0.0f, "/Game/Animations/IdleRelaxed.lanim");
-        add(260.0f, 0.0f, "/Game/Animations/WalkForward.lanim");
+        // PlayerWalk carries the flashlight in front and matches 260 cm/s; WalkForward is the old one.
+        add(260.0f, 0.0f,
+            LeonHorrorArchetypes::ExistingAsset("/Game/Animations/PlayerWalk.lanim", "/Game/Animations/WalkForward.lanim").c_str());
         add(260.0f, 90.0f, "/Game/Animations/RunRight.lanim");
         add(260.0f, -90.0f, "/Game/Animations/RunLeft.lanim");
         add(260.0f, 180.0f, "/Game/Animations/RunBackward.lanim");
@@ -103,6 +107,26 @@ namespace Leon {
         HitSequence = LoadLinked(bEnemy ? EnemyClips.Hit : std::string("/Game/Animations/HitReact.lanim"), false);
         InteractSequence = LoadLinked("/Game/Animations/Interact.lanim", false);
         EnemyAttackSequence = LoadLinked(EnemyClips.Attack, false);
+        if (!bEnemy) {
+            PickUpSequence = LoadLinked("/Game/Animations/PlayerPickup.lanim", false);
+            PickUpLowSequence = LoadLinked("/Game/Animations/PlayerPickupLow.lanim", false);
+            OpenDoorSequence = LoadLinked("/Game/Animations/PlayerOpenDoor.lanim", false);
+            ReloadSequence = LoadLinked("/Game/Animations/PlayerReload.lanim", false);
+            UseMedkitSequence = LoadLinked("/Game/Animations/PlayerUseMedkit.lanim", false);
+            DeathFallingBackSequence = LoadLinked("/Game/Animations/PlayerDeathBackward.lanim", false);
+            // Badly hurt, the player stands and walks bent over a hand pressed to the side.
+            auto idle = LoadLinked("/Game/Animations/PlayerHurtIdle.lanim", true);
+            auto walk = LoadLinked("/Game/Animations/PlayerHurtWalk.lanim", true);
+            if (idle && walk) {
+                HurtLocomotion = UBlendSpace::Create("BS_HorrorPlayerHurt");
+                HurtLocomotion->Set2D(true);
+                HurtLocomotion->SetAxisRange({0.0f, -180.0f}, {600.0f, 180.0f});
+                for (float direction : {0.0f, 90.0f, -90.0f, 180.0f, -180.0f}) {
+                    HurtLocomotion->AddSample({0.0f, direction}, idle);
+                    HurtLocomotion->AddSample({260.0f, direction}, walk);
+                }
+            }
+        }
 
         StateMachine = FAnimStateMachine{};
         SetBlendParamNames("Speed", "Direction");
@@ -121,8 +145,21 @@ namespace Leon {
         death.bLoop = false;
         StateMachine.AddState(death);
 
+        if (HurtLocomotion) {
+            FAnimState hurt;
+            hurt.Name = "LocomotionHurt";
+            hurt.Type = EAnimNodeType::BlendSpace;
+            hurt.BlendSpace = HurtLocomotion;
+            hurt.bLoop = true;
+            StateMachine.AddState(hurt);
+        }
+
         StateMachine.AddTransition({"*", "Death", "Bool:bIsDead", 0.15f});
         StateMachine.AddTransition({"Death", "Locomotion", "NotBool:bIsDead", 0.1f});
+        if (HurtLocomotion) {
+            StateMachine.AddTransition({"Locomotion", "LocomotionHurt", "Bool:bHurt", 0.4f});
+            StateMachine.AddTransition({"LocomotionHurt", "Locomotion", "NotBool:bHurt", 0.4f});
+        }
         StateMachine.SetDefaultState("Locomotion");
         StateMachine.ResetToDefault();
     }
@@ -139,23 +176,51 @@ namespace Leon {
             return InteractSequence;
         case ELeonHorrorAnimAction::EnemyAttack:
             return EnemyAttackSequence;
+        case ELeonHorrorAnimAction::PickUp:
+            return PickUpSequence;
+        case ELeonHorrorAnimAction::PickUpLow:
+            return PickUpLowSequence;
+        case ELeonHorrorAnimAction::OpenDoor:
+            return OpenDoorSequence;
+        case ELeonHorrorAnimAction::Reload:
+            return ReloadSequence;
+        case ELeonHorrorAnimAction::UseMedkit:
+            return UseMedkitSequence;
         }
         return nullptr;
     }
 
     bool ULeonHorrorAnimInstance::PlayAction(ELeonHorrorAnimAction InAction) {
         auto sequence = GetActionSequence(InAction);
+        // A specific clip that is missing falls back to the general one.
+        if (!sequence && (InAction == ELeonHorrorAnimAction::PickUp || InAction == ELeonHorrorAnimAction::PickUpLow ||
+                          InAction == ELeonHorrorAnimAction::OpenDoor))
+            sequence = InteractSequence;
         if (!sequence)
             return false;
         FAnimOneShotParams params;
         params.BlendIn = 0.08f;
         params.BlendOut = 0.18f;
         // Arms act while the legs keep walking; a hit or an enemy lunge takes the whole body.
+        // Picking something up bends the whole body; the rest is done with the arms.
         params.bUpperBodyOnly = InAction == ELeonHorrorAnimAction::MeleeSwing ||
                                 InAction == ELeonHorrorAnimAction::PistolFire ||
-                                InAction == ELeonHorrorAnimAction::Interact;
+                                InAction == ELeonHorrorAnimAction::Interact ||
+                                InAction == ELeonHorrorAnimAction::OpenDoor ||
+                                InAction == ELeonHorrorAnimAction::Reload ||
+                                InAction == ELeonHorrorAnimAction::UseMedkit;
         PlayOneShot(sequence, params);
         return true;
+    }
+
+    void ULeonHorrorAnimInstance::SetDeathFromFront(bool bInFromFront) {
+        if (Profile != ELeonHorrorAnimProfile::Player || !DeathFallingBackSequence)
+            return;
+        const TRef<UAnimSequence> wanted = bInFromFront ? DeathFallingBackSequence : DeathSequence;
+        for (FAnimState& state : StateMachine.GetStates()) {
+            if (state.Name == "Death")
+                state.Sequence = wanted;
+        }
     }
 
     void ULeonHorrorAnimInstance::SetAiming(bool bInAiming) {

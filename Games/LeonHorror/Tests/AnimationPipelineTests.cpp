@@ -140,8 +140,9 @@ namespace Leon {
                 float Duration;
                 const char* MovingBone; // must travel at least MinTravel metres during the clip
                 float MinTravel;
+                bool bUpright = true; // false for a clip that bends down to the floor
             };
-            // Durations come from the key times in Tools/make_animations.py.
+            // Durations come from the key times in Scripts/make_animations.py and player_clips.py.
             const FExpectedClip clips[] = {
                 {"WalkForward", 1.1f, "mixamorig:LeftFoot", 0.20f},
                 {"MeleeSwing", 0.8f, "mixamorig:RightHand", 0.40f},
@@ -151,6 +152,14 @@ namespace Leon {
                 {"Interact", 0.9f, "mixamorig:RightHand", 0.40f},
                 {"EnemyShamble", 1.5f, "mixamorig:LeftFoot", 0.15f},
                 {"EnemyAttack", 1.0f, "mixamorig:RightHand", 0.50f},
+                {"PlayerWalk", 0.667f, "mixamorig:LeftFoot", 0.20f},
+                {"PlayerHurtWalk", 0.667f, "mixamorig:LeftFoot", 0.20f},
+                {"PlayerHurtIdle", 3.0f, "mixamorig:Head", 0.005f},
+                {"PlayerOpenDoor", 0.7f, "mixamorig:RightHand", 0.15f},
+                {"PlayerReload", 1.7f, "mixamorig:LeftHand", 0.10f},
+                {"PlayerUseMedkit", 1.5f, "mixamorig:RightHand", 0.10f},
+                {"PlayerPickup", 0.8f, "mixamorig:RightHand", 0.25f, false},
+                {"PlayerPickupLow", 1.2f, "mixamorig:RightHand", 0.40f, false},
             };
 
             auto skeleton = LoadSkeleton();
@@ -186,19 +195,25 @@ namespace Leon {
                     FAnimRuntime::SampleSequence(*clip, *skeleton, time, false, pose);
                     REQUIRE(pose.Num() == boneCount);
 
-                    // The body stays upright at a human scale: catches unit and axis mistakes.
+                    // At a human scale, the head above the hips: catches unit and axis mistakes.
                     const glm::vec3 hipsPos = BoneComponentPosition(*skeleton, pose, hips);
                     const glm::vec3 headPos = BoneComponentPosition(*skeleton, pose, head);
-                    CHECK(hipsPos.y > 0.7f);
                     CHECK(hipsPos.y < 1.2f);
-                    CHECK(headPos.y - hipsPos.y > 0.3f);
                     CHECK(headPos.y - hipsPos.y < 0.9f);
+                    CHECK(headPos.y > hipsPos.y);
+                    if (expected.bUpright) {
+                        CHECK(hipsPos.y > 0.7f);
+                        CHECK(headPos.y - hipsPos.y > 0.3f);
+                    } else {
+                        CHECK(hipsPos.y > 0.25f);
+                    }
 
-                    // Bones the script never poses stay at their rest rotation.
+                    // A finger closes round what the hand holds (the flashlight); it never turns
+                    // further than a fist, which would be a wrong axis or sign.
                     const float fingerDrift = RotationDifferenceDegrees(
                         pose.LocalTransforms[static_cast<size_t>(finger)].Rotation,
                         skeleton->GetBones()[static_cast<size_t>(finger)].RestLocal.Rotation);
-                    CHECK(fingerDrift < 0.5f);
+                    CHECK(fingerDrift < 100.0f);
 
                     const glm::vec3 p = BoneComponentPosition(*skeleton, pose, moving);
                     minPos = glm::min(minPos, p);

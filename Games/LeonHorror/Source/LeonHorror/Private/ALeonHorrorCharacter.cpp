@@ -26,6 +26,11 @@
 namespace Leon {
 
     namespace {
+        /** Below this share of a life the player is badly hurt: a heart is heard, the body bends over. */
+        constexpr float kHurtFraction = 0.34f;
+    } // namespace
+
+    namespace {
         constexpr float kPlayerHeightMetres = 1.78f;
     } // namespace
 
@@ -337,7 +342,7 @@ namespace Leon {
 
         // Under a third of a life the heart is heard, faster the less there is left.
         const float fraction = Health && Health->GetMaxHealth() > 0.0f ? Health->GetHealth() / Health->GetMaxHealth() : 1.0f;
-        if (fraction < 0.34f) {
+        if (fraction < kHurtFraction) {
             HeartbeatTimer -= DeltaSeconds;
             if (HeartbeatTimer <= 0.0f) {
                 HeartbeatTimer = 0.65f + fraction * 1.2f;
@@ -424,9 +429,17 @@ namespace Leon {
         auto* target = Cast<IInteractable>(focused);
         if (!target || bDead || !target->CanInteract(*this))
             return false;
+        // Which gesture: taken from the floor, taken from a table, a door pushed, or a hand put out.
+        ELeonHorrorAnimAction gesture = ELeonHorrorAnimAction::Interact;
+        if (Cast<ALeonHorrorPickup>(focused)) {
+            const float feet = GetActorLocation().y - GetCapsuleHalfHeight();
+            gesture = target->GetInteractLocation().y - feet < 0.45f ? ELeonHorrorAnimAction::PickUpLow : ELeonHorrorAnimAction::PickUp;
+        } else if (Cast<ALeonHorrorDoor>(focused)) {
+            gesture = ELeonHorrorAnimAction::OpenDoor;
+        }
         const bool bDone = target->Interact(*this);
         if (bDone && Anim)
-            Anim->PlayAction(ELeonHorrorAnimAction::Interact);
+            Anim->PlayAction(gesture);
         Focused = FindInteractable(); // the target may be gone (a pickup) or changed (a door)
         return bDone;
     }
@@ -434,6 +447,8 @@ namespace Leon {
     void ALeonHorrorCharacter::UpdateAnimInstance(UAnimInstance& InAnim) const {
         ACharacter::UpdateAnimInstance(InAnim);
         InAnim.SetBool("bIsDead", bDead);
+        InAnim.SetBool("bHurt", !bDead && Health && Health->GetMaxHealth() > 0.0f &&
+                                    Health->GetHealth() / Health->GetMaxHealth() < kHurtFraction);
         // The engine measures the walking direction against the view. This body turns on its own, so
         // measure against where it actually faces: walking away from the camera is still "forward".
         if (auto movement = GetCharacterMovement()) {
@@ -452,6 +467,17 @@ namespace Leon {
         bSprinting = false;
         bAiming = false;
         LeonHorrorSound::Play("SFX_Player_Death", 0.9f);
+        // Struck from in front the body goes over backwards.
+        if (Anim) {
+            bool bFromFront = true;
+            if (InInfo.Instigator) {
+                glm::vec3 to = InInfo.Instigator->GetActorLocation() - GetActorLocation();
+                to.y = 0.0f;
+                const float yaw = glm::radians(BodyYaw);
+                bFromFront = glm::length(to) < 1.0e-3f || glm::dot(to, glm::vec3(std::cos(yaw), 0.0f, std::sin(yaw))) >= 0.0f;
+            }
+            Anim->SetDeathFromFront(bFromFront);
+        }
         LeonHorrorSound::Play("STG_Death", 0.8f);
         if (auto movement = GetCharacterMovement()) {
             movement->StopMovementImmediately();

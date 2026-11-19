@@ -9,6 +9,9 @@
 
 #include "Gameplay/USkeletalMeshComponent.hpp"
 #include "Scene/Components.hpp"
+#include "Gameplay/UHealthComponent.hpp"
+#include "LeonHorror/ALeonHorrorInteractable.hpp"
+#include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -146,6 +149,71 @@ namespace Leon {
             CHECK_FALSE(player->IsBodyHiddenFromCamera());
             CHECK_FALSE(mesh->IsHiddenInGame());
             CHECK(player->GetHeldLight()->IsShown());
+        }
+
+        TEST_CASE("the player's gestures fit what is done: a pickup from the floor or a table, a door, a reload, first aid") {
+            Test::FMapWorld slice("/Game/Maps/Slice", true);
+            ALeonHorrorCharacter* player = slice.Player;
+            auto* anim = player->GetHorrorAnim();
+            REQUIRE(anim);
+            for (ELeonHorrorAnimAction action : {ELeonHorrorAnimAction::PickUp, ELeonHorrorAnimAction::PickUpLow, ELeonHorrorAnimAction::OpenDoor,
+                                                 ELeonHorrorAnimAction::Reload, ELeonHorrorAnimAction::UseMedkit}) {
+                CAPTURE(static_cast<int>(action));
+                CHECK(anim->GetActionSequence(action) != nullptr);
+            }
+            const auto playing = [&]() { return anim->GetOneShotSequence(); };
+
+            // The pipe lies on the floor: the player bends down for it.
+            REQUIRE(slice.Use("Pickup_Pipe", 0.6f, 1.6f));
+            CHECK(playing() == anim->GetActionSequence(ELeonHorrorAnimAction::PickUpLow));
+            slice.Tick(1.5f);
+
+            // A door is pushed open.
+            REQUIRE(slice.Use("Door_Start", 0.0f, 1.5f));
+            CHECK(playing() == anim->GetActionSequence(ELeonHorrorAnimAction::OpenDoor));
+            slice.Tick(1.0f);
+
+            // Something on a table is taken at table height.
+            auto* key = slice.World->SpawnActor<ALeonHorrorPickup>("TableKey");
+            key->SetItem("Key.Test", 1);
+            key->SetActorLocation(player->GetActorLocation() + glm::vec3(0.6f, -player->GetCapsuleHalfHeight() + 0.8f, 0.0f));
+            slice.StandAndLookAt(player->GetActorLocation().x, player->GetActorLocation().z, key->GetInteractLocation());
+            REQUIRE(player->FindInteractable() == key);
+            REQUIRE(player->TryInteract());
+            CHECK(playing() == anim->GetActionSequence(ELeonHorrorAnimAction::PickUp));
+            slice.Tick(1.5f);
+
+            // Reloading the handgun and using first aid are seen too.
+            player->GetInventory()->AddItem(LeonHorrorItems::Pistol);
+            player->GetInventory()->AddItem(LeonHorrorItems::PistolAmmo, 12);
+            REQUIRE(player->GetCombat()->Equip(ELeonHorrorWeapon::Pistol));
+            if (player->GetCombat()->StartReload())
+                CHECK(playing() == anim->GetActionSequence(ELeonHorrorAnimAction::Reload));
+            slice.Tick(3.0f);
+            player->FindComponentByClass<UHealthComponent>()->ApplyDamage(30.0f);
+            player->GetInventory()->AddItem(LeonHorrorItems::Medkit);
+            REQUIRE(slice.GM->UseMedkit(*player));
+            CHECK(playing() == anim->GetActionSequence(ELeonHorrorAnimAction::UseMedkit));
+        }
+
+        TEST_CASE("badly hurt, the player stands and walks bent over; healed, upright again") {
+            Test::FMapWorld slice("/Game/Maps/Slice", true);
+            ALeonHorrorCharacter* player = slice.Player;
+            auto* anim = player->GetHorrorAnim();
+            auto* health = player->FindComponentByClass<UHealthComponent>();
+            REQUIRE(anim);
+            REQUIRE(health);
+            slice.Tick(0.2f);
+            CHECK(anim->GetStateMachine().GetCurrentState() == "Locomotion");
+            health->ApplyDamage(health->GetHealth() - 0.2f * health->GetMaxHealth());
+            slice.Tick(0.5f);
+            CHECK(anim->GetStateMachine().GetCurrentState() == "LocomotionHurt");
+            health->Heal(health->GetMaxHealth());
+            slice.Tick(0.5f);
+            CHECK(anim->GetStateMachine().GetCurrentState() == "Locomotion");
+            health->ApplyDamage(10000.0f);
+            slice.Tick(0.5f);
+            CHECK(anim->GetStateMachine().GetCurrentState() == "Death");
         }
     }
 
