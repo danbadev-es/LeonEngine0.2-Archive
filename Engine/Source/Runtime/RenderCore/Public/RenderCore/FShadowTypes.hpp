@@ -29,7 +29,7 @@ namespace Leon {
     };
 
     /**
-     * @brief Configuration for CSM, one spotlight map, and up to four point cubemaps.
+     * @brief Configuration for CSM, up to four spotlight maps, and up to four point cubemaps.
      */
     struct FShadowSettings {
         bool bEnableShadows = true;
@@ -50,12 +50,16 @@ namespace Leon {
         float NormalBias = 0.055f;    ///< Face-normal offset scaling in world space
 
         uint32_t CascadeResolution = 2048; ///< Width and height per cascade layer
-        uint32_t SpotResolution = 1024;    ///< Spotlight shadow map resolution
+        uint32_t SpotResolution = 1024;    ///< Resolution of each spotlight shadow map
         uint32_t PointShadowResolution = 512;
+        /// How many lights of each kind get shadow maps in a frame; the most important ones for the
+        /// camera (see FLightSelection.hpp) among those that cast shadows.
         uint32_t MaxShadowedPointLights = 4;
-        int32_t ShadowedSpotIndex = 0; ///< Runtime spot list index that receives the single spot shadow map
+        uint32_t MaxShadowedSpotLights = 4;
 
         static constexpr uint32_t kMaxShadowedPointLights = 4;
+        /// Layers of the spot shadow map; keep in sync with MAX_SHADOWED_SPOT_LIGHTS in PBR_Common.hlsli.
+        static constexpr uint32_t kMaxShadowedSpotLights = 4;
         /// Bind-pose AABB is inflated so animation that leaves rest bounds still casts.
         static constexpr float kSkinnedShadowBoundsPadding = 1.35f;
 

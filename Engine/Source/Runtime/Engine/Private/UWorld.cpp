@@ -541,6 +541,7 @@ namespace Leon {
                 shadows.SpotResolution = GetPendingSpotResolution();
                 shadows.PointShadowResolution = GetPendingPointShadowResolution();
                 shadows.MaxShadowedPointLights = GetPendingMaxShadowedPointLights();
+                shadows.MaxShadowedSpotLights = GetPendingMaxShadowedSpotLights();
             }
             shadows.FilterMode = GetPendingShadowFilter();
             FPostProcessSettings& post = Renderer->GetPostProcessSettings();
@@ -622,15 +623,18 @@ namespace Leon {
     }
 
     void UWorld::SetProjectOmniShadowDefaults(uint32_t InSpotResolution, uint32_t InPointShadowResolution,
-                                              uint32_t InMaxShadowedPointLights) {
+                                              uint32_t InMaxShadowedPointLights, uint32_t InMaxShadowedSpotLights) {
         PendingSpotResolution = InSpotResolution > 0 ? InSpotResolution : 1024;
         PendingPointShadowResolution = InPointShadowResolution > 0 ? InPointShadowResolution : 512;
         PendingMaxShadowedPointLights = std::min(std::max(InMaxShadowedPointLights, 1u), 4u);
+        PendingMaxShadowedSpotLights =
+            std::clamp(InMaxShadowedSpotLights, 1u, FShadowSettings::kMaxShadowedSpotLights);
         if (Renderer) {
             auto& sh = Renderer->GetShadowSettings();
             sh.SpotResolution = PendingSpotResolution;
             sh.PointShadowResolution = PendingPointShadowResolution;
             sh.MaxShadowedPointLights = PendingMaxShadowedPointLights;
+            sh.MaxShadowedSpotLights = PendingMaxShadowedSpotLights;
         }
     }
 

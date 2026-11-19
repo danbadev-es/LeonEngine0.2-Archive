@@ -108,11 +108,13 @@ namespace Leon {
         bool bHasPointLight = false;
         bool bPointLightEnabled = true;
         ELightMobility PointLightMobility = ELightMobility::Movable;
+        bool bPointLightCastShadows = false;
         FPointLight PointLight;
 
         bool bHasSpotLight = false;
         bool bSpotLightEnabled = true;
         ELightMobility SpotLightMobility = ELightMobility::Movable;
+        bool bSpotLightCastShadows = true;
         FSpotLight SpotLight;
 
         bool bHasText = false;
@@ -690,6 +692,8 @@ namespace Leon {
                             currentActor.PointLight.Radius = std::stof(val);
                         else if (key == "Mobility")
                             currentActor.PointLightMobility = StringToLightMobility(val);
+                        else if (key == "CastShadows")
+                            currentActor.bPointLightCastShadows = (val == "true");
                         break;
 
                     case EActorComponentSection::SpotLight:
@@ -713,6 +717,8 @@ namespace Leon {
                             currentActor.SpotLight.OuterCutOff = std::stof(val);
                         else if (key == "Mobility")
                             currentActor.SpotLightMobility = StringToLightMobility(val);
+                        else if (key == "CastShadows")
+                            currentActor.bSpotLightCastShadows = (val == "true");
                         break;
 
                     case EActorComponentSection::Text:
@@ -981,6 +987,7 @@ namespace Leon {
                 auto& comp = entity->AddComponent<FPointLightComponent>(actorData.PointLight);
                 comp.bEnabled = actorData.bPointLightEnabled;
                 comp.Mobility = actorData.PointLightMobility;
+                comp.bCastShadows = actorData.bPointLightCastShadows;
                 comp.Light.Position = actorData.Translation;
             }
 
@@ -989,6 +996,7 @@ namespace Leon {
                 auto& comp = entity->AddComponent<FSpotLightComponent>(actorData.SpotLight);
                 comp.bEnabled = actorData.bSpotLightEnabled;
                 comp.Mobility = actorData.SpotLightMobility;
+                comp.bCastShadows = actorData.bSpotLightCastShadows;
                 comp.Light.Position = actorData.Translation;
                 // The actor's rotation is what aims the light (the rotate gizmo drives it); the stored
                 // direction is what the file says it aims at. When they disagree the direction wins and

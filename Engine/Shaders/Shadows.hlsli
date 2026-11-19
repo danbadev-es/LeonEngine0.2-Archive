@@ -1,8 +1,8 @@
 #ifndef LEON_SHADOWS_HLSLI
 #define LEON_SHADOWS_HLSLI
 
-// Shadow lookups for lit surfaces: cascaded maps for the sun, one map for a spot light and cube maps
-// for point lights. Include after PBR_Common.hlsli (it declares the constants used here).
+// Shadow lookups for lit surfaces: cascaded maps for the sun, a map per shadowed spot light and cube
+// maps for point lights. Include after PBR_Common.hlsli (it declares the constants used here).
 //
 // Every function returns how much of the light is blocked: 0 = fully lit, 1 = fully in shadow.
 //
@@ -11,11 +11,20 @@
 // conversion into them.
 
 Texture2DArray<float> t_CascadeShadow : register(t10);
-Texture2D<float> t_SpotShadow : register(t11);
+Texture2DArray<float> t_SpotShadow : register(t11);
 TextureCubeArray<float> t_PointShadow : register(t14);
 
-/** Passed as the cascade index to mean "the spot light's map". */
-static const int kSpotShadowMap = -1;
+/**
+ * The functions below take one number to say which map they read: a sun cascade (0 and up) or a
+ * layer of the spot shadow map (negative, from SpotShadowMapId).
+ */
+int SpotShadowMapId(int InLayer) {
+    return -1 - InLayer;
+}
+
+int SpotShadowMapLayer(int InMapId) {
+    return -1 - InMapId;
+}
 
 // Keep in sync with FShadowSettings::kCascadeBlendMinMeters.
 static const float kCascadeBlendMinMeters = 3.0;
@@ -84,20 +93,20 @@ int ActiveCascadeCount() {
 
 /** 1 where the map says "lit" at this depth, filtered between the four nearest texels. */
 float ShadowTap(int InCascade, float2 InUV, float InDepth) {
-    if (InCascade == kSpotShadowMap)
-        return t_SpotShadow.SampleCmpLevelZero(s_ShadowCompare, InUV, InDepth);
+    if (InCascade < 0)
+        return t_SpotShadow.SampleCmpLevelZero(s_ShadowCompare, float3(InUV, float(SpotShadowMapLayer(InCascade))),
+                                               InDepth);
     return t_CascadeShadow.SampleCmpLevelZero(s_ShadowCompare, float3(InUV, float(InCascade)), InDepth);
 }
 
 float2 ShadowTexelSize(int InCascade) {
     float width;
     float height;
-    if (InCascade == kSpotShadowMap) {
-        t_SpotShadow.GetDimensions(width, height);
-    } else {
-        float layers;
+    float layers;
+    if (InCascade < 0)
+        t_SpotShadow.GetDimensions(width, height, layers);
+    else
         t_CascadeShadow.GetDimensions(width, height, layers);
-    }
     return 1.0 / float2(width, height);
 }
 
@@ -275,11 +284,13 @@ float CalculateCascadedDirectionalShadow(FShadowReceiver InReceiver, float3 InLi
     return shadow;
 }
 
-float CalculateSpotShadow(FShadowReceiver InReceiver, float3 InLightDir) {
-    if (u_ShadowFlags.y == 0)
+/** InLayer: the layer of the spot shadow map that holds this light's shadows (FSpotLight.Params.z). */
+float CalculateSpotShadow(FShadowReceiver InReceiver, float3 InLightDir, int InLayer) {
+    if (u_ShadowFlags.y == 0 || InLayer < 0 || InLayer >= MAX_SHADOWED_SPOT_LIGHTS)
         return 0.0;
     bool bInBounds = false;
-    return SampleShadowMap(kSpotShadowMap, u_SpotLightSpaceMatrix, InReceiver, InLightDir, 1.5, bInBounds);
+    return SampleShadowMap(SpotShadowMapId(InLayer), u_SpotLightSpaceMatrices[InLayer], InReceiver, InLightDir, 1.5,
+                           bInBounds);
 }
 
 /** 1 when the cube map holds something nearer to the light than InDepth along InDirection. */

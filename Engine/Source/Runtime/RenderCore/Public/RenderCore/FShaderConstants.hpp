@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RenderCore/FShadowTypes.hpp"
+
 #include <glm/glm.hpp>
 
 #include <cstdint>
@@ -58,7 +60,7 @@ namespace Leon {
         glm::vec4 Position{0.0f};
         glm::vec4 Direction{0.0f};
         glm::vec4 Color{0.0f};
-        glm::vec4 Params{0.0f};
+        glm::vec4 Params{0.0f, 0.0f, -1.0f, 0.0f};
     };
 
     struct FLitPassConstants { // PBR_Common.hlsli
@@ -73,10 +75,11 @@ namespace Leon {
         glm::vec4 FogParams{0.0f};
         glm::ivec4 PassFlags{0};
         glm::mat4 LightSpaceMatrices[4]{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f)};
-        glm::mat4 SpotLightSpaceMatrix{1.0f};
+        glm::mat4 SpotLightSpaceMatrices[FShadowSettings::kMaxShadowedSpotLights]{glm::mat4(1.0f), glm::mat4(1.0f),
+                                                                                 glm::mat4(1.0f), glm::mat4(1.0f)};
         glm::vec4 CascadeSplits{0.0f};
         glm::vec4 ShadowParams{0.0f};
-        glm::ivec4 ShadowSettings{0, -1, 0, 0};
+        glm::ivec4 ShadowSettings{0};
         glm::ivec4 ShadowFlags{0};
         glm::mat4 PlanarMatrix[2]{glm::mat4(1.0f), glm::mat4(1.0f)};
         glm::vec4 PlanarPlane[2]{glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)};

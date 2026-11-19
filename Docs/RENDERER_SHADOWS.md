@@ -1,6 +1,6 @@
 # Shadow System
 
-Cascaded shadow maps (CSM), one shadowed spotlight, and up to four point-light cubemap arrays for LeonEngine2. Contracts: [RENDERER_CONTRACT.md](RENDERER_CONTRACT.md). Remediation: [RENDERER_REMEDIATION.md](RENDERER_REMEDIATION.md).
+Cascaded shadow maps (CSM), up to four shadowed spotlights, and up to four point-light cubemaps for LeonEngine2. Contracts: [RENDERER_CONTRACT.md](RENDERER_CONTRACT.md). Remediation: [RENDERER_REMEDIATION.md](RENDERER_REMEDIATION.md).
 
 ## Overview
 
@@ -12,8 +12,8 @@ Cascaded shadow maps (CSM), one shadowed spotlight, and up to four point-light c
 - **Filters**: Hard, PCF 3×3, PCF 5×5, Poisson disk (16 fixed offsets, rotated per pixel by interleaved gradient noise). PCF / Poisson taps with UV outside `[0,1]` are skipped and the kernel is renormalized (nothing outside the map is counted as lit).
 - **Cascade blend**: mix over `max(cascadeLength × CascadeBlendWidth, 3 m)` (capped); do not blend `index+1` when it is past `CascadeCount`.
 - **Far fade**: linear fade ~15 m past the **last valid** split (not always cascade 3).
-- **Spot**: one map (`ShadowedSpotIndex`), `SpotResolution` (Low 512, Medium/High 1024).
-- **Point**: cube-map array, max **4** cubes (`kMaxShadowedPointLights`). Linear depth `length(world-light)/radius`. Texture register `t14`. Quality: Low 1×256², Medium 2×512², High 4×512². First N non-static runtime point lights receive cube slots (`params.y`); others stay `-1`.
+- **Spot**: 2D texture array, max **4** layers (`kMaxShadowedSpotLights`), one per shadowed light (`params.z`, `-1` = none), `SpotResolution` each. Quality: Low 1×512², Medium 2×1024², High 4×1024². The lights that get a layer are the most important for the camera among those with `bCastShadows` ([RENDERER.md](RENDERER.md), "Lights").
+- **Point**: cube-map array, max **4** cubes (`kMaxShadowedPointLights`). Linear depth `length(world-light)/radius`. Texture register `t14`. Quality: Low 1×256², Medium 2×512², High 4×512². The most important point lights with `bCastShadows` (off by default) receive cube slots (`params.y`); others stay `-1`.
 - Contact shadows: removed.
 
 CSM uses front-face cull + polygon offset `(2, 4)`. Spot and point faces use back-face cull. Double-sided materials disable culling in the shadow pass. Pass entry/exit calls `ResetDefaultMeshRasterState()`.

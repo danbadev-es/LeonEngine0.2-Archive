@@ -35,7 +35,8 @@ command list and the output through `FRHIFrame`, runs the layers, ends the frame
 UpdateViewState    level of detail, IBL environment, spot light aim, skinned shadow casters, mirror planes
 queue              world text, particles, gameplay debug shapes (drawn at the end of the scene pass)
 collect            visible mesh sections, resolved to pipelines, buffers and textures; shadow casters
-shadow maps        sun: up to 4 cascades · one spot light · up to 4 point lights (cube maps)
+lights             the point and spot lights that get the shader's slots, by importance for the camera
+shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
 scene pass (HDR)   opaque → skinned outlines → sky → blended (back to front) → queued world-space batches
 post-processing    ambient occlusion → bloom → tone mapping → FXAA, into the output
@@ -114,6 +115,51 @@ Editing a `.hlsl` file and restarting is enough; nothing is rebuilt.
 `u_PassFlags.y` selects a debug view of the surface shader (`FWorldRenderer::SetDebugMode`). The numbers
 are listed where they are handled in `PBR_Lit.hlsl`: material channels, direct and indirect light, sun
 shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture (13).
+
+## Lights: who gets a slot, who gets a shadow
+
+The surface shader lights a pixel with at most **16 point** and **8 spot** lights
+(`MAX_POINT_LIGHTS` / `MAX_SPOT_LIGHTS`), and a frame draws shadow maps for at most **4 spot** lights
+(one layer each of a `Texture2DArray`, `t11`) and **4 point** lights (one cube each, `t14`). A world may
+hold any number of lights; each frame `FWorldRendererRHI.cpp` gives the slots to the ones that matter
+most to the camera. The ranking is `SelectLightsByImportance` (`RenderCore/FLightSelection.hpp`), most
+important first:
+
+1. lights whose sphere of influence (position, radius) reaches into the view frustum;
+2. **Movable** lights before Stationary and Static ones — so a light gameplay carries around, like the
+   player's flashlight, never loses its slot to the lights of the level;
+3. more light arriving at the camera (intensity × the shader's distance falloff);
+4. nearer to the camera, for lights that do not reach it;
+5. the lower entity id, so equal lights always come out in the same order.
+
+A light that held a slot in the previous frame is favoured by 25 % in steps 3 and 4, so two lights of
+almost equal importance do not swap every frame while the camera sways.
+
+- Lit slots are filled in registry order whatever the ranking was: a world that fits in the slots is
+  drawn the same as if nothing were ranked.
+- Shadow maps go to the best ranked of the lit lights that have `bCastShadows`, and only to lights
+  that reach the view. `FSpotLight.Params.z` is the light's layer of the spot shadow map and
+  `FPointLight.Params.y` its cube (`-1` = no shadows); `u_SpotLightSpaceMatrices[layer]` is the
+  matrix of each layer.
+- Static lights are skipped altogether while the lightmaps are trusted.
+- How many are shadowed at once is a quality setting (`FShadowSettings::MaxShadowedSpotLights`,
+  `MaxShadowedPointLights`): High 4 / 4, Medium 2 / 2, Low 1 / 1. The spot shadow map has that many
+  layers of `SpotResolution`.
+
+Map keys, in a `SpotLight:` or `PointLight:` block:
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `CastShadows: true\|false` | spot `true`, point `false` | The light may take a shadow map. Written only when it is not the default. |
+
+Point lights do not cast shadows unless the map says so: a cube costs six views of the scene, and the
+lights of a baked level have their shadows in the lightmap.
+
+Limits: the ranking looks at the camera, not at what is on screen, so a strong light at the end of a
+long corridor can lose to weaker ones around the camera; a light dropped from the lit slots disappears
+at once rather than fading out; a spot light's shadow is lost where the occluder is close to the surface
+it shadows and both are several metres from the light (the map stores perspective depth from a near
+plane of 0.1 m, which leaves little precision out there, and the bias is larger than what is left).
 
 ## Checking a change
 

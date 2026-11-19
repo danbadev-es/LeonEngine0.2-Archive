@@ -143,7 +143,8 @@ namespace Leon {
                    InWorld.GetPendingShadowFilter() == InPreset.ShadowFilter &&
                    InWorld.GetPendingSpotResolution() == InPreset.SpotResolution &&
                    InWorld.GetPendingPointShadowResolution() == InPreset.PointShadowResolution &&
-                   InWorld.GetPendingMaxShadowedPointLights() == InPreset.MaxShadowedPointLights;
+                   InWorld.GetPendingMaxShadowedPointLights() == InPreset.MaxShadowedPointLights &&
+                   InWorld.GetPendingMaxShadowedSpotLights() == InPreset.MaxShadowedSpotLights;
         }
     } // namespace
 
@@ -189,6 +190,7 @@ namespace Leon {
             preset.SpotResolution = 512;
             preset.PointShadowResolution = 256;
             preset.MaxShadowedPointLights = 1;
+            preset.MaxShadowedSpotLights = 1;
             preset.ShadowDistance = 12.0f;
             preset.ShadowFilter = EShadowFilterMode::Hard;
             preset.bEnablePlanarReflection = false;
@@ -204,6 +206,7 @@ namespace Leon {
             preset.SpotResolution = 1024;
             preset.PointShadowResolution = 512;
             preset.MaxShadowedPointLights = 2;
+            preset.MaxShadowedSpotLights = 2;
             preset.ShadowDistance = 60.0f;
             preset.ShadowFilter = EShadowFilterMode::PCF3x3;
             preset.bEnablePlanarReflection = true;
@@ -220,6 +223,7 @@ namespace Leon {
             preset.SpotResolution = 1024;
             preset.PointShadowResolution = 512;
             preset.MaxShadowedPointLights = 4;
+            preset.MaxShadowedSpotLights = 4;
             preset.ShadowDistance = 100.0f;
             preset.ShadowFilter = EShadowFilterMode::PCF5x5;
             preset.bEnablePlanarReflection = true;
@@ -260,7 +264,7 @@ namespace Leon {
         InWorld.SetProjectPostProcessToggles(preset.bEnableBloom, preset.bEnableFXAA);
         InWorld.SetProjectShadowFilter(preset.ShadowFilter);
         InWorld.SetProjectOmniShadowDefaults(preset.SpotResolution, preset.PointShadowResolution,
-                                             preset.MaxShadowedPointLights);
+                                             preset.MaxShadowedPointLights, preset.MaxShadowedSpotLights);
         FRenderer::SetMaxTextureResolution(preset.MaxTextureResolution);
         InWorld.ReloadTextures();
         SyncEngineProjectDefaults(preset);
@@ -369,7 +373,8 @@ namespace Leon {
         // CSM is always a 4-layer DEPTH32F array even when CascadeCount is 2 or 3.
         size_t bytes = AssetBaselineBytes();
         bytes += static_cast<size_t>(preset.ShadowMapResolution) * preset.ShadowMapResolution * 4ull * 4ull;
-        bytes += static_cast<size_t>(preset.SpotResolution) * preset.SpotResolution * 4ull;
+        // One layer of the spot shadow map per light that may be shadowed at once.
+        bytes += static_cast<size_t>(preset.SpotResolution) * preset.SpotResolution * 4ull * preset.MaxShadowedSpotLights;
         bytes += static_cast<size_t>(preset.PointShadowResolution) * preset.PointShadowResolution * 4ull * 6ull *
                  FShadowSettings::kMaxShadowedPointLights;
         if (preset.bEnablePlanarReflection)

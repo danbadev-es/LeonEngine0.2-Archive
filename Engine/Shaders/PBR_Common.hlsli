@@ -8,6 +8,8 @@
 
 #define MAX_POINT_LIGHTS 16
 #define MAX_SPOT_LIGHTS 8
+// Keep in sync with FShadowSettings::kMaxShadowedSpotLights.
+#define MAX_SHADOWED_SPOT_LIGHTS 4
 
 struct FDirectionalLight {
     float4 Direction; // xyz = direction the light travels, w = enabled (1 / 0)
@@ -24,7 +26,7 @@ struct FSpotLight {
     float4 Position;  // xyz = position, w = enabled (1 / 0)
     float4 Direction; // xyz = direction, w = cos(inner angle)
     float4 Color;     // rgb = colour, a = cos(outer angle)
-    float4 Params;    // x = radius, y = intensity
+    float4 Params;    // x = radius, y = intensity, z = layer of the spot shadow map (-1 = none)
 };
 
 // Mirrors FLitPassConstants in FWorldRendererRHI.cpp.
@@ -41,10 +43,10 @@ cbuffer PassConstants : register(b1) {
     int4 u_PassFlags;         // x = image-based lighting available, y = debug view
     // Shadows (see Shadows.hlsli). The matrices take world positions to shadow-map space.
     float4x4 u_LightSpaceMatrices[4]; // one per sun cascade
-    float4x4 u_SpotLightSpaceMatrix;
+    float4x4 u_SpotLightSpaceMatrices[MAX_SHADOWED_SPOT_LIGHTS]; // one per layer of the spot shadow map
     float4 u_CascadeSplits;   // far distance of each cascade along the camera's forward axis
     float4 u_ShadowParams;    // x = constant bias, y = slope bias, z = normal offset, w = cascade blend width
-    int4 u_ShadowSettings;    // x = filter (0 hard, 1 3x3, 2 5x5, 3 Poisson), y = spot light with the shadow map, z = cascades
+    int4 u_ShadowSettings;    // x = filter (0 hard, 1 3x3, 2 5x5, 3 Poisson), z = cascades
     int4 u_ShadowFlags;       // 1 where a map was drawn this frame: x = sun, y = spot, z = point
     // Planar reflections: the scene captured from behind a mirror plane (0 = floor, 1 = wall mirror).
     float4x4 u_PlanarMatrix[2]; // world position -> capture texture coordinates (divide xy by w)

@@ -240,16 +240,6 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
                    directSpecular);
     }
 
-    // The one spot light that has a shadow map. Looked up here, not in the loop below, because the
-    // lookup uses screen-space derivatives.
-    float spotShadow = 0.0;
-    const int shadowedSpot = u_ShadowSettings.y;
-    if (bReceivesShadows && shadowedSpot >= 0 && shadowedSpot < min(u_LightCounts.y, MAX_SPOT_LIGHTS)) {
-        const float3 L = SafeNormalize(u_SpotLights[shadowedSpot].Position.xyz - InPixel.WorldPosition, float3(0.0, 1.0, 0.0));
-        spotShadow = CalculateSpotShadow(receiver, L) * smoothstep(0.0, 0.22, max(dot(receiver.FaceNormal, L), 0.0));
-        spotShadowFactor = 1.0 - spotShadow;
-    }
-
     const int pointCount = min(u_LightCounts.x, MAX_POINT_LIGHTS);
     for (int pointIndex = 0; pointIndex < pointCount; ++pointIndex) {
         const FPointLight light = u_PointLights[pointIndex];
@@ -282,8 +272,13 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
             continue;
         const float cone = smoothstep(0.0, 1.0, saturate((theta - outerCos) / max(innerCos - outerCos, 0.0001)));
         float3 radiance = light.Color.rgb * light.Params.y * LightAttenuation(distance, light.Params.x) * cone;
-        if (spotIndex == shadowedSpot)
+        // Only the lights that were given a layer of the shadow map this frame have shadows.
+        if (bReceivesShadows && light.Params.z >= 0.0) {
+            const float spotShadow = CalculateSpotShadow(receiver, L, int(light.Params.z + 0.5)) *
+                                     smoothstep(0.0, 0.22, max(dot(receiver.FaceNormal, L), 0.0));
             radiance *= 1.0 - spotShadow;
+            spotShadowFactor = min(spotShadowFactor, 1.0 - spotShadow);
+        }
         ShadeLight(surface, L, radiance, directDiffuse, directSpecular);
     }
     const float3 direct = directDiffuse + directSpecular;

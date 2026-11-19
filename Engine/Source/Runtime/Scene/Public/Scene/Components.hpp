@@ -215,6 +215,12 @@ namespace Leon {
         FPointLight Light;
         bool bEnabled = true;
         ELightMobility Mobility = ELightMobility::Movable;
+        /**
+         * True: the light may take one of the shadow cubes (the renderer gives them to the most important
+         * lights for the camera). Off unless asked for: a cube costs six views of the scene, and most
+         * lights of a level have their shadows in the lightmap.
+         */
+        bool bCastShadows = false;
 
         FPointLightComponent() = default;
         FPointLightComponent(const FPointLightComponent&) = default;
@@ -225,7 +231,7 @@ namespace Leon {
         FSpotLight Light;
         bool bEnabled = true;
         ELightMobility Mobility = ELightMobility::Movable;
-        /** When false this light never takes the (single) spot shadow map: it lights without shadows. */
+        /** False: the light never takes a layer of the spot shadow map, it lights without shadows. */
         bool bCastShadows = true;
 
         FSpotLightComponent() = default;

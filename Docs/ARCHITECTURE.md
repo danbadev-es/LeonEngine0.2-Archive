@@ -288,7 +288,7 @@ Static lighting (offline): `LightmassTool bake` → `FLightmass` / `FLightBaker`
 Gather lights (skip ELightMobility::Static) → pass constants
 UpdateIBL
 PASS 1: Cascaded Shadow (4-slice D32_Float array)
-PASS 2: Spot shadow (one 2D D32_Float map — `ShadowedSpotIndex` in the runtime spot list)
+PASS 2: Spot shadows (a D32_Float array, one layer for each of up to 4 shadowed spot lights)
 PASS 3: Planar reflection (mirrored camera, RGBA16F, shadows disabled, clip plane)
 PASS 4: Opaque HDR geometry RGBA16F — CPU AABB frustum cull, equal draws instanced (up to 64 per call)
          opaque → skinned inverted-hull outline

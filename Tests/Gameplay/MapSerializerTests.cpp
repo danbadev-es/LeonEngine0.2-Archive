@@ -513,6 +513,64 @@ Actors:
             CHECK(restored->FogMaxOpacity == 0.9f);
         }
 
+        TEST_CASE("lights persist whether they cast shadows, and a map that never said reads the defaults") {
+            auto src = UWorld::Create("Lights");
+            AActor* bulb = src->SpawnActor<AActor>("Bulb");
+            auto& point = bulb->AddComponent<FPointLightComponent>();
+            AActor* torch = src->SpawnActor<AActor>("Torch");
+            auto& spot = torch->AddComponent<FSpotLightComponent>();
+            const auto pointCasts = [](const TRef<UWorld>& InWorld) {
+                AActor* actor = InWorld->FindActorByName("Bulb");
+                REQUIRE(actor);
+                return actor->GetComponent<FPointLightComponent>().bCastShadows;
+            };
+            const auto spotCasts = [](const TRef<UWorld>& InWorld) {
+                AActor* actor = InWorld->FindActorByName("Torch");
+                REQUIRE(actor);
+                return actor->GetComponent<FSpotLightComponent>().bCastShadows;
+            };
+
+            // The defaults are not written, and a map without the key (every map saved before the key
+            // existed) reads them: spot lights cast shadows, point lights do not.
+            std::string withoutKey;
+            REQUIRE(FMapSerializer(src).SerializeText(withoutKey));
+            CHECK(withoutKey.find("CastShadows") == std::string::npos);
+            auto old = UWorld::Create("LightsOld");
+            REQUIRE(FMapSerializer(old).DeserializeText(withoutKey));
+            CHECK_FALSE(pointCasts(old));
+            CHECK(spotCasts(old));
+
+            // Each light on its own, so one light's key cannot be read into the other.
+            point.bCastShadows = true;
+            std::string pointOn;
+            REQUIRE(FMapSerializer(src).SerializeText(pointOn));
+            CHECK(pointOn.find("CastShadows: true") != std::string::npos);
+            CHECK(pointOn.find("CastShadows: false") == std::string::npos);
+            auto dst = UWorld::Create("LightsDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(pointOn));
+            CHECK(pointCasts(dst));
+            CHECK(spotCasts(dst));
+
+            point.bCastShadows = false;
+            spot.bCastShadows = false;
+            std::string spotOff;
+            REQUIRE(FMapSerializer(src).SerializeText(spotOff));
+            CHECK(spotOff.find("CastShadows: false") != std::string::npos);
+            CHECK(spotOff.find("CastShadows: true") == std::string::npos);
+            dst = UWorld::Create("LightsDst2");
+            REQUIRE(FMapSerializer(dst).DeserializeText(spotOff));
+            CHECK_FALSE(pointCasts(dst));
+            CHECK_FALSE(spotCasts(dst));
+
+            // A value that is the default is read too when a file spells it out.
+            const size_t key = spotOff.find("CastShadows: false");
+            REQUIRE(key != std::string::npos);
+            spotOff.replace(key, std::string("CastShadows: false").size(), "CastShadows: true");
+            dst = UWorld::Create("LightsDst3");
+            REQUIRE(FMapSerializer(dst).DeserializeText(spotOff));
+            CHECK(spotCasts(dst));
+        }
+
         TEST_CASE("saving to disk is atomic and keeps a backup of the previous file") {
             namespace fs = std::filesystem;
             const std::string path = "build/atomic_save_test.lmap";

@@ -18,6 +18,7 @@ namespace Leon {
         uint32_t SpotResolution = 1024;
         uint32_t PointShadowResolution = 512;
         uint32_t MaxShadowedPointLights = 4;
+        uint32_t MaxShadowedSpotLights = 4;
         float ShadowDistance = 100.0f;
         EShadowFilterMode ShadowFilter = EShadowFilterMode::PCF3x3;
         bool bEnablePlanarReflection = true;

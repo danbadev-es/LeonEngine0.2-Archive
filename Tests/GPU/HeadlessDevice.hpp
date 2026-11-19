@@ -40,7 +40,11 @@ namespace Leon::TestGPU {
     struct FCameraBufferData {
         glm::mat4 ViewProjection{1.0f};
         glm::mat4 LightSpaceMatrices[4]{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f)};
+        /** The map of the shadowed spot light (ShadowSettings.y); it is layer 0 of the spot shadow map. */
         glm::mat4 SpotLightSpaceMatrix{1.0f};
+        /** More shadowed spot lights: the light that owns each of layers 1 to 3 (-1 = nobody) and its matrix. */
+        glm::ivec3 ExtraShadowedSpots{-1};
+        glm::mat4 ExtraSpotLightSpaceMatrices[3]{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f)};
         glm::vec4 CameraPosition{0.0f};
         glm::vec4 CameraForward{0.0f, 0.0f, -1.0f, 0.0f};
         glm::vec4 CascadeSplits{0.0f};
@@ -250,7 +254,7 @@ namespace Leon::TestGPU {
             // Split-sum fallback: scale 1, bias 0. White would blow up specular image-based lighting.
             BRDFLut = Create1x1FloatTexture(1.0f, 0.0f, 0.0f, 1.0f);
             BlackCube = CreateCube(1, ERHIFormat::RGBA8_UNorm, std::vector<uint8_t>{0, 0, 0, 255});
-            ShadowMap = CreateDepth(ERHITextureDimension::Texture2D, 1, 1, 1);
+            ShadowMap = CreateDepth(ERHITextureDimension::Texture2DArray, 1, 1, FShadowSettings::kMaxShadowedSpotLights);
             ShadowArray = CreateDepth(ERHITextureDimension::Texture2DArray, 1, 1, 4);
             PointShadowCubes = CreateDepth(ERHITextureDimension::TextureCubeArray, 1, 1, 1);
             BindFramebuffer(1, 1);
@@ -800,6 +804,14 @@ namespace Leon::TestGPU {
                 pass.SpotLights[i].Direction = Lighting.SpotLights[i].Direction;
                 pass.SpotLights[i].Color = Lighting.SpotLights[i].Color;
                 pass.SpotLights[i].Params = Lighting.SpotLights[i].Params;
+                // The tests name the shadowed lights in the camera block; the shader reads the layer here.
+                pass.SpotLights[i].Params.z = -1.0f;
+                if (i == Camera.ShadowSettings.y)
+                    pass.SpotLights[i].Params.z = 0.0f;
+                for (int extra = 0; extra < 3; ++extra) {
+                    if (i == Camera.ExtraShadowedSpots[extra])
+                        pass.SpotLights[i].Params.z = static_cast<float>(extra + 1);
+                }
             }
             pass.LightCounts = Lighting.LightCounts;
             pass.EnvSkyColor = Lighting.EnvSkyColor;
@@ -810,7 +822,9 @@ namespace Leon::TestGPU {
             pass.PassFlags = glm::ivec4(InShader.Int("u_UseIBL", 0), InShader.Int("u_DebugMode", 0), 0, 0);
             for (int i = 0; i < 4; ++i)
                 pass.LightSpaceMatrices[i] = ClipToShadowMap() * Camera.LightSpaceMatrices[i];
-            pass.SpotLightSpaceMatrix = ClipToShadowMap() * Camera.SpotLightSpaceMatrix;
+            pass.SpotLightSpaceMatrices[0] = ClipToShadowMap() * Camera.SpotLightSpaceMatrix;
+            for (int extra = 0; extra < 3; ++extra)
+                pass.SpotLightSpaceMatrices[extra + 1] = ClipToShadowMap() * Camera.ExtraSpotLightSpaceMatrices[extra];
             pass.CascadeSplits = Camera.CascadeSplits;
             pass.ShadowParams = Camera.ShadowParams;
             pass.ShadowSettings = Camera.ShadowSettings;

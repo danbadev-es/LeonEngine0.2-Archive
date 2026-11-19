@@ -92,8 +92,9 @@ Energy check: uniform `Li = 1` ⇒ `E = π`. Albedo `1` ⇒ `Lo_diffuse = 1` (de
 ## Shadows
 
 - Directional: CSM with up to 4 layers. `CascadeCount` is passed in `FLitPassConstants::ShadowSettings.z`. Unused layers are cleared and padded; the shader clamps index, blend, and far fade to that count.
-- Spotlight: **one** shadowed spot (`FShadowSettings.ShadowedSpotIndex`, default `0`). Viewport uses `SpotResolution`.
-- Point: **at most 4** cubemap-array slots (`FShadowSettings::kMaxShadowedPointLights`). `Params.y` of the light is the cube index (`-1` = unshadowed). Texture register `t14`, enabled by `u_ShadowFlags.z`. Linear depth vs radius.
+- Spotlight: **at most 4** shadowed spots (`FShadowSettings::kMaxShadowedSpotLights`), one layer each of a 2D array at `SpotResolution`. `Params.z` of the light is the layer (`-1` = unshadowed). Texture register `t11`, enabled by `u_ShadowFlags.y`.
+- Point: **at most 4** cubemap-array slots (`FShadowSettings::kMaxShadowedPointLights`). `Params.y` of the light is the cube index (`-1` = unshadowed).
+- Which lights are shadowed: the most important for the camera among those with `bCastShadows` (spot: on by default, point: off). See [RENDERER.md](RENDERER.md), "Lights". Texture register `t14`, enabled by `u_ShadowFlags.z`. Linear depth vs radius.
 - `FShadowSettings.bEnableShadows` disables all shadow passes and GPU flags.
 - PCF / Poisson skip UV taps outside `[0,1]` and renormalize (no border-lit leaks).
 - Contact shadows: **removed**.

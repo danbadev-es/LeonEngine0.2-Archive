@@ -52,6 +52,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Gameplay/AudioDeviceTests.cpp
     Lightmass/StaticLightingTests.cpp
     Renderer/RenderDebugHotkeysTests.cpp
+    Renderer/LightSelectionTests.cpp
     Core/FrameProfilerTests.cpp
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp

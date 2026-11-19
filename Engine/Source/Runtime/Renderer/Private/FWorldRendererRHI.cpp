@@ -1,7 +1,7 @@
 // How a world is drawn.
 //
 // Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
-// lightmaps, image-based lighting, fog and shadows (sun cascades, one spot light, point lights), plus
+// lightmaps, image-based lighting, fog and shadows (sun cascades, spot lights, point lights), plus
 // skinned outlines and the sky, into an HDR target that FPostProcessRHI turns into the final image
 // (ambient occlusion, bloom, tone mapping, anti-aliasing). World-space text, debug lines and particles
 // submitted through FSceneBatchesRHI are drawn at the end of the scene pass. Surfaces that ask for it
@@ -33,6 +33,7 @@
 #include "Renderer/FImmediateDrawRHI.hpp"
 #include "Renderer/FDebugRenderer.hpp"
 #include "RenderCore/FLight.hpp"
+#include "RenderCore/FLightSelection.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "Renderer/FParticleRenderer.hpp"
 #include "RenderCore/FShaderConstants.hpp"
@@ -157,12 +158,49 @@ namespace Leon {
             /** The sun as its component gives it (not normalised); valid when bHasSun. */
             glm::vec3 SunDirection{0.0f, -1.0f, 0.0f};
             bool bHasSun = false;
-            /** The spot lights in the order of Constants.SpotLights, and whether each may cast shadows. */
+            /** The spot lights in the order of Constants.SpotLights. */
             std::vector<FSpotLight> Spots;
+            /** For each light of Constants.SpotLights and PointLights: how it ranks, and whether it may cast shadows. */
+            std::vector<FLightCandidate> SpotCandidates;
             std::vector<bool> SpotCastsShadows;
+            std::vector<FLightCandidate> PointCandidates;
+            std::vector<bool> PointCastsShadows;
         };
 
-        FSceneLighting GatherLighting(IRenderScene& InWorld) {
+        /** The lights (by entity) that held each kind of slot in the previous frame: they are favoured in this one. */
+        struct FLightSlotHistory {
+            std::vector<uint32_t> Points;
+            std::vector<uint32_t> Spots;
+            std::vector<uint32_t> ShadowedPoints;
+            std::vector<uint32_t> ShadowedSpots;
+        };
+
+        bool HeldSlot(const std::vector<uint32_t>& InHistory, uint32_t InId) {
+            return std::find(InHistory.begin(), InHistory.end(), InId) != InHistory.end();
+        }
+
+        float BrightestChannel(const glm::vec3& InColor) {
+            return std::max(InColor.r, std::max(InColor.g, InColor.b));
+        }
+
+        /**
+         * The lights that fit in the slots of the shader, as indices into InCandidates. When there are
+         * more lights than slots the most important for the view stay (FLightSelection.hpp). The result
+         * is in registry order whatever the ranking was, so a frame does not depend on how lights ranked.
+         */
+        std::vector<uint32_t> ChooseLitLights(const std::vector<FLightCandidate>& InCandidates,
+                                              const glm::vec3& InViewPosition, const FFrustumPlanes& InFrustum,
+                                              uint32_t InMaxCount, std::vector<uint32_t>& InOutHistory) {
+            std::vector<uint32_t> chosen = SelectLightsByImportance(InCandidates, InViewPosition, InFrustum, InMaxCount);
+            std::sort(chosen.begin(), chosen.end());
+            InOutHistory.clear();
+            for (const uint32_t index : chosen)
+                InOutHistory.push_back(InCandidates[index].Id);
+            return chosen;
+        }
+
+        FSceneLighting GatherLighting(IRenderScene& InWorld, const glm::vec3& InViewPosition,
+                                      const FFrustumPlanes& InFrustum, FLightSlotHistory& InOutHistory) {
             FSceneLighting lighting;
             FLitPassConstants& constants = lighting.Constants;
             auto& registry = InWorld.GetRegistry();
@@ -183,28 +221,65 @@ namespace Leon {
                 break;
             }
 
-            uint32_t pointCount = 0;
+            // Every light that contributes is a candidate; the slots go to the ones that matter most.
+            std::vector<FLightCandidate> pointCandidates;
+            std::vector<FPointLight> points;
+            std::vector<bool> pointCastsShadows;
             for (auto entity : registry.view<FPointLightComponent>()) {
                 const auto& component = registry.get<FPointLightComponent>(entity);
-                if (!contributes(component.bEnabled, component.Mobility) || pointCount >= kMaxPointLights)
+                if (!contributes(component.bEnabled, component.Mobility))
                     continue;
-                glm::vec3 position = component.Light.Position;
+                FPointLight point = component.Light;
                 if (const auto* transform = registry.try_get<FTransformComponent>(entity))
-                    position = transform->Translation;
+                    point.Position = transform->Translation;
+                FLightCandidate candidate;
+                candidate.Position = point.Position;
+                candidate.Radius = point.Radius;
+                candidate.Strength = point.Intensity * BrightestChannel(point.Color);
+                candidate.bMovable = component.Mobility == ELightMobility::Movable;
+                candidate.Id = static_cast<uint32_t>(entity);
+                candidate.bWasSelected = HeldSlot(InOutHistory.Points, candidate.Id);
+                pointCandidates.push_back(candidate);
+                points.push_back(point);
+                pointCastsShadows.push_back(component.bCastShadows);
+            }
+            uint32_t pointCount = 0;
+            for (const uint32_t index :
+                 ChooseLitLights(pointCandidates, InViewPosition, InFrustum, kMaxPointLights, InOutHistory.Points)) {
+                const FPointLight& point = points[index];
                 FPointLightConstants& light = constants.PointLights[pointCount++];
-                light.Position = glm::vec4(position, 1.0f);
-                light.Color = glm::vec4(component.Light.Color, component.Light.Intensity);
-                light.Params = glm::vec4(component.Light.Radius, -1.0f, 0.0f, 0.0f);
+                light.Position = glm::vec4(point.Position, 1.0f);
+                light.Color = glm::vec4(point.Color, point.Intensity);
+                light.Params = glm::vec4(point.Radius, -1.0f, 0.0f, 0.0f);
+                lighting.PointCandidates.push_back(pointCandidates[index]);
+                lighting.PointCastsShadows.push_back(pointCastsShadows[index]);
             }
 
-            uint32_t spotCount = 0;
+            std::vector<FLightCandidate> spotCandidates;
+            std::vector<FSpotLight> spots;
+            std::vector<bool> spotCastsShadows;
             for (auto entity : registry.view<FSpotLightComponent>()) {
                 const auto& component = registry.get<FSpotLightComponent>(entity);
-                if (!contributes(component.bEnabled, component.Mobility) || spotCount >= kMaxSpotLights)
+                if (!contributes(component.bEnabled, component.Mobility))
                     continue;
                 FSpotLight spot = component.Light;
                 if (const auto* transform = registry.try_get<FTransformComponent>(entity))
                     SyncSpotLightFromTransform(spot, transform->Translation, transform->Rotation);
+                FLightCandidate candidate;
+                candidate.Position = spot.Position;
+                candidate.Radius = spot.Radius;
+                candidate.Strength = spot.Intensity * BrightestChannel(spot.Color);
+                candidate.bMovable = component.Mobility == ELightMobility::Movable;
+                candidate.Id = static_cast<uint32_t>(entity);
+                candidate.bWasSelected = HeldSlot(InOutHistory.Spots, candidate.Id);
+                spotCandidates.push_back(candidate);
+                spots.push_back(spot);
+                spotCastsShadows.push_back(component.bCastShadows);
+            }
+            uint32_t spotCount = 0;
+            for (const uint32_t index :
+                 ChooseLitLights(spotCandidates, InViewPosition, InFrustum, kMaxSpotLights, InOutHistory.Spots)) {
+                const FSpotLight& spot = spots[index];
                 float innerDegrees = spot.CutOff;
                 float outerDegrees = spot.OuterCutOff;
                 if (innerDegrees > outerDegrees)
@@ -214,9 +289,10 @@ namespace Leon {
                 light.Position = glm::vec4(spot.Position, 1.0f);
                 light.Direction = glm::vec4(glm::normalize(spot.Direction), std::cos(glm::radians(innerDegrees)));
                 light.Color = glm::vec4(spot.Color, std::cos(glm::radians(outerDegrees)));
-                light.Params = glm::vec4(spot.Radius, spot.Intensity, 0.0f, 0.0f);
+                light.Params = glm::vec4(spot.Radius, spot.Intensity, -1.0f, 0.0f);
                 lighting.Spots.push_back(spot);
-                lighting.SpotCastsShadows.push_back(component.bCastShadows);
+                lighting.SpotCandidates.push_back(spotCandidates[index]);
+                lighting.SpotCastsShadows.push_back(spotCastsShadows[index]);
             }
             constants.LightCounts = glm::ivec4(static_cast<int>(pointCount), static_cast<int>(spotCount), 0, 0);
 
@@ -254,13 +330,14 @@ namespace Leon {
         TRef<IRHITexture> PlanarColor[2];
         TRef<IRHITexture> PlanarDepth;
         TRef<IRHIPipeline> DownsamplePipeline;
-        /** Depth maps seen from the lights: four sun cascades, one spot light, a cube per point light. */
+        /** Depth maps seen from the lights: four sun cascades, a layer per spot light, a cube per point light. */
         TRef<IRHITexture> CascadeShadowMap;
         TRef<IRHITexture> SpotShadowMap;
         TRef<IRHITexture> PointShadowMap;
         std::map<std::string, TRef<IRHIPipeline>> ShadowPipelines;
         /** FShaderLibrary::GetGeneration when the pipelines above were built. */
         uint64_t ShaderGeneration = 0;
+        FLightSlotHistory LightHistory;
         FPostProcessRHI PostProcess;
     };
 
@@ -357,7 +434,7 @@ namespace Leon {
         const auto ensureShadowMap = [&](TRef<IRHITexture>& InOutMap, ERHITextureDimension InDimension,
                                          uint32_t InResolution, uint32_t InArraySize, const char* InName) {
             const uint32_t resolution = bShadowsOn ? std::max(InResolution, 1u) : 1u;
-            if (InOutMap && InOutMap->GetDesc().Width == resolution)
+            if (InOutMap && InOutMap->GetDesc().Width == resolution && InOutMap->GetDesc().ArraySize == InArraySize)
                 return;
             FRHITextureDesc desc;
             desc.Width = resolution;
@@ -371,8 +448,11 @@ namespace Leon {
         };
         ensureShadowMap(state.CascadeShadowMap, ERHITextureDimension::Texture2DArray, ShadowSettings.CascadeResolution, 4,
                         "CascadeShadowMap");
-        ensureShadowMap(state.SpotShadowMap, ERHITextureDimension::Texture2D, ShadowSettings.SpotResolution, 1,
-                        "SpotShadowMap");
+        // As many layers as lights may be shadowed at once: the quality setting decides how much memory it takes.
+        const uint32_t spotShadowLayers =
+            std::clamp(ShadowSettings.MaxShadowedSpotLights, 1u, FShadowSettings::kMaxShadowedSpotLights);
+        ensureShadowMap(state.SpotShadowMap, ERHITextureDimension::Texture2DArray, ShadowSettings.SpotResolution,
+                        spotShadowLayers, "SpotShadowMap");
         ensureShadowMap(state.PointShadowMap, ERHITextureDimension::TextureCubeArray,
                         ShadowSettings.PointShadowResolution, FShadowSettings::kMaxShadowedPointLights,
                         "PointShadowMap");
@@ -762,7 +842,7 @@ namespace Leon {
             prepareMaterial(*caster.Material);
 
         // --- Lighting ---
-        FSceneLighting lighting = GatherLighting(*World);
+        FSceneLighting lighting = GatherLighting(*World, cameraPosition, frustum, state.LightHistory);
         IRHITexture* brdfLut = IBLEnvironment.BRDFLUT ? GetRHITexture(*IBLEnvironment.BRDFLUT) : nullptr;
         IRHITexture* irradiance = IBLEnvironment.IrradianceMap ? GetRHITexture(*IBLEnvironment.IrradianceMap) : nullptr;
         IRHITexture* prefilter = IBLEnvironment.PrefilterMap ? GetRHITexture(*IBLEnvironment.PrefilterMap) : nullptr;
@@ -875,47 +955,66 @@ namespace Leon {
             lit.ShadowFlags.x = 1;
         }
 
-        // Spot: one light gets a map, the one the settings point at.
-        int shadowedSpot = -1;
-        if (bShadowsOn && !lighting.Spots.empty()) {
-            const int candidate = std::clamp(ShadowSettings.ShadowedSpotIndex, 0, static_cast<int>(lighting.Spots.size()) - 1);
-            if (lighting.SpotCastsShadows[static_cast<size_t>(candidate)])
-                shadowedSpot = candidate;
-        }
-        if (shadowedSpot >= 0) {
-            const FSpotLight& spot = lighting.Spots[static_cast<size_t>(shadowedSpot)];
+        // Which lit lights of one kind get shadow maps, as indices into the lists of FSceneLighting: the
+        // most important of those that cast shadows and can reach something on screen.
+        const auto chooseShadowed = [&](const std::vector<FLightCandidate>& InLights,
+                                        const std::vector<bool>& InCastsShadows, uint32_t InMaxCount,
+                                        std::vector<uint32_t>& InOutHistory) {
+            std::vector<FLightCandidate> casters;
+            std::vector<uint32_t> slots;
+            for (uint32_t i = 0; bShadowsOn && i < InLights.size(); ++i) {
+                if (!InCastsShadows[i])
+                    continue;
+                casters.push_back(InLights[i]);
+                casters.back().bWasSelected = HeldSlot(InOutHistory, InLights[i].Id);
+                slots.push_back(i);
+            }
+            std::vector<uint32_t> chosen = SelectLightsByImportance(casters, cameraPosition, frustum, InMaxCount, true);
+            InOutHistory.clear();
+            for (uint32_t& index : chosen) {
+                InOutHistory.push_back(casters[index].Id);
+                index = slots[index];
+            }
+            return chosen;
+        };
+
+        // Spot: each shadowed light gets a layer of the map.
+        const std::vector<uint32_t> shadowedSpots =
+            chooseShadowed(lighting.SpotCandidates, lighting.SpotCastsShadows,
+                           std::min(ShadowSettings.MaxShadowedSpotLights, state.SpotShadowMap->GetDesc().ArraySize),
+                           state.LightHistory.ShadowedSpots);
+        for (uint32_t layer = 0; layer < shadowedSpots.size(); ++layer) {
+            const FSpotLight& spot = lighting.Spots[shadowedSpots[layer]];
             const glm::vec3 direction = glm::normalize(spot.Direction);
             const glm::vec3 up = std::abs(direction.y) < 0.99f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f);
             const float fieldOfView = glm::clamp(spot.OuterCutOff * 2.0f + 2.0f, 10.0f, 160.0f);
             const float farPlane = std::max(spot.Radius * 1.05f, 1.0f);
             const glm::mat4 spotMatrix = glm::perspective(glm::radians(fieldOfView), 1.0f, 0.1f, farPlane) *
                                          glm::lookAt(spot.Position, spot.Position + direction, up);
-            drawShadowMap(*state.SpotShadowMap, 0, spotMatrix, false, true, true, glm::vec4(0.0f), "SpotShadow");
-            lit.SpotLightSpaceMatrix = ClipToShadowMap() * spotMatrix;
-            lit.ShadowFlags.y = 1;
+            drawShadowMap(*state.SpotShadowMap, layer, spotMatrix, false, true, true, glm::vec4(0.0f), "SpotShadow");
+            lit.SpotLightSpaceMatrices[layer] = ClipToShadowMap() * spotMatrix;
+            lit.SpotLights[shadowedSpots[layer]].Params.z = static_cast<float>(layer);
         }
+        lit.ShadowFlags.y = shadowedSpots.empty() ? 0 : 1;
 
-        // Point: the first lights each get a cube, six views from the light's position.
-        uint32_t shadowedPointCount = 0;
-        if (bShadowsOn) {
-            const uint32_t maxShadowed =
-                std::min(ShadowSettings.MaxShadowedPointLights, FShadowSettings::kMaxShadowedPointLights);
-            const uint32_t pointCount = static_cast<uint32_t>(lit.LightCounts.x);
-            for (uint32_t i = 0; i < pointCount && shadowedPointCount < maxShadowed; ++i) {
-                FPointLightConstants& light = lit.PointLights[i];
-                const glm::vec3 position(light.Position);
-                const float farPlane = std::max(light.Params.x, 1.0f);
-                const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, farPlane);
-                for (uint32_t face = 0; face < 6; ++face)
-                    drawShadowMap(*state.PointShadowMap, shadowedPointCount * 6 + face,
-                                  faceProjection * ShadowMath::PointCubeFaceView(position, face), false, false, true,
-                                  glm::vec4(position, farPlane), "PointShadow");
-                light.Params.y = static_cast<float>(shadowedPointCount);
-                ++shadowedPointCount;
-            }
+        // Point: each shadowed light gets a cube, six views from its position.
+        const std::vector<uint32_t> shadowedPoints =
+            chooseShadowed(lighting.PointCandidates, lighting.PointCastsShadows,
+                           std::min(ShadowSettings.MaxShadowedPointLights, FShadowSettings::kMaxShadowedPointLights),
+                           state.LightHistory.ShadowedPoints);
+        for (uint32_t cube = 0; cube < shadowedPoints.size(); ++cube) {
+            FPointLightConstants& light = lit.PointLights[shadowedPoints[cube]];
+            const glm::vec3 position(light.Position);
+            const float farPlane = std::max(light.Params.x, 1.0f);
+            const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, farPlane);
+            for (uint32_t face = 0; face < 6; ++face)
+                drawShadowMap(*state.PointShadowMap, cube * 6 + face,
+                              faceProjection * ShadowMath::PointCubeFaceView(position, face), false, false, true,
+                              glm::vec4(position, farPlane), "PointShadow");
+            light.Params.y = static_cast<float>(cube);
         }
-        lit.ShadowFlags.z = shadowedPointCount > 0 ? 1 : 0;
-        lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), shadowedSpot,
+        lit.ShadowFlags.z = shadowedPoints.empty() ? 0 : 1;
+        lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), 0,
                                         static_cast<int>(ShadowSettings.CascadeCount), 0);
 
         FFrameProfiler::Working().ShadowDrawCalls = FRenderer::GetStats().DrawCalls - drawsBeforeShadows;
@@ -1230,7 +1329,6 @@ namespace Leon {
                 FLitPassConstants capturePass = lighting.Constants;
                 capturePass.PassFlags.y = 0;
                 capturePass.ShadowFlags = glm::ivec4(0);
-                capturePass.ShadowSettings.y = -1;
                 capturePass.ClipPlane = glm::vec4(InPlaneNormal, InPlaneDistance);
                 capturePass.PlanarFlags = glm::ivec4(0, 0, 1, 0);
 

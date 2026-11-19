@@ -445,6 +445,12 @@ namespace Leon {
                 ss << "Radius: " << plc.Light.Radius << "\n";
                 Indent(ss, 3);
                 ss << "Mobility: " << LightMobilityToString(plc.Mobility) << "\n";
+                // Written only when it is not the default (point lights: off, spot lights: on), so maps
+                // that never set it are not rewritten.
+                if (plc.bCastShadows) {
+                    Indent(ss, 3);
+                    ss << "CastShadows: true\n";
+                }
             }
 
             // Spot Light Component
@@ -470,6 +476,10 @@ namespace Leon {
                 ss << "OuterCutOff: " << slc.Light.OuterCutOff << "\n";
                 Indent(ss, 3);
                 ss << "Mobility: " << LightMobilityToString(slc.Mobility) << "\n";
+                if (!slc.bCastShadows) {
+                    Indent(ss, 3);
+                    ss << "CastShadows: false\n";
+                }
             }
 
             // Text Component

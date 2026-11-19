@@ -191,7 +191,7 @@ namespace Leon {
         void SetProjectPostProcessToggles(bool bInBloomEnabled, bool bInFXAAEnabled);
         void SetProjectShadowFilter(EShadowFilterMode InFilter);
         void SetProjectOmniShadowDefaults(uint32_t InSpotResolution, uint32_t InPointShadowResolution,
-                                          uint32_t InMaxShadowedPointLights);
+                                          uint32_t InMaxShadowedPointLights, uint32_t InMaxShadowedSpotLights);
         bool GetPendingSSAOEnabled() const { return bPendingSSAOEnabled; }
         float GetPendingSSAORadius() const { return PendingSSAORadius; }
         float GetPendingSSAOIntensity() const { return PendingSSAOIntensity; }
@@ -210,6 +210,7 @@ namespace Leon {
         uint32_t GetPendingSpotResolution() const { return PendingSpotResolution; }
         uint32_t GetPendingPointShadowResolution() const { return PendingPointShadowResolution; }
         uint32_t GetPendingMaxShadowedPointLights() const { return PendingMaxShadowedPointLights; }
+        uint32_t GetPendingMaxShadowedSpotLights() const { return PendingMaxShadowedSpotLights; }
 
         bool OverlapAABB(const glm::vec3& InWorldMin, const glm::vec3& InWorldMax, AActor* InIgnore,
                          FHitResult& OutHit) const;
@@ -293,6 +294,7 @@ namespace Leon {
         uint32_t PendingSpotResolution = 1024;
         uint32_t PendingPointShadowResolution = 512;
         uint32_t PendingMaxShadowedPointLights = 4;
+        uint32_t PendingMaxShadowedSpotLights = 4;
 
         entt::entity TransientParticleEntity = entt::null;
         std::vector<FSimulatedParticle> TransientParticles;

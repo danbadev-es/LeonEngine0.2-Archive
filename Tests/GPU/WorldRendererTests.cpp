@@ -21,6 +21,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <vector>
 
@@ -106,7 +107,7 @@ namespace Leon {
                 point.Color = {1.0f, 1.0f, 1.0f};
                 point.Intensity = 40.0f;
                 point.Radius = 12.0f;
-                lamp->AddComponent<FPointLightComponent>(point);
+                lamp->AddComponent<FPointLightComponent>(point).bCastShadows = true;
 
                 AActor* spotActor = World->SpawnActor<AActor>("Spot");
                 spotActor->SetActorLocation({0.0f, 4.0f, 0.0f});
@@ -163,6 +164,56 @@ namespace Leon {
             }
 
             uint64_t NewValidationErrors() const { return FD3D12RHI::GetValidationErrorCount() - ErrorsAtStart; }
+
+            /** Switches the fixture's own lamp and spot light off, for tests that bring their lights. */
+            void SwitchFixtureLightsOff() {
+                World->FindActorByName("Lamp")->GetComponent<FPointLightComponent>().bEnabled = false;
+                World->FindActorByName("Spot")->GetComponent<FSpotLightComponent>().bEnabled = false;
+            }
+
+            /** Bloom, ambient occlusion and anti-aliasing off: each pixel shows its own surface only. */
+            void UsePlainPostProcess() {
+                FPostProcessSettings& post = World->GetWorldRenderer()->GetPostProcessSettings();
+                post.bSSAOEnabled = false;
+                post.bBloomEnabled = false;
+                post.bFXAAEnabled = false;
+            }
+
+            /** A white spot light at InPosition aimed at InTarget. */
+            FSpotLightComponent& AddSpotLight(const char* InName, const glm::vec3& InPosition, const glm::vec3& InTarget,
+                                              float InIntensity, float InRadius, float InInnerDegrees,
+                                              float InOuterDegrees) {
+                AActor* actor = World->SpawnActor<AActor>(InName);
+                actor->SetActorLocation(InPosition);
+                actor->SetActorRotation(SpotLightEulerFromWorldDirection(InTarget - InPosition));
+                FSpotLight spot;
+                spot.Color = {1.0f, 1.0f, 1.0f};
+                spot.Intensity = InIntensity;
+                spot.Radius = InRadius;
+                spot.CutOff = InInnerDegrees;
+                spot.OuterCutOff = InOuterDegrees;
+                auto& component = actor->AddComponent<FSpotLightComponent>();
+                component.Light = spot;
+                return component;
+            }
+
+            /** Mean luma of the few pixels around where a point of the world lands in the picture. */
+            float LumaAt(const FImage& InImage, const glm::vec3& InWorldPoint) const {
+                const glm::vec4 clip = Camera.GetViewProjectionMatrix() * glm::vec4(InWorldPoint, 1.0f);
+                REQUIRE(clip.w > 0.0f);
+                const int centerX = static_cast<int>((clip.x / clip.w * 0.5f + 0.5f) * static_cast<float>(kWidth));
+                const int centerY = static_cast<int>((0.5f - clip.y / clip.w * 0.5f) * static_cast<float>(kHeight));
+                REQUIRE(centerX >= 2);
+                REQUIRE(centerX < static_cast<int>(kWidth) - 2);
+                REQUIRE(centerY >= 2);
+                REQUIRE(centerY < static_cast<int>(kHeight) - 2);
+                float sum = 0.0f;
+                for (int y = centerY - 1; y <= centerY + 1; ++y) {
+                    for (int x = centerX - 1; x <= centerX + 1; ++x)
+                        sum += InImage.Luma(static_cast<uint32_t>(x), static_cast<uint32_t>(y));
+                }
+                return sum / 9.0f;
+            }
         };
 
     } // namespace
@@ -211,6 +262,202 @@ namespace Leon {
             // The box blocks the lamp over a patch of floor; a shadow never adds light.
             CHECK(darker > 150);
             CHECK(brighter == 0);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "With more spot lights than slots, the ones nearest the camera light the scene") {
+            REQUIRE(bReady);
+            SwitchFixtureLightsOff();
+            UsePlainPostProcess();
+            World->FindActorByName("Box")->GetComponent<FMeshComponent>().bVisible = false;
+            const FImage dark = Render();
+
+            // Twelve lamps hanging over the floor in three rows of four, each lighting the floor
+            // under it. The far row is created first and last, so it is at both ends of the registry.
+            struct FLamp {
+                glm::vec3 FloorPoint;
+                bool bExpectLit;
+            };
+            std::vector<FLamp> lamps;
+            const auto addRow = [&](float InZ, int InFirst, int InLast, bool bInExpectLit) {
+                for (int column = InFirst; column <= InLast; ++column) {
+                    const glm::vec3 floorPoint(-1.5f + static_cast<float>(column), 0.0f, InZ);
+                    AddSpotLight("Hanging", floorPoint + glm::vec3(0.0f, 1.5f, 0.0f), floorPoint, 30.0f, 4.0f, 12.5f, 17.5f);
+                    lamps.push_back({floorPoint, bInExpectLit});
+                }
+            };
+            addRow(-2.0f, 0, 1, false);
+            addRow(2.5f, 0, 3, true); // near enough to reach the camera
+            addRow(0.5f, 0, 3, true); // beyond their radius, but nearer than the far row
+            addRow(-2.0f, 2, 3, false);
+            REQUIRE(lamps.size() == 12);
+
+            const FImage lit = Render();
+            for (const FLamp& lamp : lamps) {
+                const float gained = LumaAt(lit, lamp.FloorPoint) - LumaAt(dark, lamp.FloorPoint);
+                CAPTURE(lamp.FloorPoint.x);
+                CAPTURE(lamp.FloorPoint.z);
+                CAPTURE(gained);
+                if (lamp.bExpectLit)
+                    CHECK(gained > 0.15f);
+                else
+                    CHECK(gained < 0.03f);
+            }
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "Two spot lights each cast their own shadow, and one told not to casts none") {
+            REQUIRE(bReady);
+            SwitchFixtureLightsOff();
+            UsePlainPostProcess();
+            // Hardly any light from the sky, so a shadow is as dark as the other light leaves it.
+            AActor* environment = World->SpawnActor<AActor>("Environment");
+            auto& sky = environment->AddComponent<FSkyboxComponent>();
+            sky.bEnabled = false;
+            sky.EnvironmentIntensity = 0.05f;
+            // One narrow light on each side of the box: each throws the box's shadow on the far side of it,
+            // where the other light does not reach.
+            FSpotLightComponent& left = AddSpotLight("Left", {-1.8f, 2.0f, 0.0f}, {0.3f, 0.3f, 0.0f}, 40.0f, 8.0f, 12.0f, 16.0f);
+            AddSpotLight("Right", {1.8f, 2.0f, 0.0f}, {-0.3f, 0.3f, 0.0f}, 40.0f, 8.0f, 12.0f, 16.0f);
+            const glm::vec3 shadowOfLeft(1.3f, 0.0f, 0.0f);
+            const glm::vec3 shadowOfRight(-1.3f, 0.0f, 0.0f);
+
+            FShadowSettings& shadows = World->GetWorldRenderer()->GetShadowSettings();
+            shadows.bEnableShadows = false;
+            const FImage unshadowed = Render();
+            shadows.bEnableShadows = true;
+            const FImage both = Render();
+
+            const float leftDrop = LumaAt(unshadowed, shadowOfLeft) - LumaAt(both, shadowOfLeft);
+            const float rightDrop = LumaAt(unshadowed, shadowOfRight) - LumaAt(both, shadowOfRight);
+            CAPTURE(leftDrop);
+            CAPTURE(rightDrop);
+            CHECK(leftDrop > 0.2f);
+            CHECK(rightDrop > 0.2f);
+
+            // The left light stops casting: its shadow goes, the other stays where it was.
+            left.bCastShadows = false;
+            const FImage rightOnly = Render();
+            CHECK(std::abs(LumaAt(unshadowed, shadowOfLeft) - LumaAt(rightOnly, shadowOfLeft)) < 0.01f);
+            CHECK(LumaAt(rightOnly, shadowOfRight) == doctest::Approx(LumaAt(both, shadowOfRight)).epsilon(0.02));
+
+            // A budget of one shadowed spot light: one shadow, not two (which one is the ranking's business).
+            left.bCastShadows = true;
+            shadows.MaxShadowedSpotLights = 1;
+            const FImage budget = Render();
+            const bool bLeftShadow = LumaAt(unshadowed, shadowOfLeft) - LumaAt(budget, shadowOfLeft) > 0.2f;
+            const bool bRightShadow = LumaAt(unshadowed, shadowOfRight) - LumaAt(budget, shadowOfRight) > 0.2f;
+            CHECK(bLeftShadow != bRightShadow);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "A point light told not to cast shadows casts none") {
+            REQUIRE(bReady);
+            // The fixture's spot light hangs straight above the box; only the lamp throws a shadow on the floor.
+            World->FindActorByName("Spot")->GetComponent<FSpotLightComponent>().bCastShadows = false;
+            FPointLightComponent& lamp = World->FindActorByName("Lamp")->GetComponent<FPointLightComponent>();
+            FShadowSettings& shadows = World->GetWorldRenderer()->GetShadowSettings();
+            const auto darkerPixels = [&] {
+                shadows.bEnableShadows = true;
+                const FImage shadowed = Render();
+                shadows.bEnableShadows = false;
+                const FImage unshadowed = Render();
+                uint32_t darker = 0;
+                for (uint32_t y = 0; y < kHeight; ++y) {
+                    for (uint32_t x = 0; x < kWidth; ++x) {
+                        if (unshadowed.Luma(x, y) - shadowed.Luma(x, y) > 0.04f)
+                            ++darker;
+                    }
+                }
+                return darker;
+            };
+
+            REQUIRE(lamp.bCastShadows); // the fixture asked for it
+            CHECK(darkerPixels() > 150);
+            lamp.bCastShadows = false;
+            CHECK(darkerPixels() == 0);
+            // What a point light does when nobody says: no shadows.
+            CHECK_FALSE(FPointLightComponent().bCastShadows);
+            CHECK(FSpotLightComponent().bCastShadows);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "A shadowed point light in a closed room of single-sided walls lights every wall") {
+            REQUIRE(bReady);
+            SwitchFixtureLightsOff();
+            UsePlainPostProcess();
+            World->FindActorByName("Box")->GetComponent<FMeshComponent>().bVisible = false;
+            World->FindActorByName("Floor")->GetComponent<FMeshComponent>().bVisible = false;
+            AActor* environment = World->SpawnActor<AActor>("Environment");
+            auto& sky = environment->AddComponent<FSkyboxComponent>();
+            sky.bEnabled = false;
+            sky.EnvironmentIntensity = 0.0f;
+
+            // A room 8 x 2.8 x 2.4 m around the camera, each side one quad that faces inwards (a quad is
+            // in the XY plane and faces +Z).
+            const glm::vec3 center(0.0f, 1.4f, 4.8f);
+            const TRef<FMaterialInstance> paint = FloorMaterial->GetParent()->CreateInstance("Paint");
+            paint->SetAlbedoColor({0.7f, 0.7f, 0.7f});
+            paint->SetRoughness(0.9f);
+            const auto addWall = [&](const char* InName, const glm::vec3& InOffset, const glm::vec3& InRotation,
+                                     float InWidth, float InHeight) {
+                AActor* wall = World->SpawnActor<AActor>(InName);
+                wall->SetActorLocation(center + InOffset);
+                wall->SetActorRotation(InRotation);
+                auto& mesh = wall->AddComponent<FMeshComponent>(FMeshPrimitives::CreateQuad(InWidth, InHeight));
+                mesh.MeshType = "Quad";
+                mesh.MeshWidth = InWidth;
+                mesh.MeshHeight = InHeight;
+                mesh.Mobility = EComponentMobility::Static;
+                wall->AddComponent<FMaterialComponent>(paint);
+            };
+            addWall("Back", {0.0f, 0.0f, -1.2f}, {0.0f, 0.0f, 0.0f}, 8.0f, 2.8f);
+            addWall("Front", {0.0f, 0.0f, 1.2f}, {0.0f, 180.0f, 0.0f}, 8.0f, 2.8f);
+            addWall("Left", {-4.0f, 0.0f, 0.0f}, {0.0f, 90.0f, 0.0f}, 2.4f, 2.8f);
+            addWall("Right", {4.0f, 0.0f, 0.0f}, {0.0f, -90.0f, 0.0f}, 2.4f, 2.8f);
+            addWall("RoomFloor", {0.0f, -1.4f, 0.0f}, {-90.0f, 0.0f, 0.0f}, 8.0f, 2.4f);
+            addWall("Ceiling", {0.0f, 1.4f, 0.0f}, {90.0f, 0.0f, 0.0f}, 8.0f, 2.4f);
+
+            // Six ceiling lamps, more than there are shadow cubes, all asking for shadows.
+            for (int i = 0; i < 6; ++i) {
+                AActor* lamp = World->SpawnActor<AActor>("CeilingLamp");
+                lamp->SetActorLocation(center + glm::vec3(-3.25f + 1.3f * static_cast<float>(i), 1.15f, 0.0f));
+                FPointLight point;
+                point.Color = {1.0f, 1.0f, 1.0f};
+                point.Intensity = 3.0f;
+                point.Radius = 6.5f;
+                auto& component = lamp->AddComponent<FPointLightComponent>(point);
+                component.bCastShadows = true;
+                component.Mobility = ELightMobility::Stationary;
+            }
+
+            Camera.SetPosition(center + glm::vec3(0.0f, 0.0f, 1.0f));
+            FShadowSettings& shadows = World->GetWorldRenderer()->GetShadowSettings();
+            // Looking at the back wall, then at each end, the floor and the ceiling.
+            const glm::vec2 views[5] = {{0.0f, -90.0f}, {0.0f, 180.0f}, {0.0f, 0.0f}, {-60.0f, -90.0f}, {60.0f, -90.0f}};
+            for (const glm::vec2& view : views) {
+                Camera.SetRotation(view.x, view.y);
+                shadows.bEnableShadows = false;
+                const FImage unshadowed = Render();
+                shadows.bEnableShadows = true;
+                const FImage shadowed = Render();
+                // Nothing stands in the room: no wall is in shadow, and every pixel is lit. (A few pixels
+                // along the far corners do darken: the bias gives out where the light grazes a wall.)
+                uint32_t darker = 0;
+                uint32_t unlit = 0;
+                for (uint32_t y = 0; y < kHeight; ++y) {
+                    for (uint32_t x = 0; x < kWidth; ++x) {
+                        if (unshadowed.Luma(x, y) - shadowed.Luma(x, y) > 0.04f)
+                            ++darker;
+                        if (shadowed.Luma(x, y) < 0.1f)
+                            ++unlit;
+                    }
+                }
+                CAPTURE(view.x);
+                CAPTURE(view.y);
+                CHECK(darker < kWidth * kHeight / 500);
+                CHECK(unlit == 0);
+            }
             CHECK(NewValidationErrors() == 0);
         }
 
