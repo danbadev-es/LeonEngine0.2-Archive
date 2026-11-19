@@ -5,6 +5,7 @@
 #include "Gameplay/IInteractable.hpp"
 
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
+#include "LeonHorror/ALeonHorrorHeldItem.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
@@ -98,6 +99,15 @@ namespace Leon {
             Flashlight = light;
             UpdateFlashlight();
         }
+        if (World && !HeldLight.IsValid()) {
+            auto* light = World->SpawnActor<ALeonHorrorHeldItem>(GetName() + "_HeldLight");
+            light->SetMesh(LeonHorrorArchetypes::ExistingAsset("/Game/Meshes/SM_Held_Flashlight.lmesh", ""));
+            // Across the palm, a little towards the fingers.
+            light->SetGrip({0.0f, 0.085f, 0.03f}, {0.0f, 0.0f, 0.0f});
+            HeldLight = light;
+            HeldWeapon = World->SpawnActor<ALeonHorrorHeldItem>(GetName() + "_HeldWeapon");
+            UpdateHeldItems();
+        }
 
         // Look comes from raw mouse motion: capture the cursor.
         if (auto* pc = dynamic_cast<APlayerController*>(GetController()))
@@ -108,6 +118,12 @@ namespace Leon {
         if (ALeonHorrorFlashlight* light = Flashlight.Get())
             light->Destroy();
         Flashlight = nullptr;
+        if (ALeonHorrorHeldItem* held = HeldLight.Get())
+            held->Destroy();
+        HeldLight = nullptr;
+        if (ALeonHorrorHeldItem* held = HeldWeapon.Get())
+            held->Destroy();
+        HeldWeapon = nullptr;
         ACharacter::EndPlay();
     }
 
@@ -228,6 +244,7 @@ namespace Leon {
         UpdateBodyFacing(DeltaSeconds);
         UpdateCameraRig(DeltaSeconds);
         UpdateFlashlight();
+        UpdateHeldItems();
         Focused = bDead ? nullptr : FindInteractable();
         if (Anim)
             Anim->SetAiming(bAiming && !bDead);
@@ -273,6 +290,31 @@ namespace Leon {
         if (!light)
             return;
         light->UpdateFromView(GetPawnViewLocation(), GetControlLookDirection());
+    }
+
+    void ALeonHorrorCharacter::UpdateHeldItems() {
+        auto mesh = GetMesh();
+        if (!mesh)
+            return;
+        glm::mat4 hand;
+        if (ALeonHorrorHeldItem* light = HeldLight.Get()) {
+            // The hand carries it, the wrist points it where the player looks.
+            if (mesh->GetBoneMatrix("mixamorig:LeftHand", hand))
+                light->FollowBoneAimed(hand, bDead ? GetActorForwardVector() : GetControlLookDirection());
+        }
+        if (ALeonHorrorHeldItem* weapon = HeldWeapon.Get()) {
+            const ELeonHorrorWeapon equipped = Combat ? Combat->GetEquipped() : ELeonHorrorWeapon::None;
+            if (equipped == ELeonHorrorWeapon::Pipe) {
+                weapon->SetMesh(LeonHorrorArchetypes::ExistingAsset("/Game/Meshes/SM_Held_Pipe.lmesh", ""));
+                weapon->SetGrip({0.0f, 0.09f, 0.03f}, {90.0f, 0.0f, 0.0f});
+            } else if (equipped == ELeonHorrorWeapon::Pistol) {
+                weapon->SetMesh(LeonHorrorArchetypes::ExistingAsset("/Game/Meshes/SM_Held_Pistol.lmesh", ""));
+                weapon->SetGrip({0.0f, 0.09f, 0.03f}, {90.0f, 0.0f, 0.0f});
+            }
+            weapon->SetShown(equipped != ELeonHorrorWeapon::None);
+            if (weapon->IsShown() && mesh->GetBoneMatrix("mixamorig:RightHand", hand))
+                weapon->FollowBone(hand);
+        }
     }
 
     AActor* ALeonHorrorCharacter::FindInteractable() const {

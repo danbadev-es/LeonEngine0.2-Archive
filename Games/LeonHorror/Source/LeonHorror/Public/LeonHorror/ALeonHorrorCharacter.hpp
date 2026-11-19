@@ -11,6 +11,7 @@
 namespace Leon {
 
     class ALeonHorrorFlashlight;
+    class ALeonHorrorHeldItem;
     class ULeonHorrorAnimInstance;
     class ULeonHorrorCombatComponent;
     class ULeonHorrorInventoryComponent;
@@ -83,6 +84,9 @@ namespace Leon {
         float GetBodyYaw() const { return BodyYaw; }
 
         ALeonHorrorFlashlight* GetFlashlight() const { return Flashlight.Get(); }
+        /** What is seen in the hands: the flashlight in the left, the weapon in use in the right. */
+        ALeonHorrorHeldItem* GetHeldLight() const { return HeldLight.Get(); }
+        ALeonHorrorHeldItem* GetHeldWeapon() const { return HeldWeapon.Get(); }
         bool IsFlashlightOn() const;
 
         ULeonHorrorAnimInstance* GetHorrorAnim() const { return Anim.get(); }
@@ -114,6 +118,7 @@ namespace Leon {
         void UpdateCameraRig(float DeltaSeconds);
         void UpdateBodyFacing(float DeltaSeconds);
         void UpdateFlashlight();
+        void UpdateHeldItems();
         void HandleDeath(const FDamageInfo& InInfo);
 
         TRef<UHealthComponent> Health;
@@ -122,6 +127,8 @@ namespace Leon {
         TRef<ULeonHorrorCombatComponent> Combat;
         TWeakObjectPtr<AActor> Focused;
         TWeakObjectPtr<ALeonHorrorFlashlight> Flashlight;
+        TWeakObjectPtr<ALeonHorrorHeldItem> HeldLight;
+        TWeakObjectPtr<ALeonHorrorHeldItem> HeldWeapon;
         FLeonHorrorInputSampler Sampler;
         std::optional<FLeonHorrorInputState> InjectedInput;
 

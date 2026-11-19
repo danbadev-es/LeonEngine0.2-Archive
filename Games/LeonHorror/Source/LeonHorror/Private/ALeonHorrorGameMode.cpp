@@ -318,6 +318,19 @@ namespace Leon {
         auto instance = std::dynamic_pointer_cast<ULeonHorrorGameInstance>(UEngine::Get().GetGameInstance());
         if (!instance || instance->GetValidateSeconds() <= 0.0f)
             return;
+        if (!bSmokeRunEquipped) {
+            bSmokeRunEquipped = true;
+            ALeonHorrorCharacter* player = GetPlayerCharacter();
+            for (const std::string& item : instance->GetValidateItems()) {
+                if (!player || !player->GetInventory())
+                    break;
+                player->GetInventory()->AddItem(item);
+                if (item == LeonHorrorItems::Pipe)
+                    player->GetCombat()->Equip(ELeonHorrorWeapon::Pipe);
+                else if (item == LeonHorrorItems::Pistol)
+                    player->GetCombat()->Equip(ELeonHorrorWeapon::Pistol);
+            }
+        }
         if (ElapsedPlaySeconds < instance->GetValidateSeconds())
             return;
         bSmokeRunFinished = true;

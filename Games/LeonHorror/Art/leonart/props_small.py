@@ -115,18 +115,23 @@ def item_ammo(m):
                 m.cylinder((0, 0, 0.007), (0, 0, 1), 0.0044, 0.008, ZINC, segments=8)
 
 
+def pistol_parts(m):
+    """A service automatic, about 20 cm: muzzle towards +X, sights up +Y, the grip below the origin."""
+    m.box((-0.10, 0.012, -0.014), (0.095, 0.045, 0.014), SCREEN)  # slide
+    m.box((-0.095, -0.004, -0.012), (0.07, 0.012, 0.012), ZINC)  # frame
+    with m.at((-0.075, -0.004, 0.0), rot_z=-14.0):
+        m.box((-0.022, -0.10, -0.013), (0.026, 0.0, 0.013), RUBBER)  # grip
+    m.tube([(-0.035, -0.004, 0.0), (-0.03, -0.035, 0.0), (0.005, -0.038, 0.0), (0.012, -0.004, 0.0)], 0.003, ZINC, segments=6)
+    m.box((-0.018, -0.022, -0.003), (-0.012, -0.004, 0.003), ZINC)  # trigger
+    m.box((0.085, 0.045, -0.003), (0.092, 0.050, 0.003), SCREEN)  # front sight
+    m.box((-0.098, 0.045, -0.006), (-0.09, 0.050, 0.006), SCREEN)  # rear sight
+
+
 @piece("SM_Item_Pistol", bevel=0.002)
 def item_pistol(m):
-    """A service automatic lying on its side: slide, frame, grip, trigger guard. About 20 cm."""
+    """The handgun lying on its side, to be picked up."""
     with m.at((0.0, 0.0, 0.016), rot_x=90.0):
-        m.box((-0.10, 0.012, -0.014), (0.095, 0.045, 0.014), SCREEN)  # slide
-        m.box((-0.095, -0.004, -0.012), (0.07, 0.012, 0.012), ZINC)  # frame
-        with m.at((-0.075, -0.004, 0.0), rot_z=-14.0):
-            m.box((-0.022, -0.10, -0.013), (0.026, 0.0, 0.013), RUBBER)  # grip
-        m.tube([(-0.035, -0.004, 0.0), (-0.03, -0.035, 0.0), (0.005, -0.038, 0.0), (0.012, -0.004, 0.0)], 0.003, ZINC, segments=6)
-        m.box((-0.018, -0.022, -0.003), (-0.012, -0.004, 0.003), ZINC)  # trigger
-        m.box((0.085, 0.045, -0.003), (0.092, 0.050, 0.003), SCREEN)  # front sight
-        m.box((-0.098, 0.045, -0.006), (-0.09, 0.050, 0.006), SCREEN)  # rear sight
+        pistol_parts(m)
 
 
 @piece("SM_Item_Pipe", bevel=0.0)
@@ -136,6 +141,41 @@ def item_pipe(m):
         m.tube([(-0.42, 0.0, 0.0), (0.36, 0.0, 0.0)], 0.014, RUST, segments=10)
         m.tube([(0.34, 0.0, 0.0), (0.40, 0.0, 0.0), (0.40, 0.06, 0.0)], 0.019, RUST, segments=10)
         m.tube([(-0.42, 0.0, 0.0), (-0.38, 0.0, 0.0)], 0.017, ZINC, segments=10)
+
+
+# --------------------------------------------------------------------------------------------------
+# The same things as they are held. Origin where the hand closes, pointing along +Y (which is the
+# way the engine calls forward), up along +Z. The game hangs them from a hand bone.
+# --------------------------------------------------------------------------------------------------
+
+
+@piece("SM_Held_Pistol", bevel=0.002)
+def held_pistol(m):
+    """The handgun in the hand: origin in the middle of the grip, muzzle forward."""
+    with m.at(rot_z=90.0, rot_x=90.0):
+        with m.at((0.068, 0.055, 0.0)):
+            pistol_parts(m)
+
+
+@piece("SM_Held_Pipe", bevel=0.0)
+def held_pipe(m):
+    """The pipe in the hand: held a hand's width from its plain end, the elbow at the far end."""
+    m.tube([(0.0, -0.12, 0.0), (0.0, 0.66, 0.0)], 0.014, RUST, segments=10)
+    m.tube([(0.0, 0.64, 0.0), (0.0, 0.70, 0.0), (0.0, 0.70, 0.06)], 0.019, RUST, segments=10)
+    m.tube([(0.0, -0.12, 0.0), (0.0, -0.08, 0.0)], 0.017, ZINC, segments=10)
+
+
+@piece("SM_Held_Flashlight", bevel=0.0015)
+def held_flashlight(m):
+    """A rubber-sleeved flashlight, 19 cm: origin in the middle of the barrel, lens forward."""
+    m.cylinder((0.0, -0.085, 0.0), (0, 1, 0), 0.0165, 0.125, RUBBER, segments=14)
+    m.cylinder((0.0, -0.092, 0.0), (0, 1, 0), 0.0175, 0.012, ZINC, segments=14)  # tail cap
+    for y in (-0.05, -0.03, -0.01):
+        m.cylinder((0.0, y, 0.0), (0, 1, 0), 0.0175, 0.006, RUBBER, segments=14)  # grip rings
+    m.cylinder((0.0, 0.04, 0.0), (0, 1, 0), 0.021, 0.02, ZINC, segments=14)  # neck
+    m.cylinder((0.0, 0.06, 0.0), (0, 1, 0), 0.027, 0.04, ZINC, segments=16)  # head
+    m.cylinder((0.0, 0.1, 0.0), (0, 1, 0), 0.023, 0.0015, "ClinicLightDiffuser", segments=16)  # lens
+    m.box((-0.004, -0.02, 0.0165), (0.004, 0.0, 0.021), RED)  # switch
 
 
 @piece("SM_Item_Note", bevel=0.0)

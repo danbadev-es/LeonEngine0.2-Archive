@@ -130,6 +130,7 @@ namespace Leon {
 
         float ElapsedPlaySeconds = 0.0f;
         bool bSmokeRunFinished = false;
+        bool bSmokeRunEquipped = false;
         bool bPlayerDied = false;
 
         std::set<std::string> CollectedPickups;
