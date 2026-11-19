@@ -1,0 +1,6245 @@
+# LeonEngine2 Map Asset File (.lmap)
+# Human-Readable & Deterministic Serialization
+Map:
+  Name: "Clinic"
+  Version: "2.2"
+
+Environment:
+  WorldSettings:
+    GameModeClass: "ALeonHorrorGameMode"
+    StaticLighting: true
+    LightingBuildQuality: Production
+    LightmapResolution: 64
+    NumIndirectBounces: 3
+    SamplesPerTexel: 32
+    IndirectIntensity: 1
+    AmbientOcclusion: true
+    AOIntensity: 0.8
+    AORadius: 0.8
+    TexelPadding: 4
+    WorldScale: 1
+    LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+    LightmapBakeHash: "5200f5add9bafbbf"
+  Skybox:
+    Enabled: true
+    Exposure: 1.05
+    SunIntensity: 0
+    EnvironmentIntensity: 0.5
+    UseHDREnvironmentMap: false
+    HDREnvironmentMap: ""
+    SkyZenithColor: [0.01, 0.011, 0.013]
+    HorizonColor: [0.012, 0.013, 0.015]
+    GroundColor: [0.006, 0.006, 0.007]
+    SunColor: [0.3, 0.32, 0.4]
+    FogEnabled: true
+    FogColor: [0.018, 0.022, 0.024]
+    FogDensity: 0.035
+    FogStartDistance: 3.5
+    FogHeightFalloff: 0
+    FogBaseHeight: 0
+    FogMaxOpacity: 0.8
+  PostProcess:
+    ToneMapper: ACES
+    BloomIntensity: 0.05
+    BloomThreshold: 1
+    VignetteIntensity: 0.38
+    VignetteRadius: 0.5
+    VignetteSoftness: 0.65
+    FilmGrainIntensity: 0.028
+    FilmGrainAnimated: true
+    FilmGrainSeed: 0
+    Lift: [0, 0.008, 0.014]
+    Gamma: [1, 1, 1]
+    Gain: [1.02, 1, 0.97]
+    Contrast: 1.06
+    Saturation: 0.88
+    ChromaticAberration: 0.002
+
+Actors:
+  - Name: "NavBounds"
+    Class: "ANavMeshBoundsVolume"
+    GUID: "1301de7c9f80a204c653c7c88d753194"
+    Transform:
+      Translation: [9, 1.4, -16.2]
+      Rotation: [0, 0, 0]
+      Scale: [20, 3, 34.4]
+  - Name: "Music"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "b994e3f19ad7758f2709937d148f6426"
+    Properties:
+      Music: "true"
+      Sound: "/Game/Audio/MUS_Clinic_Ambience"
+      Volume: "0.5"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Reception_Floor"
+    Class: "AActor"
+    GUID: "7db88ad4e0947aae4d3c71718287ca36"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Reception_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 256
+      LightmapIndex: 0
+      LightmapScale: [0.015625, 0.5]
+      LightmapBias: [0.00024414062, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Reception_Walls"
+    Class: "AActor"
+    GUID: "a5ea17df3c924346f419511ff7020b70"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Reception_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 256
+      LightmapIndex: 1
+      LightmapScale: [0.015625, 0.5]
+      LightmapBias: [0.016113281, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Reception_Ceiling"
+    Class: "AActor"
+    GUID: "4aa88c451de1a9eea426c7a033dcbac8"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Reception_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 2
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.4177246, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Reception_Skirting"
+    Class: "AActor"
+    GUID: "1aaccf57a9d15159b7951d6971decbc6"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Reception_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 3
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9387207, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Waiting_Floor"
+    Class: "AActor"
+    GUID: "89cd820c48cb56355f7cdfd39967fe65"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Waiting_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 4
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.095458984, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Waiting_Walls"
+    Class: "AActor"
+    GUID: "e1c36a7a7146ec3e67dbf424a2c9c4ec"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Waiting_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 5
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.103515625, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Waiting_Ceiling"
+    Class: "AActor"
+    GUID: "6c5d92ddeeb77d92ba66af74c3ecb798"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Waiting_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 6
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.4260254, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Waiting_Skirting"
+    Class: "AActor"
+    GUID: "e6619869ac609b3544fff928a8f076e2"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Waiting_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 7
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9411621, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Corridor_Floor"
+    Class: "AActor"
+    GUID: "514b3c3306a6741c3a870504e5070ba4"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Corridor_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 256
+      LightmapIndex: 8
+      LightmapScale: [0.015625, 0.5]
+      LightmapBias: [0.031982422, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Corridor_Walls"
+    Class: "AActor"
+    GUID: "c0bf56b75a09728de2dc6b804e320d2a"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Corridor_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 256
+      LightmapIndex: 9
+      LightmapScale: [0.015625, 0.5]
+      LightmapBias: [0.047851562, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Corridor_Ceiling"
+    Class: "AActor"
+    GUID: "fd969035faa8efc782ac773a940fcff2"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Corridor_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 10
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.43432617, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Corridor_Skirting"
+    Class: "AActor"
+    GUID: "5a3be80e312a8ab9287004dc47035140"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Corridor_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 11
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9436035, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult1_Floor"
+    Class: "AActor"
+    GUID: "f7979c9565ac683a34d1718c972b23ac"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult1_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 12
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.14379883, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult1_Walls"
+    Class: "AActor"
+    GUID: "2d86353bfd773fb0a3cdc7f80c9cefcd"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult1_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 13
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.15185547, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult1_Ceiling"
+    Class: "AActor"
+    GUID: "c8131873afce714127d63ab126527fb2"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult1_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 14
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.44262695, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult1_Skirting"
+    Class: "AActor"
+    GUID: "bd11418f1a1a8af666cdf198bdfc5325"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult1_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 15
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9448242, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult2_Floor"
+    Class: "AActor"
+    GUID: "9f6749e22365fb001f6f85b2d3cc63e2"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult2_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 16
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.17602539, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult2_Walls"
+    Class: "AActor"
+    GUID: "154327d8b4f518acf042c5303ad43276"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult2_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 17
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.18408203, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult2_Ceiling"
+    Class: "AActor"
+    GUID: "a53d9155f32eb3c7d738e694d161613f"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult2_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 18
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.45092773, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Consult2_Skirting"
+    Class: "AActor"
+    GUID: "90dd5f54c63774c1025b3285b2bf0177"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Consult2_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 19
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9472656, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Pharmacy_Floor"
+    Class: "AActor"
+    GUID: "9d2a2e787beec8f3c9182a4012e30967"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Pharmacy_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 20
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.20825195, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Pharmacy_Walls"
+    Class: "AActor"
+    GUID: "f03a8ff575c27571373bfbc2e82feaf0"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Pharmacy_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 21
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.2163086, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Pharmacy_Ceiling"
+    Class: "AActor"
+    GUID: "e8a4ebdc92247dccaf734deacaa976d6"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Pharmacy_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 22
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.45922852, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Pharmacy_Skirting"
+    Class: "AActor"
+    GUID: "aa7d9922d6c6b8279227cd8de21ba551"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Pharmacy_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 23
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9484863, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Staff_Floor"
+    Class: "AActor"
+    GUID: "e7dadfa33ff74881138acd5163408be9"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Staff_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 24
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.24047852, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Staff_Walls"
+    Class: "AActor"
+    GUID: "3efca7d6706f92e8b5bbe72b848a82b3"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Staff_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 25
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.24853516, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Staff_Ceiling"
+    Class: "AActor"
+    GUID: "9495af2f3bf8ce4a2ccf9b99fd112f97"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Staff_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 26
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5214844, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Staff_Skirting"
+    Class: "AActor"
+    GUID: "7f3a0fb7c72e90da8d502ae97b650e2a"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Staff_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 27
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.94970703, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Ward_Floor"
+    Class: "AActor"
+    GUID: "8513943921d45d6dfc827d8843a59163"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Ward_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 28
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.27270508, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Ward_Walls"
+    Class: "AActor"
+    GUID: "746ba2a90b0a0ec19b23b0b3e8723c2a"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Ward_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 256
+      LightmapIndex: 29
+      LightmapScale: [0.015625, 0.5]
+      LightmapBias: [0.0637207, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Ward_Ceiling"
+    Class: "AActor"
+    GUID: "6d5e76dcb7610714b8c6410a83b48e04"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Ward_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 30
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.4716797, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Ward_Skirting"
+    Class: "AActor"
+    GUID: "2c242b8936fbdca693eb8dffae13d3e4"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Ward_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 31
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.92041016, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRay_Floor"
+    Class: "AActor"
+    GUID: "6721c182ab34f68f25071d41d31e1922"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_XRay_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 32
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.30493164, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRay_Walls"
+    Class: "AActor"
+    GUID: "c5bae4d79f33affd424f6bc55246281f"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_XRay_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 33
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.31298828, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRay_Ceiling"
+    Class: "AActor"
+    GUID: "8b510745adc20a9fa759ca70032566a2"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_XRay_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 34
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.47998047, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRay_Skirting"
+    Class: "AActor"
+    GUID: "7761212250ba9fcac686cc2902883c78"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_XRay_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 35
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.92163086, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Toilets_Floor"
+    Class: "AActor"
+    GUID: "99066e9df0209d083028ffe9eed5ee5d"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Toilets_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 36
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.3371582, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Toilets_Walls"
+    Class: "AActor"
+    GUID: "6859cfa2ccf53adb9781ba736990cd08"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Toilets_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 37
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.34521484, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Toilets_Ceiling"
+    Class: "AActor"
+    GUID: "a38b86746d97acccf99b7eb9a5181073"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Toilets_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 38
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.48828125, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Toilets_Skirting"
+    Class: "AActor"
+    GUID: "e5fe806604b85195b20c218cca42ab07"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Toilets_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 39
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9326172, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Storage_Floor"
+    Class: "AActor"
+    GUID: "f9a0677bc2f3aa2a19b32765314f5379"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Storage_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 40
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.40966797, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Storage_Walls"
+    Class: "AActor"
+    GUID: "412ce7fd9d8f172072c937476de4aded"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Storage_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 41
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.3774414, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Storage_Ceiling"
+    Class: "AActor"
+    GUID: "c4fdd98ffbb1cc05cfbf6d89db208d26"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Storage_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 42
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.49658203, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Storage_Skirting"
+    Class: "AActor"
+    GUID: "d127e632dfbede77c1abc114a60a5347"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Storage_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 43
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.92285156, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Service_Floor"
+    Class: "AActor"
+    GUID: "70061cff371a0d9d2430aa96d7f88ed1"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Service_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 44
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.40161133, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Service_Walls"
+    Class: "AActor"
+    GUID: "dddc0dc963a1926752c890e6077e0b39"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Service_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 256
+      LightmapIndex: 45
+      LightmapScale: [0.015625, 0.5]
+      LightmapBias: [0.079589844, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Service_Ceiling"
+    Class: "AActor"
+    GUID: "9b4712104893879e90e807516058fa13"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Service_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 46
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5048828, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Service_Skirting"
+    Class: "AActor"
+    GUID: "b79220420ea3accd5adc396bbc072709"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Service_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 47
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.92529297, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Theatre_Floor"
+    Class: "AActor"
+    GUID: "fe01cd1e1834d6d70fe9a89f5f300339"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Theatre_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 48
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.111572266, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Theatre_Walls"
+    Class: "AActor"
+    GUID: "f5e1597bd80dce1188b5f67c2dd3cc8e"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Theatre_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 49
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.119628906, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Theatre_Ceiling"
+    Class: "AActor"
+    GUID: "b84de1c04d58901b27b455ec70b33342"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Theatre_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 50
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5131836, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Theatre_Skirting"
+    Class: "AActor"
+    GUID: "403225664da152aa1c6806af8206241e"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Theatre_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 51
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9265137, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Morgue_Floor"
+    Class: "AActor"
+    GUID: "747bbb9820604727190fbe4651d8dd18"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Morgue_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 52
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.2565918, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Morgue_Walls"
+    Class: "AActor"
+    GUID: "aabe79d3f218e67a35ec3aaea096acb4"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Morgue_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 53
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.16796875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Morgue_Ceiling"
+    Class: "AActor"
+    GUID: "45a33998d04e5dd26eccd97212c0070b"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Morgue_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 54
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.52563477, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Morgue_Skirting"
+    Class: "AActor"
+    GUID: "fa530f115d6a84ba3ec40293ab901819"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Morgue_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 55
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9289551, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Plant_Floor"
+    Class: "AActor"
+    GUID: "4d716a4a85230ca61118d1bc9ffa1bbe"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Plant_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 56
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.22436523, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Plant_Walls"
+    Class: "AActor"
+    GUID: "d4a036204077fafbac6ed108838e0931"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Plant_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 57
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.23242188, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Plant_Ceiling"
+    Class: "AActor"
+    GUID: "cdf0187a54765c7558b48ca7f804f571"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Plant_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 58
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.53393555, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Plant_Skirting"
+    Class: "AActor"
+    GUID: "93a1dad36bce26ee59b342238316a33a"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Plant_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 59
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9301758, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bay_Floor"
+    Class: "AActor"
+    GUID: "a0b8cec8dd5b158351a32fc1780c691e"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Bay_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 60
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.296875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bay_Walls"
+    Class: "AActor"
+    GUID: "b50423ed4f80eee5042ce674b2bb0d9e"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Bay_Walls.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 61
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.32104492, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bay_Ceiling"
+    Class: "AActor"
+    GUID: "1a56e0324db4760d9a9eec92dac271ea"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Bay_Ceiling.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 62
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5422363, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bay_Skirting"
+    Class: "AActor"
+    GUID: "0dd1d8df7181a83a5d42bf8456c477a8"
+    Transform:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Clinic_Bay_Skirting.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 63
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9313965, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Corridor_Frame"
+    Class: "AActor"
+    GUID: "54519fd6bb8d11d5f6de4196c1cce2a7"
+    Transform:
+      Translation: [7.2, 0, -6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Double.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 64
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5505371, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Corridor_A"
+    Class: "ALeonHorrorDoor"
+    GUID: "592510dec3491ce8e1de6aed175265ad"
+    Properties:
+      Partner: "Door_Corridor_B"
+      Sound: "Swing"
+      Swing: "88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [6.4, 0, -6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Corridor_B"
+    Class: "ALeonHorrorDoor"
+    GUID: "f03f8f67bca6fe14d5c8fabf72dd9b0b"
+    Properties:
+      Partner: "Door_Corridor_A"
+      Sound: "Swing"
+      Swing: "-88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [8, 0, -6]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Consult1_Frame"
+    Class: "AActor"
+    GUID: "b01876037ebfa6486c8bd78c531c5b50"
+    Transform:
+      Translation: [6, 0, -8.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 65
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5546875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Consult1"
+    Class: "ALeonHorrorDoor"
+    GUID: "ee511e10fc271ce7148906084f13c98d"
+    Properties:
+      Sound: "Wood"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [6, 0, -7.75]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Consult2_Frame"
+    Class: "AActor"
+    GUID: "96c7cf86c13d0cbe5a29f574776ea93b"
+    Transform:
+      Translation: [6, 0, -12.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 66
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5588379, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Consult2"
+    Class: "ALeonHorrorDoor"
+    GUID: "f8f507884ab4f0acb1d32ad112d32564"
+    Properties:
+      RequiredKey: "Key.Consult"
+      Sound: "Wood"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [6, 0, -12.35]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Pharmacy_Frame"
+    Class: "AActor"
+    GUID: "7404799f8be74eaf5e019a0666bc0f2e"
+    Transform:
+      Translation: [6, 0, -17]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 67
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5629883, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Pharmacy"
+    Class: "ALeonHorrorDoor"
+    GUID: "658bc530b958a1823c05a9f16ccb2e5b"
+    Properties:
+      RequiredKey: "Key.Pharmacy"
+      Sound: "Wood"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [6, 0, -16.55]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Staff_Frame"
+    Class: "AActor"
+    GUID: "fe0fb5786fff1bcbdad54f6cf95dce1d"
+    Transform:
+      Translation: [6, 0, -21.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 68
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5671387, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Staff"
+    Class: "ALeonHorrorDoor"
+    GUID: "acabff2d6d536f06234604a61a1ae109"
+    Properties:
+      Sound: "Wood"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [6, 0, -21.05]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Ward_Frame"
+    Class: "AActor"
+    GUID: "fc48b4dc4049c65373af0f785cd58a2e"
+    Transform:
+      Translation: [8.4, 0, -9.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Double.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 69
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.57128906, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Ward_A"
+    Class: "ALeonHorrorDoor"
+    GUID: "61a7761638ad7200e51c702e312507b7"
+    Properties:
+      Partner: "Door_Ward_B"
+      Sound: "Swing"
+      Swing: "-88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [8.4, 0, -8.7]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Ward_B"
+    Class: "ALeonHorrorDoor"
+    GUID: "f66038296934d3ea65594772636774dd"
+    Properties:
+      Partner: "Door_Ward_A"
+      Sound: "Swing"
+      Swing: "88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [8.4, 0, -10.3]
+      Rotation: [0, 270, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_XRay_Frame"
+    Class: "AActor"
+    GUID: "a3185a97140385354503176472953372"
+    Transform:
+      Translation: [8.4, 0, -15.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 70
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.57543945, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_XRay"
+    Class: "ALeonHorrorDoor"
+    GUID: "801d728e2183abb750006f2b5be65e40"
+    Properties:
+      Sound: "Wood"
+      Swing: "-95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [8.4, 0, -14.75]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Toilets_Frame"
+    Class: "AActor"
+    GUID: "f1755956810408714540da50bb967309"
+    Transform:
+      Translation: [8.4, 0, -18.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 71
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.57958984, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Toilets"
+    Class: "ALeonHorrorDoor"
+    GUID: "05a60947a1c3c9bd138f2ae2ff12ba64"
+    Properties:
+      Sound: "Wood"
+      Swing: "-95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [8.4, 0, -18.35]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Storage_Frame"
+    Class: "AActor"
+    GUID: "1e062edc24ce8850b0af61963205eaf0"
+    Transform:
+      Translation: [8.4, 0, -22]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 72
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.58374023, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Storage"
+    Class: "ALeonHorrorDoor"
+    GUID: "43d5a210289812e9e99d87667ab3cc01"
+    Properties:
+      RequiredKey: "Key.Storage"
+      Sound: "Wood"
+      Swing: "-95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [8.4, 0, -21.55]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Service_Frame"
+    Class: "AActor"
+    GUID: "b7ccbbe3ceef9138488f3d84608e392b"
+    Transform:
+      Translation: [7.2, 0, -24]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Double.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 73
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5878906, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Service_A"
+    Class: "ALeonHorrorDoor"
+    GUID: "a37b2fdb8c4fbc0707332c8aa63823d1"
+    Properties:
+      Partner: "Door_Service_B"
+      Sound: "Swing"
+      Swing: "88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [6.4, 0, -24]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Service_B"
+    Class: "ALeonHorrorDoor"
+    GUID: "2221262b2fab6b60445b1a70081dc383"
+    Properties:
+      Partner: "Door_Service_A"
+      Sound: "Swing"
+      Swing: "-88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [8, 0, -24]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Theatre_Frame"
+    Class: "AActor"
+    GUID: "c77af30346851b37a86eb2cb9d74a6c7"
+    Transform:
+      Translation: [3, 0, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Double.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 74
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.592041, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Theatre_A"
+    Class: "ALeonHorrorDoor"
+    GUID: "70f1a805ea7783975414e208e0fb78c2"
+    Properties:
+      Partner: "Door_Theatre_B"
+      Sound: "Swing"
+      Swing: "88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [2.2, 0, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Theatre_B"
+    Class: "ALeonHorrorDoor"
+    GUID: "2f7c11e63eefba36ace70891c559f43d"
+    Properties:
+      Partner: "Door_Theatre_A"
+      Sound: "Swing"
+      Swing: "-88"
+      Thickness: "0.05"
+      Width: "0.8"
+    Transform:
+      Translation: [3.8, 0, -26.4]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Swing.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Morgue_Frame"
+    Class: "AActor"
+    GUID: "fd208953b5f8d80dbc5aef4299dea2ae"
+    Transform:
+      Translation: [8, 0, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 75
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5961914, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Morgue"
+    Class: "ALeonHorrorDoor"
+    GUID: "4bec904b498282ef4482827bddae50f3"
+    Properties:
+      PowerGroup: "North"
+      Sound: "Metal"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [7.55, 0, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Metal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Plant_Frame"
+    Class: "AActor"
+    GUID: "ed33cf65a137e858cd52911d5b90083a"
+    Transform:
+      Translation: [12.2, 0, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 76
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6003418, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Plant"
+    Class: "ALeonHorrorDoor"
+    GUID: "e6517969cb4a17909f79ddfd5198fa87"
+    Properties:
+      Sound: "Metal"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [11.75, 0, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Metal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_Bay_Frame"
+    Class: "AActor"
+    GUID: "3d3cce98d1d2ee3afcc9e7531f7c7fd3"
+    Transform:
+      Translation: [14.4, 0, -25.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 77
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6044922, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_Bay"
+    Class: "ALeonHorrorDoor"
+    GUID: "7678672a2ed2134b1f175373d184fd34"
+    Properties:
+      RequiredKey: "Key.Bay"
+      Sound: "Metal"
+      Swing: "-95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [14.4, 0, -24.75]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Metal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Door_WardXRay_Frame"
+    Class: "AActor"
+    GUID: "5270438708debbc869edfa5e8dcf1c87"
+    Transform:
+      Translation: [12.5, 0, -13]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 78
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6086426, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Door_WardXRay"
+    Class: "ALeonHorrorDoor"
+    GUID: "ae67cca33cc9fe49f279a31d3f668af3"
+    Properties:
+      Sound: "Wood"
+      Swing: "95"
+      Thickness: "0.05"
+      Width: "0.9"
+    Transform:
+      Translation: [12.05, 0, -13]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "PlayerStart"
+    Class: "APlayerStart"
+    GUID: "5ff554240c57c84f19d857c4460b4824"
+    Transform:
+      Translation: [2.2, 1, -2.3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "ReceptionDesk_01"
+    Class: "AActor"
+    GUID: "75e1c2066669dbc157bcacf9fadf5a96"
+    Transform:
+      Translation: [3.6, 0, -3.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ReceptionDesk.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 79
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.38549805, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_01"
+    Class: "AActor"
+    GUID: "42a2add76d0317bef2e586913dc1afaf"
+    Transform:
+      Translation: [3.2, 0, -4.3]
+      Rotation: [0, 20, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 80
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8400879, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FilingCabinet_01"
+    Class: "AActor"
+    GUID: "d849b5a5638b2b3c81eedaea5873be51"
+    Transform:
+      Translation: [0.45, 0, -5.55]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_FilingCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 81
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.61279297, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FilingCabinet_02"
+    Class: "AActor"
+    GUID: "5650734efe9c6fb5770cb5456184d359"
+    Transform:
+      Translation: [0.45, 0, -5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_FilingCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 82
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.61694336, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Clock_01"
+    Class: "AActor"
+    GUID: "6ff150543682a8e3924bcf865ce3931d"
+    Transform:
+      Translation: [2, 2.2, -5.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Clock.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 83
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9338379, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Extinguisher_01"
+    Class: "AActor"
+    GUID: "59c3c4ccd34803b9b78b91c3895354ef"
+    Transform:
+      Translation: [0.075, 0.25, -2.4]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Extinguisher.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 84
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9277344, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Radiator_01"
+    Class: "AActor"
+    GUID: "acc281db777dcd36a85b1076a362f289"
+    Transform:
+      Translation: [5.6, 0, -0.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Radiator.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 85
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.62109375, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bench_01"
+    Class: "AActor"
+    GUID: "a8e138014dcec988197d528b16b9b452"
+    Transform:
+      Translation: [1, 0, -0.45]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bench.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 86
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.62524414, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_01"
+    Class: "AActor"
+    GUID: "fddce4aff586445580ebc2d19a4f9988"
+    Transform:
+      Translation: [7.4, 0, -5.3]
+      Rotation: [0, 30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 87
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.62939453, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_01"
+    Class: "AActor"
+    GUID: "e3e45886783f2a71f0cc506d1d83b032"
+    Transform:
+      Translation: [5.3, 0, -3.9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 88
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.88183594, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Typewriter_01"
+    Class: "AActor"
+    GUID: "56fb2fece882935020ce701d29daf2a6"
+    Transform:
+      Translation: [2.9, 0.74, -3.72]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Typewriter.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 89
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.89501953, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "SavePoint_Reception"
+    Class: "ALeonHorrorSavePoint"
+    GUID: "33b69f15383e117984f79b47631f1a0e"
+    Transform:
+      Translation: [2.9, 0.86, -3.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Note_Reception"
+    Class: "ALeonHorrorNote"
+    GUID: "81a1ee5f23bc7516730047f907387b93"
+    Properties:
+      Text: "22:40 - Power to the north wing has gone again. The fuse will not hold.\\nDr. Varga says leave the theatre and the cold room shut until morning.\\n23:15 - The ward will not settle. Something is walking the corridor.\\nI have locked the front. I am not going back down there."
+      Title: "Night log"
+    Transform:
+      Translation: [4.3, 1.115, -3.28]
+      Rotation: [0, 12, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Note.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Pipe"
+    Class: "ALeonHorrorPickup"
+    GUID: "bee53497ae1fc440dc34d3e4efda204d"
+    Properties:
+      Item: "Weapon.Pipe"
+    Transform:
+      Translation: [6.9, 0, -0.5]
+      Rotation: [0, 25, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Pipe.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Light_Reception_01_Fitting"
+    Class: "AActor"
+    GUID: "f21e107b5fc8b09a9592317e36b9ab73"
+    Transform:
+      Translation: [2.4, 2.8, -1.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Reception_01"
+    Class: "AActor"
+    GUID: "046502f72642e2ff56eab53a64f34c9f"
+    Transform:
+      Translation: [2.4, 2.52, -1.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 4
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Reception_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "301bbe136603043facaaa7014ead674d"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [2.4, 2.5, -1.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Reception_02_Fitting"
+    Class: "AActor"
+    GUID: "d82918ec3c94f8b6954aa928b9f0adf2"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [6, 2.8, -1.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Reception_03_Fitting"
+    Class: "AActor"
+    GUID: "d99475c106f67bd1be612a10d9b188f5"
+    Transform:
+      Translation: [2.4, 2.8, -4.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Reception_03"
+    Class: "AActor"
+    GUID: "807c0a66af0ba80961a59b6a7bfe1eaa"
+    Properties:
+      Flicker: "0.8"
+    Transform:
+      Translation: [2.4, 2.52, -4.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 4.5
+      Radius: 6.5
+      Mobility: Stationary
+      CastShadows: true
+  - Name: "Light_Reception_03_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "17a572329620a3f295f52813edc6f344"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [2.4, 2.5, -4.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Reception_04_Fitting"
+    Class: "AActor"
+    GUID: "bd177027fffbebb3d0d791d824b243cc"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [6, 2.8, -4.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Bench_02"
+    Class: "AActor"
+    GUID: "b8dc419ff51e851fdec51d16c768d649"
+    Transform:
+      Translation: [9.7, 0, -5.55]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bench.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 90
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6335449, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bench_03"
+    Class: "AActor"
+    GUID: "fbfd63b4d1d57b577a9e4e85a4f1ceac"
+    Transform:
+      Translation: [9.7, 0, -0.45]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bench.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 91
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6376953, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bench_04"
+    Class: "AActor"
+    GUID: "eaca1b6a469a6af9ba28b9c7842077d8"
+    Transform:
+      Translation: [11.6, 0, -5.55]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bench.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 92
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6418457, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bench_05"
+    Class: "AActor"
+    GUID: "f1deda005e6b4ead3e2fb41a7a794f1e"
+    Transform:
+      Translation: [11.6, 0, -0.45]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bench.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 93
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6459961, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Wheelchair_01"
+    Class: "AActor"
+    GUID: "6b82f0d9c788ed78f9cce8510bb2fdfc"
+    Transform:
+      Translation: [13.3, 0, -2.6]
+      Rotation: [0, 115, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Wheelchair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 94
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.89282227, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_02"
+    Class: "AActor"
+    GUID: "2ccb61f8de4484b88b497e0ccdfcc93a"
+    Transform:
+      Translation: [13.9, 0, -5.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 95
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.86865234, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Radiator_02"
+    Class: "AActor"
+    GUID: "01734ec85b8b6de842227401ba503c2d"
+    Transform:
+      Translation: [14.325, 0, -3]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Radiator.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 96
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6501465, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_02"
+    Class: "AActor"
+    GUID: "2c0aa08f88492caff7ec92fc9c3847fe"
+    Transform:
+      Translation: [13.7, 0, -0.6]
+      Rotation: [0, -20, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 97
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6542969, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Waiting_01_Fitting"
+    Class: "AActor"
+    GUID: "cb2e2712abb52426c0dc6eadd87d8fe7"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [10.2, 2.8, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Waiting_02_Fitting"
+    Class: "AActor"
+    GUID: "fafd932c8cf0f801066e5d4db7e2fa4a"
+    Transform:
+      Translation: [12.6, 2.8, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Waiting_02"
+    Class: "AActor"
+    GUID: "424c6e5902dc37700cf86ff5abd25ba4"
+    Transform:
+      Translation: [12.6, 2.52, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.8, 1, 0.84]
+      Intensity: 2.6
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Waiting_02_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "fde373881c950a7f24bee98d8af6a7d5"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [12.6, 2.5, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Sound_Waiting_Wind"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "a904c8cfd2c9d2dc62e5097f5f2dbdae"
+    Properties:
+      Radius: "9"
+      Sound: "/Game/Audio/AMB_Wind_Window"
+      Volume: "0.5"
+    Transform:
+      Translation: [14, 1.6, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Corridor_01_Fitting"
+    Class: "AActor"
+    GUID: "518b22ec13a88f18337bf5ec6f5bcc6f"
+    Transform:
+      Translation: [7.2, 2.8, -7.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Corridor_01"
+    Class: "AActor"
+    GUID: "8ca31e039f152df46cf639350909d6dc"
+    Transform:
+      Translation: [7.2, 2.52, -7.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 4.2
+      Radius: 6.5
+      Mobility: Stationary
+      CastShadows: true
+  - Name: "Light_Corridor_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "01536357ba5e206ec311b0035b634556"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [7.2, 2.5, -7.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Corridor_02_Fitting"
+    Class: "AActor"
+    GUID: "5c687788b98312352f7c20e7478ae1ce"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [7.2, 2.8, -10.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Corridor_03_Fitting"
+    Class: "AActor"
+    GUID: "35e047eaeebc5bbd33d67dbe941b3c2c"
+    Transform:
+      Translation: [7.2, 2.8, -13.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Corridor_03"
+    Class: "AActor"
+    GUID: "b44020fad0abd064cfaf50831803d28c"
+    Properties:
+      Flicker: "0.8"
+    Transform:
+      Translation: [7.2, 2.52, -13.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 4
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Corridor_03_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "b3c0bf82893dc70b65522e39cd6ff970"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [7.2, 2.5, -13.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Corridor_04_Fitting"
+    Class: "AActor"
+    GUID: "e71ac9f304220fcd00de23439faaf647"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [7.2, 2.8, -16.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Corridor_05_Fitting"
+    Class: "AActor"
+    GUID: "dc406e73c6905bac2cdb6b51efa54e42"
+    Transform:
+      Translation: [7.2, 2.8, -19.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Corridor_05"
+    Class: "AActor"
+    GUID: "6121cb92ed0789636cc55822c414fbbb"
+    Transform:
+      Translation: [7.2, 2.52, -19.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.8, 1, 0.84]
+      Intensity: 3.4
+      Radius: 6.5
+      Mobility: Stationary
+      CastShadows: true
+  - Name: "Light_Corridor_05_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "bf9bde80880f783d80b1c2a1cc15dcfa"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [7.2, 2.5, -19.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Corridor_06_Fitting"
+    Class: "AActor"
+    GUID: "c3ca4115f75953fa667b492e25b94f26"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [7.2, 2.8, -22.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Gurney_01"
+    Class: "AActor"
+    GUID: "fa1332583d4d04efe711ecdf3b806390"
+    Transform:
+      Translation: [6.55, 0, -12.9]
+      Rotation: [0, 4, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 98
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.65844727, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Wheelchair_02"
+    Class: "AActor"
+    GUID: "b6b7b9d4d40502a40b5656d4f64f3b7c"
+    Transform:
+      Translation: [7.85, 0, -19.6]
+      Rotation: [0, -160, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Wheelchair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 99
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8598633, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "IVStand_01"
+    Class: "AActor"
+    GUID: "ff85458e0810a4ab4a9872a69308f34d"
+    Transform:
+      Translation: [6.4, 0, -16.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_IVStand.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 100
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9375, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Trolley_01"
+    Class: "AActor"
+    GUID: "85cbf4bb0d7ce69ad4fb1cea49b76d17"
+    Transform:
+      Translation: [7.95, 0, -22.6]
+      Rotation: [0, 80, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Trolley.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 101
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.9169922, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Extinguisher_02"
+    Class: "AActor"
+    GUID: "9c4e6eec824375c989b8f994878607e4"
+    Transform:
+      Translation: [8.325, 0.25, -17.4]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Extinguisher.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 102
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9423828, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Clock_02"
+    Class: "AActor"
+    GUID: "9ac7f20146b27c59bd6993242ff43643"
+    Transform:
+      Translation: [6.075, 2.2, -10.6]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Clock.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 103
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9350586, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_03"
+    Class: "AActor"
+    GUID: "cd7493a86562e7a02824a84562aac283"
+    Transform:
+      Translation: [7.9, 0, -10.4]
+      Rotation: [0, 60, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 104
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.66259766, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "EnemySpawn_Corridor"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "b8ec04cbd3d40446490b0fe8beb38972"
+    Properties:
+      Type: "Patient"
+      WanderRadius: "5"
+    Transform:
+      Translation: [7.2, 0, -18.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Desk_01"
+    Class: "AActor"
+    GUID: "4ac51d58239d67d5c5bc476552036392"
+    Transform:
+      Translation: [1.6, 0, -9.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Desk.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 105
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.66674805, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_02"
+    Class: "AActor"
+    GUID: "84c2f585915bcf49c393ca77f106f4e2"
+    Transform:
+      Translation: [1.5, 0, -10.15]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 106
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.9016113, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_03"
+    Class: "AActor"
+    GUID: "5a2a44879c475c51df6c86696d173d9d"
+    Transform:
+      Translation: [1.8, 0, -8.5]
+      Rotation: [0, 170, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 107
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.82470703, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "MedicineCabinet_01"
+    Class: "AActor"
+    GUID: "4f90e5693d1533e340f7fc6e52e82b81"
+    Transform:
+      Translation: [0.3, 0, -7.6]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MedicineCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 108
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.36938477, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FilingCabinet_03"
+    Class: "AActor"
+    GUID: "34ecb35f600a2cb85f1913e541548047"
+    Transform:
+      Translation: [0.45, 0, -10]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_FilingCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 109
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6750488, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_01"
+    Class: "AActor"
+    GUID: "dba1311495da20758c6a54eaf7b06074"
+    Transform:
+      Translation: [4.4, 0, -6.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 110
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8312988, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRayViewer_01"
+    Class: "AActor"
+    GUID: "7c8cce79675c9c8585e5ab2a4f019642"
+    Transform:
+      Translation: [0.075, 1.35, -9]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_XRayViewer.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 111
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6791992, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Gurney_02"
+    Class: "AActor"
+    GUID: "c94ddc27a57db82bd57944db33823fcc"
+    Transform:
+      Translation: [2.3, 0, -6.55]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 112
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6833496, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "CurtainRail_01"
+    Class: "AActor"
+    GUID: "388d664710de737bf3ad06236f680fac"
+    Transform:
+      Translation: [2.3, 0, -7.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_CurtainRail.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 113
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_03"
+    Class: "AActor"
+    GUID: "fb3f0414ed4947ae111b029db2f19322"
+    Transform:
+      Translation: [5.3, 0, -6.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 114
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8203125, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Consult1_01_Fitting"
+    Class: "AActor"
+    GUID: "38e0aeb5473cc2f67f3c0b39f06ac658"
+    Transform:
+      Translation: [3, 2.8, -8.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Consult1_01"
+    Class: "AActor"
+    GUID: "fd1a2697a1741c47c747a39da45d7e5e"
+    Transform:
+      Translation: [3, 2.52, -8.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 3.6
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Consult1_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "d18030118ce73cb48b41c7a018974b75"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [3, 2.5, -8.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Pickup_Medkit_Consult1"
+    Class: "ALeonHorrorPickup"
+    GUID: "2304ea6cf3ee9ac51fc06e14ce86b188"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [1.2, 0.75, -9.55]
+      Rotation: [0, 15, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Medkit.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Note_Consult1"
+    Class: "ALeonHorrorNote"
+    GUID: "ba6bb68e6d4d6f965f1af39d3b3d28cf"
+    Properties:
+      Text: "Patient 14 no longer responds to his name. Reflexes exaggerated, pupils fixed.\\nHe does not sleep. He stands at the door of the ward and listens.\\nSedation has no effect at any dose. Recommend transfer. No reply from the county."
+      Title: "Referral, unsent"
+    Transform:
+      Translation: [1.95, 0.752, -9.6]
+      Rotation: [0, -8, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Note.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Desk_02"
+    Class: "AActor"
+    GUID: "694413b3d4cc2f429e8f8469be693a7e"
+    Transform:
+      Translation: [1.6, 0, -14.1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Desk.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 115
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6916504, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_04"
+    Class: "AActor"
+    GUID: "bc11bc7ccb25ae74d7c6f82fbf4c56d6"
+    Transform:
+      Translation: [1.5, 0, -14.65]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 116
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8334961, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_05"
+    Class: "AActor"
+    GUID: "fa1c9308c8902663a306ac7df4f334e3"
+    Transform:
+      Translation: [1.8, 0, -13]
+      Rotation: [0, 170, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 117
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8510742, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "MedicineCabinet_02"
+    Class: "AActor"
+    GUID: "3b69c5d9da90469dc00f9b9865e00169"
+    Transform:
+      Translation: [0.3, 0, -12.1]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MedicineCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 118
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.20019531, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FilingCabinet_04"
+    Class: "AActor"
+    GUID: "d69df9c03737983318c351bfc3b955ab"
+    Transform:
+      Translation: [0.45, 0, -14.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_FilingCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 119
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6958008, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_02"
+    Class: "AActor"
+    GUID: "f5977b5c589a741ad9a3422c5551f4b6"
+    Transform:
+      Translation: [4.4, 0, -10.575]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 120
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.85546875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRayViewer_02"
+    Class: "AActor"
+    GUID: "4a5de0c390008cfc84737e2d76df1997"
+    Transform:
+      Translation: [0.075, 1.35, -13.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_XRayViewer.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 121
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.6999512, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Gurney_03"
+    Class: "AActor"
+    GUID: "afedaa2412f29d061b6ff6335a416259"
+    Transform:
+      Translation: [2.3, 0, -11.05]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 122
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.70410156, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "CurtainRail_02"
+    Class: "AActor"
+    GUID: "3f5579744de5d95381870b00a5981b70"
+    Transform:
+      Translation: [2.3, 0, -11.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_CurtainRail.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 123
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.70825195, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_04"
+    Class: "AActor"
+    GUID: "3b0316521cd112468cfe64277caad82d"
+    Transform:
+      Translation: [5.3, 0, -11]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 124
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.83569336, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Consult2_01_Fitting"
+    Class: "AActor"
+    GUID: "de95b3ea1766b0d64e24a2a42babf40b"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [3, 2.8, -12.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Pickup_KeyPharmacy"
+    Class: "ALeonHorrorPickup"
+    GUID: "db8cf6eb0d04b4ed9b648f83498e80f8"
+    Properties:
+      Item: "Key.Pharmacy"
+    Transform:
+      Translation: [1.25, 0.752, -14.08]
+      Rotation: [0, 40, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Key.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Ammo_Consult2"
+    Class: "ALeonHorrorPickup"
+    GUID: "987299d08fa4cece2322a0c74f429457"
+    Properties:
+      Count: "6"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [2, 0.752, -14.05]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Ammo.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "EnemySpawn_Consult2"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "7d0ce2de7c7b64ca2a3ee1b7b82d279a"
+    Properties:
+      Type: "Patient"
+      WanderRadius: "2"
+    Transform:
+      Translation: [4.2, 0, -12.9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "ShelfMetal_01"
+    Class: "AActor"
+    GUID: "5e4ca7471a532550941798612a923124"
+    Transform:
+      Translation: [1, 0, -18.68]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 125
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.71240234, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "ShelfMetal_02"
+    Class: "AActor"
+    GUID: "0089cd1138ef931b064d0b28ed281cbd"
+    Transform:
+      Translation: [2.2, 0, -18.68]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 126
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.71655273, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "ShelfMetal_03"
+    Class: "AActor"
+    GUID: "51cbb4baa5618aac4c60f5e550be13c1"
+    Transform:
+      Translation: [3.4, 0, -18.68]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 127
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7207031, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "MedicineCabinet_03"
+    Class: "AActor"
+    GUID: "3e0dab00132fcf0b41aa6d6030a0ae79"
+    Transform:
+      Translation: [0.3, 0, -16]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MedicineCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 128
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.19213867, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "MedicineCabinet_04"
+    Class: "AActor"
+    GUID: "b821c02bc91bed370537fad211e56298"
+    Transform:
+      Translation: [0.3, 0, -17]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MedicineCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 129
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.28076172, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Desk_03"
+    Class: "AActor"
+    GUID: "d267e26c46cdaefdf7d9adf08b723fc4"
+    Transform:
+      Translation: [4.6, 0, -15.6]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Desk.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 130
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7248535, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Trolley_02"
+    Class: "AActor"
+    GUID: "effcfe3297cb02bd81225f3d47fd833e"
+    Transform:
+      Translation: [3, 0, -17]
+      Rotation: [0, 30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Trolley.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 131
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.857666, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_04"
+    Class: "AActor"
+    GUID: "268a0f799dc232f8ec43c921a2ef51cd"
+    Transform:
+      Translation: [5.3, 0, -18.3]
+      Rotation: [0, -15, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 132
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7290039, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Pharmacy_01_Fitting"
+    Class: "AActor"
+    GUID: "f7af83033aba5cc5ebab6cb9af2b5b2b"
+    Transform:
+      Translation: [1.8, 2.8, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Pharmacy_01"
+    Class: "AActor"
+    GUID: "3aa535940fa1d9e1b615ab0807c2c587"
+    Transform:
+      Translation: [1.8, 2.52, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3.4
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Pharmacy_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "f8dd033cb9b35b5a95a41df6bc0498d0"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [1.8, 2.5, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Pharmacy_02_Fitting"
+    Class: "AActor"
+    GUID: "e0ee94881980b1402ed9249c33f5c153"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [4.2, 2.8, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Pickup_Medkit_Pharmacy"
+    Class: "ALeonHorrorPickup"
+    GUID: "d391bfeadeab982ce6a2dc6ffd3297da"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [4.3, 0.752, -15.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Medkit.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Medkit_Pharmacy2"
+    Class: "ALeonHorrorPickup"
+    GUID: "d65549330febbb186b277feefb99a173"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [3, 0.846, -17]
+      Rotation: [0, 30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Medkit.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Ammo_Pharmacy"
+    Class: "ALeonHorrorPickup"
+    GUID: "59c7b960c5d714a48a128685c9ada8fd"
+    Properties:
+      Count: "8"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [5, 0.752, -15.62]
+      Rotation: [0, -20, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Ammo.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Locker_01"
+    Class: "AActor"
+    GUID: "94f5cf24190c9855b04d95d0b5050b27"
+    Transform:
+      Translation: [0.8, 0, -23.67]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Locker.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 133
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.67089844, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Locker_02"
+    Class: "AActor"
+    GUID: "34892861bba4d89c7affd1a22e09e724"
+    Transform:
+      Translation: [1.5, 0, -23.67]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Locker.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 134
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7331543, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Locker_03"
+    Class: "AActor"
+    GUID: "076db980559329be3fd4f694cdc72f89"
+    Transform:
+      Translation: [2.2, 0, -23.67]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Locker.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 135
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7373047, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Desk_04"
+    Class: "AActor"
+    GUID: "b098c13ff3ddcca807c0f63ee88812fd"
+    Transform:
+      Translation: [1.4, 0, -19.6]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Desk.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 136
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7414551, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_06"
+    Class: "AActor"
+    GUID: "c753d0cd9c3c39f173d1ba19d4fe3124"
+    Transform:
+      Translation: [1.5, 0, -20.3]
+      Rotation: [0, 190, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 137
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8378906, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_07"
+    Class: "AActor"
+    GUID: "85836f9dfb041af26eb22020e9c791e4"
+    Transform:
+      Translation: [4, 0, -21.6]
+      Rotation: [0, 60, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 138
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.84228516, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bench_06"
+    Class: "AActor"
+    GUID: "03ed256f695523c0b5aab9e48348944c"
+    Transform:
+      Translation: [0.45, 0, -21.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bench.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 139
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.74560547, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_03"
+    Class: "AActor"
+    GUID: "62e82b20447c7617a9c539cf4234d1cc"
+    Transform:
+      Translation: [4.6, 0, -19.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 140
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8532715, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Radiator_03"
+    Class: "AActor"
+    GUID: "ba9059561a703615e5263cb34b03e304"
+    Transform:
+      Translation: [0.075, 0, -20.6]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Radiator.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 141
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.74975586, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Clock_03"
+    Class: "AActor"
+    GUID: "3e6a56632d67a25407340be2316b0f06"
+    Transform:
+      Translation: [2.8, 2.2, -19.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Clock.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 142
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9362793, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Typewriter_02"
+    Class: "AActor"
+    GUID: "2bb0a9fe73e1a0e56d867aae44b5ea1e"
+    Transform:
+      Translation: [1.05, 0.75, -19.62]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Typewriter.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 143
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.82250977, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "SavePoint_Staff"
+    Class: "ALeonHorrorSavePoint"
+    GUID: "c9a4e2588a9223f5be6954c3eab19f4e"
+    Transform:
+      Translation: [1.05, 0.87, -19.65]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Pickup_KeyConsult"
+    Class: "ALeonHorrorPickup"
+    GUID: "ad93646f57938061f581ba616057976a"
+    Properties:
+      Item: "Key.Consult"
+    Transform:
+      Translation: [1.8, 0.752, -19.6]
+      Rotation: [0, -30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Key.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Pistol"
+    Class: "ALeonHorrorPickup"
+    GUID: "aa6a67ef6db4d5ed7dcc5494a4cf1224"
+    Properties:
+      Item: "Weapon.Pistol"
+    Transform:
+      Translation: [0.45, 0.44, -21.8]
+      Rotation: [0, 70, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Pistol.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Ammo_Staff"
+    Class: "ALeonHorrorPickup"
+    GUID: "d65ebc16d0adb74fed72d77b688bf815"
+    Properties:
+      Count: "6"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [0.45, 0.44, -22.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Ammo.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Note_Staff"
+    Class: "ALeonHorrorNote"
+    GUID: "71866aea63c7b30239f846c6e4c00e34"
+    Properties:
+      Text: "Marta - the spare for consulting room 2 is in my drawer, take it.\\nThe store room key went up to the ward with the night nurse and never came back.\\nIf the lights go in the north wing: fuses are in the store room, board is in the plant room."
+      Title: "Taped to the desk"
+    Transform:
+      Translation: [1.45, 0.752, -19.72]
+      Rotation: [0, 6, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Note.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Light_Staff_01_Fitting"
+    Class: "AActor"
+    GUID: "c069c2257bac23eb9797f98464d3128a"
+    Transform:
+      Translation: [3, 2.8, -21.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Staff_01"
+    Class: "AActor"
+    GUID: "28d1e78f60cf0df6034c1729d47afb1a"
+    Transform:
+      Translation: [3, 2.52, -21.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 3.8
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Staff_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "4b38e5bfc2919b3f7115918d042c7cc0"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [3, 2.5, -21.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Sound_Staff_Radio"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "6fa57c434e9e84e4e45e3092aa14a06c"
+    Properties:
+      Radius: "6"
+      Sound: "/Game/Audio/AMB_Static_Radio"
+      Volume: "0.45"
+    Transform:
+      Translation: [2, 0.9, -19.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "HospitalBed_01"
+    Class: "AActor"
+    GUID: "c4fc85fa7a909f936f0f997598b84227"
+    Transform:
+      Translation: [13.25, 0, -7.3]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_HospitalBed.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 144
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.36132812, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "IVStand_02"
+    Class: "AActor"
+    GUID: "b23996d53a021cfa6e949abc83713ae9"
+    Transform:
+      Translation: [13.9, 0, -8.05]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_IVStand.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 145
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9399414, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "HospitalBed_02"
+    Class: "AActor"
+    GUID: "a4fee1ac5b4654cf771f5aa6af8d154b"
+    Transform:
+      Translation: [13.25, 0, -9.5]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_HospitalBed.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 146
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.35327148, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "IVStand_03"
+    Class: "AActor"
+    GUID: "0757826fc9619a2834b31fc975c21085"
+    Transform:
+      Translation: [13.9, 0, -10.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_IVStand.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 147
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.9460449, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "HospitalBed_03"
+    Class: "AActor"
+    GUID: "ee0ed56d9cf646c3ff7baa524ddbf937"
+    Transform:
+      Translation: [13.25, 0, -11.7]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_HospitalBed.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 148
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.15991211, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "IVStand_04"
+    Class: "AActor"
+    GUID: "81e1cbf534ab33923322e04851d024d5"
+    Transform:
+      Translation: [13.9, 0, -12.45]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_IVStand.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 149
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.91918945, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "HospitalBed_04"
+    Class: "AActor"
+    GUID: "2d4371ec9732bb81697c0baa104e5d74"
+    Transform:
+      Translation: [9.6, 0, -9.9]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_HospitalBed.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 150
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.32910156, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "HospitalBed_05"
+    Class: "AActor"
+    GUID: "605caa06b9fc75b190eced314e9205f1"
+    Transform:
+      Translation: [9.6, 0, -11.9]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_HospitalBed.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 151
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.28881836, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "CurtainRail_03"
+    Class: "AActor"
+    GUID: "248e0b10863e6d7c707a746b68d1b5e8"
+    Transform:
+      Translation: [13.1, 0, -8.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_CurtainRail.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 152
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.75390625, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "CurtainRail_04"
+    Class: "AActor"
+    GUID: "59e54d99c455ee94218806f572e53ac7"
+    Transform:
+      Translation: [13.1, 0, -10.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_CurtainRail.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 153
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.75805664, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Trolley_03"
+    Class: "AActor"
+    GUID: "6b3fc35f749665ce1b54a46ac3c518e8"
+    Transform:
+      Translation: [11.3, 0, -11]
+      Rotation: [0, 10, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Trolley.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 154
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.9038086, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Monitor_01"
+    Class: "AActor"
+    GUID: "f1a9b5db23ecbd8ee0c42939d1252160"
+    Transform:
+      Translation: [11.3, 0.846, -11]
+      Rotation: [0, 200, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Monitor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 155
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.9082031, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Wheelchair_03"
+    Class: "AActor"
+    GUID: "b501964abe325f4b60b52ecd73a6182b"
+    Transform:
+      Translation: [11.4, 0, -7.2]
+      Rotation: [0, 40, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Wheelchair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 156
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.9104004, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_01"
+    Class: "AActor"
+    GUID: "564d15afca422450f961736324a99bd7"
+    Transform:
+      Translation: [8.8, 0, -12.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 157
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.91259766, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Radiator_04"
+    Class: "AActor"
+    GUID: "37e022a4257f014ac9afe5d0bf723f43"
+    Transform:
+      Translation: [14.325, 0, -8.4]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Radiator.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 158
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.76220703, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Ward_01_Fitting"
+    Class: "AActor"
+    GUID: "810a82339aa76f6799d461ed800abcbf"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [11.4, 2.8, -7.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Ward_02_Fitting"
+    Class: "AActor"
+    GUID: "888bc23bb3667feb0d7ca223a2fc21b1"
+    Transform:
+      Translation: [11.4, 2.8, -9.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Ward_02"
+    Class: "AActor"
+    GUID: "b6b9ac7401044624a8d6d17185d45de8"
+    Properties:
+      Flicker: "0.8"
+    Transform:
+      Translation: [11.4, 2.52, -9.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.8, 1, 0.84]
+      Intensity: 3.6
+      Radius: 6.5
+      Mobility: Stationary
+      CastShadows: true
+  - Name: "Light_Ward_02_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "7155e98393a339e793aebeb12e18fc6a"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [11.4, 2.5, -9.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Ward_03_Fitting"
+    Class: "AActor"
+    GUID: "3190b580048f3a721c1768ac95c3cfbf"
+    Properties:
+      PowerGroup: "Dead"
+    Transform:
+      Translation: [11.4, 2.8, -11.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Pickup_KeyStorage"
+    Class: "ALeonHorrorPickup"
+    GUID: "9051c5ac095d23df2f83710555a1de70"
+    Properties:
+      Item: "Key.Storage"
+    Transform:
+      Translation: [13.4, 0.63, -11.7]
+      Rotation: [0, 10, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Key.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Medkit_Ward"
+    Class: "ALeonHorrorPickup"
+    GUID: "eedbbe33b3668dc52e3f44198bbd40d9"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [9.6, 0.63, -11.9]
+      Rotation: [0, 80, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Medkit.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "EnemySpawn_Ward_A"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "ee8dbfa5fc9f25b93e4c5741c8b6c1f9"
+    Properties:
+      Type: "Patient"
+      WanderRadius: "3"
+    Transform:
+      Translation: [11, 0, -8.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "EnemySpawn_Ward_B"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "265f01acd6aa312a800fb223b8408f54"
+    Properties:
+      Type: "Patient"
+      WanderRadius: "2.5"
+    Transform:
+      Translation: [11.8, 0, -12]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "OperatingTable_01"
+    Class: "AActor"
+    GUID: "dda467ff64d8242bcd6aa35c24f8aa03"
+    Transform:
+      Translation: [11.4, 0, -15.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OperatingTable.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 159
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7663574, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRayViewer_03"
+    Class: "AActor"
+    GUID: "eed000698fbe44281ddd01634e1bd382"
+    Transform:
+      Translation: [10.4, 1.35, -17.425]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_XRayViewer.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 160
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7705078, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "XRayViewer_04"
+    Class: "AActor"
+    GUID: "b333afb23f5565cd5be0832ca702f4d6"
+    Transform:
+      Translation: [11.4, 1.35, -17.425]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_XRayViewer.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 161
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7746582, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Desk_05"
+    Class: "AActor"
+    GUID: "d3d321a2181d752496cb87d031a4b08c"
+    Transform:
+      Translation: [13.5, 0, -16.7]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Desk.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 162
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7788086, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Chair_08"
+    Class: "AActor"
+    GUID: "e527a433f8e4e17e62693f99510661ab"
+    Transform:
+      Translation: [13.4, 0, -16.1]
+      Rotation: [0, 175, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Chair.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 163
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8269043, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Monitor_02"
+    Class: "AActor"
+    GUID: "32112977b4eeffb14d26dec1048472f1"
+    Transform:
+      Translation: [13.7, 0.75, -16.75]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Monitor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 164
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.82910156, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FilingCabinet_05"
+    Class: "AActor"
+    GUID: "2b3c1c9fc73359dfcd519c31579e883c"
+    Transform:
+      Translation: [8.85, 0, -17]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_FilingCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 165
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.782959, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Locker_04"
+    Class: "AActor"
+    GUID: "96c5a894bdceceb12408826dca4ed244"
+    Transform:
+      Translation: [8.73, 0, -13.9]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Locker.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 166
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.7871094, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_XRay_01_Fitting"
+    Class: "AActor"
+    GUID: "96edf19d2ef26e744aedab9364973190"
+    Transform:
+      Translation: [11.4, 2.8, -15.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_XRay_01"
+    Class: "AActor"
+    GUID: "64cd49424a0e20c4ad99947adab69207"
+    Transform:
+      Translation: [11.4, 2.52, -15.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 2.4
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_XRay_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "4e6eeb7fcfbe73fba0b4869b3ed53ca7"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [11.4, 2.5, -15.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Pickup_Ammo_XRay"
+    Class: "ALeonHorrorPickup"
+    GUID: "0dfafb2a125cc03ed6c8d91ff3cfa5ac"
+    Properties:
+      Count: "6"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [13.1, 0.752, -16.7]
+      Rotation: [0, 35, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Ammo.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Note_XRay"
+    Class: "ALeonHorrorNote"
+    GUID: "170697f6b42b5b63bc101ea3ae01926b"
+    Properties:
+      Text: "Plates for patient 14 attached. I do not know what I am looking at.\\nThe long bones have thickened since Tuesday. The jaw is not the jaw on his admission plate.\\nI showed the orderly. He laughed, and he has not spoken since."
+      Title: "Radiographer's note"
+    Transform:
+      Translation: [12.7, 0.752, -16.72]
+      Rotation: [0, -10, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Note.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Toilet_01"
+    Class: "AActor"
+    GUID: "cd1f9ca85b6cffcb48873c6a0ececb9c"
+    Transform:
+      Translation: [9.2, 0, -19.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Toilet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 167
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.79125977, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Toilet_02"
+    Class: "AActor"
+    GUID: "521d81a5b377ee6ff6ff88cbd5c585eb"
+    Transform:
+      Translation: [10.3, 0, -19.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Toilet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 168
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.79541016, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Toilet_03"
+    Class: "AActor"
+    GUID: "482dc5811bf5054532053714bbcc5d09"
+    Transform:
+      Translation: [11.4, 0, -19.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Toilet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 169
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.79956055, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_04"
+    Class: "AActor"
+    GUID: "0c2e08c316212e539687f805644df857"
+    Transform:
+      Translation: [12.7, 0, -19.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 170
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8444824, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_05"
+    Class: "AActor"
+    GUID: "ea18f01a7a8cc82796658a59985f0861"
+    Transform:
+      Translation: [13.6, 0, -19.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 171
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8466797, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_05"
+    Class: "AActor"
+    GUID: "f82870ffb3ad1dec2a16c0e282b1d671"
+    Transform:
+      Translation: [14, 0, -18]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 172
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.84887695, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Toilets_01_Fitting"
+    Class: "AActor"
+    GUID: "69de51e59fa131350653452d5ce972e2"
+    Transform:
+      Translation: [11.4, 2.8, -18.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Toilets_01"
+    Class: "AActor"
+    GUID: "7dca4a88e75be86ce2c97339bdc983bd"
+    Properties:
+      Flicker: "0.8"
+    Transform:
+      Translation: [11.4, 2.52, -18.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Toilets_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "20754a2e4848cbd3b55948e1a3ad3543"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [11.4, 2.5, -18.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Sound_Toilets_Drip"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "28b2653fed9442cd149465310648a167"
+    Properties:
+      Radius: "8"
+      Sound: "/Game/Audio/AMB_Drip"
+      Volume: "0.7"
+    Transform:
+      Translation: [13.2, 0.9, -19.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Pickup_Ammo_Toilets"
+    Class: "ALeonHorrorPickup"
+    GUID: "d7609a8c0e6794875584c971cd17d458"
+    Properties:
+      Count: "4"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [8.9, 0, -18]
+      Rotation: [0, 50, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Ammo.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "ShelfMetal_04"
+    Class: "AActor"
+    GUID: "008b7865eb652d8d2605b77ec3cc9c91"
+    Transform:
+      Translation: [14.07, 0, -20.9]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 173
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.80371094, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "ShelfMetal_05"
+    Class: "AActor"
+    GUID: "be7c85dc2b29345195872cdbdf4ba053"
+    Transform:
+      Translation: [14.07, 0, -22.1]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 174
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.8078613, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "ShelfMetal_06"
+    Class: "AActor"
+    GUID: "e7dda56fe358a319f5529b3f4b0b1e00"
+    Transform:
+      Translation: [14.07, 0, -23.3]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 175
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.8120117, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "ShelfMetal_07"
+    Class: "AActor"
+    GUID: "2057c8dc4281066ab4a640f403ae463b"
+    Transform:
+      Translation: [10, 0, -23.67]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 176
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.8161621, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "ShelfMetal_08"
+    Class: "AActor"
+    GUID: "9ed6fb2a23e8954ae20bdc1c812d9111"
+    Transform:
+      Translation: [11.2, 0, -23.67]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 177
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.421875, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_05"
+    Class: "AActor"
+    GUID: "e801d79e196fa9d2777401771f829f9e"
+    Transform:
+      Translation: [9.6, 0, -21]
+      Rotation: [0, 10, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 178
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.43017578, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_06"
+    Class: "AActor"
+    GUID: "26a527031d2f17e86d9f856e91cbf1de"
+    Transform:
+      Translation: [11, 0, -20.7]
+      Rotation: [0, 100, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 179
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.43847656, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_07"
+    Class: "AActor"
+    GUID: "27b654353250aaee1fa8297cb69c225e"
+    Transform:
+      Translation: [12.4, 0, -22.2]
+      Rotation: [0, -40, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 180
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.44677734, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_02"
+    Class: "AActor"
+    GUID: "b9658892883b551a0cb08aaea5afb1de"
+    Transform:
+      Translation: [8.8, 0, -23.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 181
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.86206055, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_03"
+    Class: "AActor"
+    GUID: "7d843194e3df567d50f6dd1963950892"
+    Transform:
+      Translation: [9.15, 0, -23.55]
+      Rotation: [0, 30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 182
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8642578, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Storage_01_Fitting"
+    Class: "AActor"
+    GUID: "e56b0376299db5ad13d340c63a79d84d"
+    Transform:
+      Translation: [11.4, 2.8, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Storage_01"
+    Class: "AActor"
+    GUID: "75d79ee58eaabaa07e7bc1708dfab32d"
+    Transform:
+      Translation: [11.4, 2.52, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.93, 0.8]
+      Intensity: 2.6
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Storage_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "63e99169feb43a4077bf29146c9a13ee"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [11.4, 2.5, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Pickup_Fuse"
+    Class: "ALeonHorrorPickup"
+    GUID: "769cb70b91cdb1e361029c469a3947d9"
+    Properties:
+      Item: "Fuse"
+    Transform:
+      Translation: [11.2, 0.992, -23.64]
+      Rotation: [0, 20, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Fuse.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Medkit_Storage"
+    Class: "ALeonHorrorPickup"
+    GUID: "e14468d74518dabd60ae76d2ab4b04f0"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [10, 0.572, -23.64]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Medkit.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Sound_Storage_Pipes"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "41dbb2cc005a1bce1cbe714de71184e7"
+    Properties:
+      Radius: "10"
+      Sound: "/Game/Audio/AMB_Pipes"
+      Volume: "0.6"
+    Transform:
+      Translation: [11.4, 2.4, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Service_01_Fitting"
+    Class: "AActor"
+    GUID: "7951dc997afa4c3a91d9da1ad85e78d0"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [1.8, 2.8, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Service_01"
+    Class: "AActor"
+    GUID: "ccde07a9b9e0a20daf2e165808a23edd"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [1.8, 2.52, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3.4
+      Radius: 6.5
+      Mobility: Stationary
+      CastShadows: true
+  - Name: "Light_Service_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "59e1778b888883f4270f0e8b4fc49343"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [1.8, 2.5, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Service_02_Fitting"
+    Class: "AActor"
+    GUID: "5765df0bb92f25962a46e8e68525c0f1"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [5.4, 2.8, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Service_02"
+    Class: "AActor"
+    GUID: "80b4338a698dd74b2a0edfdefa538cf1"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [5.4, 2.52, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3.4
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Service_02_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "c70b98454cf37b41062637f491dc187a"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [5.4, 2.5, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Service_03_Fitting"
+    Class: "AActor"
+    GUID: "5d9d89751a38b1661803c3bf02849ac1"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [9, 2.8, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Service_03"
+    Class: "AActor"
+    GUID: "cf99ab86a152231cbc87ad342915359c"
+    Properties:
+      Flicker: "0.8"
+      PowerGroup: "North"
+    Transform:
+      Translation: [9, 2.52, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3.4
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Service_03_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "41b72aa335b4c6e1814d8c4d94bef2d4"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [9, 2.5, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Service_04_Fitting"
+    Class: "AActor"
+    GUID: "3984a311af32f38b511ad8d7e18bc934"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [12.6, 2.8, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Panel.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Service_04"
+    Class: "AActor"
+    GUID: "845ae92d9f931f61427397961673b464"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [12.6, 2.52, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3.4
+      Radius: 6.5
+      Mobility: Stationary
+      CastShadows: true
+  - Name: "Light_Service_04_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "948b0caf43bd067cc40b8b303ff204e5"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [12.6, 2.5, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Gurney_04"
+    Class: "AActor"
+    GUID: "8dad77aeeab15f34d2426ee15b7acbf4"
+    Transform:
+      Translation: [3.8, 0, -24.5]
+      Rotation: [0, 92, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 183
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.45507812, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Trolley_04"
+    Class: "AActor"
+    GUID: "7d9f35de9078416275dd790d5db634d8"
+    Transform:
+      Translation: [10.6, 0, -25.9]
+      Rotation: [0, -30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Trolley.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 184
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8664551, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_08"
+    Class: "AActor"
+    GUID: "f48c40d66f2806b0cc6bde93fe7fbd70"
+    Transform:
+      Translation: [13.5, 0, -24.6]
+      Rotation: [0, 20, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 185
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.4633789, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_04"
+    Class: "AActor"
+    GUID: "3b593585ddc017fc8836829c76246443"
+    Transform:
+      Translation: [0.4, 0, -24.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 186
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8708496, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Extinguisher_03"
+    Class: "AActor"
+    GUID: "210b8a625389f254a1b15fe1ea39638f"
+    Transform:
+      Translation: [9.6, 0.25, -24.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Extinguisher.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 187
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.95092773, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sound_Service_Vent"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "747790825e6aaefa2c760b9adb805c5c"
+    Properties:
+      PowerGroup: "North"
+      Radius: "12"
+      Sound: "/Game/Audio/AMB_Ventilation"
+      Volume: "0.6"
+    Transform:
+      Translation: [7.2, 2.5, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "EnemySpawn_Service"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "c0e0a655fd56a1263fb4735b1fc54443"
+    Properties:
+      Type: "Orderly"
+      WanderRadius: "4"
+    Transform:
+      Translation: [9.5, 0, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "OperatingTable_02"
+    Class: "AActor"
+    GUID: "b69c336a170a8618d29112d51aef31e8"
+    Transform:
+      Translation: [3, 0, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OperatingTable.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 188
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.4675293, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "SurgicalLamp_01"
+    Class: "AActor"
+    GUID: "e928e4d4fd401c0904184f77f68b3905"
+    Transform:
+      Translation: [2.6, 2.8, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_SurgicalLamp.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 189
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8730469, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Trolley_05"
+    Class: "AActor"
+    GUID: "051f72267f9fa18de1bbdf98bfa5d93a"
+    Transform:
+      Translation: [4.1, 0, -29.8]
+      Rotation: [0, 80, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Trolley.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 190
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.87524414, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Trolley_06"
+    Class: "AActor"
+    GUID: "26d2f0c0ec69f497fad7e1444b5a4c7a"
+    Transform:
+      Translation: [1.8, 0, -28.6]
+      Rotation: [0, -15, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Trolley.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 191
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8774414, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "IVStand_05"
+    Class: "AActor"
+    GUID: "1e9db29a4c0dda54d9a348932479cc45"
+    Transform:
+      Translation: [3.9, 0, -30.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_IVStand.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 16
+      LightmapIndex: 192
+      LightmapScale: [0.0009765625, 0.03125]
+      LightmapBias: [0.92407227, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Monitor_03"
+    Class: "AActor"
+    GUID: "350cbfeeb779e5d9eb71d9689da8fa91"
+    Transform:
+      Translation: [4.1, 0.846, -29.8]
+      Rotation: [0, -100, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Monitor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 193
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8796387, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "MedicineCabinet_05"
+    Class: "AActor"
+    GUID: "aa66dfb41b5ab6a3e06762520a26ae4a"
+    Transform:
+      Translation: [0.3, 0, -31]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MedicineCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 194
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.26464844, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "MedicineCabinet_06"
+    Class: "AActor"
+    GUID: "9df052986c42ade2c29725f3c7534c56"
+    Transform:
+      Translation: [0.3, 0, -30]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MedicineCabinet.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 195
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.13574219, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_06"
+    Class: "AActor"
+    GUID: "599a1c77c5eaa09cb8ed8d108334e0b7"
+    Transform:
+      Translation: [1.2, 0, -32.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 196
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8840332, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_07"
+    Class: "AActor"
+    GUID: "0838d81455ba02281a86519fb284e971"
+    Transform:
+      Translation: [2.1, 0, -32.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 197
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.88623047, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_05"
+    Class: "AActor"
+    GUID: "804b2831a4805a7fce44b0834b8fc5e5"
+    Transform:
+      Translation: [5.5, 0, -31.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 198
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.88842773, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_06"
+    Class: "AActor"
+    GUID: "07e4448f6ab99e775bcb52063747404b"
+    Transform:
+      Translation: [5.4, 0, -27]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 199
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.890625, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Theatre_01_Fitting"
+    Class: "AActor"
+    GUID: "3e95a6d78bcd044439a43104acca65d7"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [1.5, 2.8, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Theatre_01"
+    Class: "AActor"
+    GUID: "4b3e0897f2382bb8dbc1894d9e2e2629"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [1.5, 2.52, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Theatre_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "e023309ebcaa6878e358de4ce06b5cf9"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [1.5, 2.5, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Theatre_02_Fitting"
+    Class: "AActor"
+    GUID: "3d8c30e99201d381fc97550e7a7d0555"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [4.5, 2.8, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Theatre_02"
+    Class: "AActor"
+    GUID: "aa6028bc2c7e283afd854a994293d7ac"
+    Properties:
+      Flicker: "0.8"
+      PowerGroup: "North"
+    Transform:
+      Translation: [4.5, 2.52, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 3
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Theatre_02_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "bcf630e384d8514cb7e800581c8e55c2"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [4.5, 2.5, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Theatre_Lamp"
+    Class: "AActor"
+    GUID: "37590c6108a7b2b2bb4b02f78451b97d"
+    Transform:
+      Translation: [3, 1.8, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SpotLight:
+      Enabled: true
+      Direction: [0, -1, 0]
+      Color: [0.9, 0.97, 1]
+      Intensity: 26
+      Radius: 5
+      CutOff: 26
+      OuterCutOff: 40
+      Mobility: Stationary
+  - Name: "Pickup_Ammo_Theatre"
+    Class: "ALeonHorrorPickup"
+    GUID: "6a3309344e22ce029c91e813cef18727"
+    Properties:
+      Count: "10"
+      Item: "Ammo.Pistol"
+    Transform:
+      Translation: [1.8, 0.846, -28.6]
+      Rotation: [0, 15, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Ammo.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Pickup_Medkit_Theatre"
+    Class: "ALeonHorrorPickup"
+    GUID: "6977d288359e8e7f23b0d9e2ff613a13"
+    Properties:
+      Item: "Medkit"
+    Transform:
+      Translation: [4.1, 0.24, -29.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Medkit.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "EnemySpawn_Theatre"
+    Class: "ALeonHorrorEnemySpawn"
+    GUID: "f250a906e9e076132e144e7e5c7e05b8"
+    Properties:
+      Type: "Orderly"
+      WanderRadius: "2.5"
+    Transform:
+      Translation: [4.6, 0, -28]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "MorgueDrawers_01"
+    Class: "AActor"
+    GUID: "087a676a342417ca3b22f3dc793c2400"
+    Transform:
+      Translation: [8, 0, -32.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_MorgueDrawers.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 200
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.12768555, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Gurney_05"
+    Class: "AActor"
+    GUID: "eebb8e2b550e29b50b75303370a6d487"
+    Transform:
+      Translation: [7, 0, -29]
+      Rotation: [0, 5, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 201
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.47583008, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Gurney_06"
+    Class: "AActor"
+    GUID: "4356999852563411371acdf44e2aca15"
+    Transform:
+      Translation: [9, 0, -28.4]
+      Rotation: [0, -12, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 202
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.48413086, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sink_08"
+    Class: "AActor"
+    GUID: "d035ce4732055d4eaf9f12b3bbd6b5f6"
+    Transform:
+      Translation: [6.075, 0, -27.6]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Sink.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 203
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.8972168, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Bin_07"
+    Class: "AActor"
+    GUID: "a07be894ccb88e1fe72233745b69189b"
+    Transform:
+      Translation: [9.5, 0, -26.9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Bin.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 204
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.89941406, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Morgue_01_Fitting"
+    Class: "AActor"
+    GUID: "71247e8419f9d763807d804f63fab5ec"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [8, 2.8, -28.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Morgue_01"
+    Class: "AActor"
+    GUID: "ddfac996c75cc97ff0a97b72e7558dde"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [8, 2.52, -28.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 2.8
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Morgue_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "f0498ad0d6b6ef8f7c1194b504ce0ed5"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [8, 2.5, -28.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Light_Morgue_02_Fitting"
+    Class: "AActor"
+    GUID: "5d22db19f14a53bb5e0d8971e3248c8e"
+    Properties:
+      PowerGroup: "North"
+    Transform:
+      Translation: [8, 2.8, -30.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Morgue_02"
+    Class: "AActor"
+    GUID: "74eede638d8ed1da7c996bb9e1654c32"
+    Properties:
+      Flicker: "0.8"
+      PowerGroup: "North"
+    Transform:
+      Translation: [8, 2.52, -30.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [0.82, 0.92, 1]
+      Intensity: 2.2
+      Radius: 6.5
+      Mobility: Stationary
+  - Name: "Light_Morgue_02_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "d26ca6974b59eb58ff84d28dbb1c283e"
+    Properties:
+      PowerGroup: "North"
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Flicker"
+      Volume: "0.55"
+    Transform:
+      Translation: [8, 2.5, -30.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Sound_Morgue_Fridge"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "0541500475dec557e62903f8d69f22f0"
+    Properties:
+      PowerGroup: "North"
+      Radius: "9"
+      Sound: "/Game/Audio/AMB_Fridge"
+      Volume: "0.7"
+    Transform:
+      Translation: [8, 1.2, -32]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Pickup_KeyBay"
+    Class: "ALeonHorrorPickup"
+    GUID: "e22a69cf3cdde6872cd1af1593763d5d"
+    Properties:
+      Item: "Key.Bay"
+    Transform:
+      Translation: [8, 0.255, -31.6]
+      Rotation: [0, 60, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Key.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Note_Morgue"
+    Class: "ALeonHorrorNote"
+    GUID: "0b541fb43ac1d26a41924077734bf9d4"
+    Properties:
+      Text: "No. 14. Time of death 02:10. Cause: withheld on Dr. Varga's instruction.\\nBay key returned with the body - the driver would not come in for it.\\n02:50. The drawer is open and it is empty."
+      Title: "Tag, hand written"
+    Transform:
+      Translation: [7, 0.872, -29]
+      Rotation: [0, 85, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Note.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Boiler_01"
+    Class: "AActor"
+    GUID: "f57e02eb8f6b1b4540f2a325470ac5b2"
+    Transform:
+      Translation: [13.2, 0, -31]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boiler.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 128
+      LightmapIndex: 205
+      LightmapScale: [0.0078125, 0.25]
+      LightmapBias: [0.3935547, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FuseBox_01"
+    Class: "AActor"
+    GUID: "86aed97f149e2e847c3355762850c264"
+    Transform:
+      Translation: [10.075, 0, -29]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_FuseBox.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 206
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.49243164, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "FuseBox_North"
+    Class: "ALeonHorrorFuseBox"
+    GUID: "06ff1c3ca485bfdd6133d3d736119616"
+    Properties:
+      Group: "North"
+      RequiredItem: "Fuse"
+    Transform:
+      Translation: [10.075, 0, -29]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "ShelfMetal_09"
+    Class: "AActor"
+    GUID: "e9cdd184e7b0e7e30095859c52fe5c56"
+    Transform:
+      Translation: [11, 0, -32.07]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_ShelfMetal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 207
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5007324, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_09"
+    Class: "AActor"
+    GUID: "b6188066298c6fba914c5ba203b6c6b2"
+    Transform:
+      Translation: [11, 0, -27.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 208
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5090332, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_06"
+    Class: "AActor"
+    GUID: "230f71ce7be23ee79f85797942287c46"
+    Transform:
+      Translation: [14, 0, -26.9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 209
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.90600586, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Radiator_05"
+    Class: "AActor"
+    GUID: "c9c011e0da30e9f17a093817d8badaa1"
+    Transform:
+      Translation: [14.325, 0, -27.9]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Radiator.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 210
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.517334, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Plant_01_Fitting"
+    Class: "AActor"
+    GUID: "f2fba9135437dfed82014f2b18b59c87"
+    Transform:
+      Translation: [12.2, 2.8, -28.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Plant_01"
+    Class: "AActor"
+    GUID: "c1671ce016e06c1969ccc2bbac5f19be"
+    Transform:
+      Translation: [12.2, 2.52, -28.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.55, 0.35]
+      Intensity: 1.6
+      Radius: 5
+      Mobility: Stationary
+  - Name: "Light_Plant_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "288b2e21eaf2ac240556218824ebdd7a"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [12.2, 2.5, -28.8]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Sound_Plant_Generator"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "998e04389b3824576b8a8d300ff96898"
+    Properties:
+      PowerGroup: "North"
+      Radius: "12"
+      Sound: "/Game/Audio/AMB_Generator"
+      Volume: "0.7"
+    Transform:
+      Translation: [13.2, 1, -31]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Note_Plant"
+    Class: "ALeonHorrorNote"
+    GUID: "edf91afa1e609340930c1bc4a20c41fe"
+    Properties:
+      Text: "North wing board. One cartridge fuse, 60 A. Fit, then throw the lever.\\nFeeds: service corridor, theatre, cold room and its door lock.\\nDo NOT bridge it with wire again. - J."
+      Title: "Maintenance card"
+    Transform:
+      Translation: [11, 0.992, -32.04]
+      Rotation: [0, 5, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Item_Note.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Gurney_07"
+    Class: "AActor"
+    GUID: "e3ac77da124284ee9a78ba70c981b8c2"
+    Transform:
+      Translation: [15.6, 0, -25.4]
+      Rotation: [0, 80, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 211
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.52978516, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Boxes_10"
+    Class: "AActor"
+    GUID: "d0355da3604e033c6ca207edf0751587"
+    Transform:
+      Translation: [17.4, 0, -27.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_Boxes.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 212
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.53808594, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "OxygenTank_07"
+    Class: "AActor"
+    GUID: "ab4add18002f8b7fa85539714a79ddcb"
+    Transform:
+      Translation: [14.8, 0, -27.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Prop_OxygenTank.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Static
+      LightmapResolution: 32
+      LightmapIndex: 213
+      LightmapScale: [0.001953125, 0.0625]
+      LightmapBias: [0.9147949, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Light_Bay_01_Fitting"
+    Class: "AActor"
+    GUID: "b9d0f9fb23b38af498cc42a5f62c9f80"
+    Transform:
+      Translation: [16.2, 2.8, -26]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Light_Tube.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+      MaterialOverrides:
+        - Slot: 1
+          Asset: "/Game/Materials/M_ClinicLightDiffuser.lmat"
+  - Name: "Light_Bay_01"
+    Class: "AActor"
+    GUID: "b79f4af3de11e24c6d2753fe4a4785c7"
+    Transform:
+      Translation: [16.2, 2.52, -26]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PointLight:
+      Enabled: true
+      Color: [1, 0.5, 0.4]
+      Intensity: 2
+      Radius: 6
+      Mobility: Stationary
+  - Name: "Light_Bay_01_Hum"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "0cc5f18c459b7c67c807917cf4bae986"
+    Properties:
+      Radius: "5"
+      Sound: "/Game/Audio/AMB_Fluorescent_Hum"
+      Volume: "0.35"
+    Transform:
+      Translation: [16.2, 2.5, -26]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Name: "Exit_Frame"
+    Class: "AActor"
+    GUID: "9f076328701e175b1ba9a484854d54e4"
+    Transform:
+      Translation: [18, 0, -26]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_DoorFrame_Single.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Static
+      LightmapResolution: 64
+      LightmapIndex: 214
+      LightmapScale: [0.00390625, 0.125]
+      LightmapBias: [0.5463867, 0.0078125]
+      LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Exit"
+    Class: "ALeonHorrorExit"
+    GUID: "33964cadf64e125edb902286678d2b2f"
+    Transform:
+      Translation: [17.925, 0, -25.55]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Door_Metal.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Sound_Bay_Wind"
+    Class: "ALeonHorrorAmbientSound"
+    GUID: "0cddcced3d77c92f3a7489c8ea44c0ee"
+    Properties:
+      Radius: "9"
+      Sound: "/Game/Audio/AMB_Wind_Window"
+      Volume: "0.8"
+    Transform:
+      Translation: [17.6, 1.4, -26]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
