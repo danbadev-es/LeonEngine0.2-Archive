@@ -14,6 +14,7 @@ import os
 from . import materials as material_library
 from . import mesh as meshes
 from . import sheet
+from . import shell
 
 PIECES = {}
 
@@ -160,6 +161,9 @@ def light_panel(m):
 # --------------------------------------------------------------------------------------------------
 
 
+shell.register(PIECES)
+
+
 def run(args):
     names = args["only"] or sorted(PIECES)
     folder = os.path.join(args["out"], "Raw", "Meshes")
@@ -190,8 +194,13 @@ def run(args):
         points = [vertex.co for vertex in obj.data.vertices]
         return max(max(p[i] for p in points) - min(p[i] for p in points) for i in range(3))
 
-    large = [obj for obj in built if longest(obj) > 3.0]
-    small = [obj for obj in built if longest(obj) <= 3.0]
+    # The room shells are shown together where they stand, from above and without their ceilings.
+    shells = [obj for obj in built if obj.name.startswith("SM_Clinic_")]
+    others = [obj for obj in built if not obj.name.startswith("SM_Clinic_")]
+    if shells:
+        print("SHEET", sheet.render_plan(shells, os.path.join(args["out"], "Sheets", "Clinic_Plan.png")))
+    large = [obj for obj in others if longest(obj) > 3.0]
+    small = [obj for obj in others if longest(obj) <= 3.0]
     for label, group in (("Large", large), ("Small", small)):
         if group:
             print("SHEET", sheet.render(group, os.path.join(args["out"], "Sheets", "Meshes_%s.png" % label)))

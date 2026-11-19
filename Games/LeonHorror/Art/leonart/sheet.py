@@ -145,3 +145,71 @@ def render(objects, path, resolution=(1600, 900), samples=48):
     for extra in [ground, camera] + lights:
         bpy.data.objects.remove(extra, do_unlink=True)
     return path
+
+
+def setup_cycles(scene, samples):
+    scene.render.engine = "CYCLES"
+    scene.cycles.samples = samples
+    scene.cycles.use_denoising = True
+    try:
+        preferences = bpy.context.preferences.addons["cycles"].preferences
+        preferences.compute_device_type = "OPTIX"
+        preferences.get_devices()
+        for device in preferences.devices:
+            device.use = device.type != "CPU"
+        scene.cycles.device = "GPU"
+    except Exception:
+        scene.cycles.device = "CPU"
+    scene.render.image_settings.file_format = "PNG"
+    scene.view_settings.view_transform = "AgX"
+
+
+def render_plan(objects, path, pixels_per_metre=48, samples=32):
+    """
+    The building from straight above, ceilings left out: the plan as it was actually modelled,
+    with the wall finishes and the doorways where they ended up.
+    """
+    scene = bpy.context.scene
+    shown = [obj for obj in objects if not obj.name.endswith("_Ceiling")]
+    hidden = [obj for obj in scene.objects if obj not in shown and not obj.hide_render]
+    for obj in hidden:
+        obj.hide_render = True
+
+    points = [vertex.co for obj in shown for vertex in obj.data.vertices]
+    low = Vector((min(p.x for p in points), min(p.y for p in points), 0.0))
+    high = Vector((max(p.x for p in points), max(p.y for p in points), max(p.z for p in points)))
+    centre = (low + high) * 0.5
+    width, depth = high.x - low.x + 1.0, high.y - low.y + 1.0
+
+    camera_data = bpy.data.cameras.new("PlanCamera")
+    camera_data.type = "ORTHO"
+    camera_data.ortho_scale = max(width, depth)
+    camera = bpy.data.objects.new("PlanCamera", camera_data)
+    scene.collection.objects.link(camera)
+    camera.location = Vector((centre.x, centre.y, high.z + 20.0))
+    scene.camera = camera
+
+    sun_data = bpy.data.lights.new("PlanSun", "SUN")
+    sun_data.energy = 3.0
+    sun_data.angle = math.radians(25.0)
+    sun = bpy.data.objects.new("PlanSun", sun_data)
+    scene.collection.objects.link(sun)
+    sun.rotation_euler = (math.radians(28.0), math.radians(18.0), 0.0)
+
+    world = bpy.data.worlds.new("PlanWorld")
+    world.use_nodes = True
+    world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.35, 0.35, 0.37, 1.0)
+    scene.world = world
+
+    setup_cycles(scene, samples)
+    scene.render.resolution_x = int(max(width, depth) * pixels_per_metre * width / max(width, depth))
+    scene.render.resolution_y = int(max(width, depth) * pixels_per_metre * depth / max(width, depth))
+    scene.render.filepath = path
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    bpy.ops.render.render(write_still=True)
+
+    for obj in hidden:
+        obj.hide_render = False
+    for extra in (camera, sun):
+        bpy.data.objects.remove(extra, do_unlink=True)
+    return path
