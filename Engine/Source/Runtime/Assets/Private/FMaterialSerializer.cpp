@@ -102,10 +102,14 @@ namespace Leon {
             alphaModeStr = "Mask";
         else if (InMaterial.GetAlphaMode() == EAlphaMode::Blend)
             alphaModeStr = "Blend";
+        else if (InMaterial.GetAlphaMode() == EAlphaMode::Decal)
+            alphaModeStr = "Decal";
         ss << "  AlphaMode: \"" << alphaModeStr << "\"\n";
         ss << "  AlphaCutoff: " << InMaterial.GetAlphaCutoff() << "\n";
         if (InMaterial.GetOpacity() != 1.0f)
             ss << "  Opacity: " << InMaterial.GetOpacity() << "\n";
+        if (InMaterial.GetSortPriority() != 0)
+            ss << "  SortPriority: " << InMaterial.GetSortPriority() << "\n";
         ss << "  DoubleSided: " << (InMaterial.GetDoubleSided() ? "true" : "false") << "\n";
         ss << "  UVTiling: [" << InMaterial.GetUVTiling().x << ", " << InMaterial.GetUVTiling().y << "]\n";
         ss << "  UVOffset: [" << InMaterial.GetUVOffset().x << ", " << InMaterial.GetUVOffset().y << "]\n";
@@ -204,6 +208,8 @@ namespace Leon {
                 OutMaterial.SetAlphaCutoff(MaterialUtils::ParseFloat(value, 0.5f));
             else if (key == "Opacity")
                 OutMaterial.SetOpacity(std::clamp(MaterialUtils::ParseFloat(value, 1.0f), 0.0f, 1.0f));
+            else if (key == "SortPriority")
+                OutMaterial.SetSortPriority(static_cast<int32_t>(MaterialUtils::ParseFloat(value, 0.0f)));
             else if (key == "DoubleSided")
                 OutMaterial.SetDoubleSided(MaterialUtils::ParseBool(value, false));
             else if (key == "AlphaMode") {
@@ -213,6 +219,8 @@ namespace Leon {
                     OutMaterial.SetAlphaMode(EAlphaMode::Mask);
                 else if (mode == "blend" || mode == "translucent")
                     OutMaterial.SetAlphaMode(EAlphaMode::Blend);
+                else if (mode == "decal")
+                    OutMaterial.SetAlphaMode(EAlphaMode::Decal);
                 else
                     OutMaterial.SetAlphaMode(EAlphaMode::Opaque);
             } else if (key == "UVTiling") {

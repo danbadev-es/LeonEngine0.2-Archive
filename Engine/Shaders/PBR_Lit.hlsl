@@ -19,7 +19,8 @@ cbuffer MaterialConstants : register(b2) {
     float4 u_SurfaceParams;  // x = metallic, y = roughness, z = ambient occlusion, w = normal scale
     float4 u_SurfaceParams2; // x = occlusion strength, y = alpha cutoff
     float4 u_UVTransform;    // xy = tiling, zw = offset
-    int4 u_MaterialFlags;    // x = texture bits (below), y = alpha mode (0 opaque, 1 mask, 2 blend), z = double sided,
+    int4 u_MaterialFlags;    // x = texture bits (below), y = alpha mode (0 opaque, 1 mask, 2 blend, 3 decal),
+                             // z = double sided,
                              // w = the three masks are one texture: occlusion red, roughness green, metalness blue
 };
 
@@ -60,6 +61,9 @@ cbuffer InstanceConstants : register(b4) {
     FInstance u_Instances[MAX_INSTANCES];
 };
 #endif
+
+// Below this alpha (half a step of an 8-bit texture) a decal leaves the surface under it untouched.
+static const float kDecalMinAlpha = 0.5 / 255.0;
 
 Texture2D<float4> t_Albedo : register(t0);
 Texture2D<float4> t_Normal : register(t1);
@@ -177,6 +181,9 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
         albedoSample = t_Albedo.Sample(s_LinearWrap, uv);
     const float alpha = albedoSample.a * u_AlbedoColor.a; // the colour's alpha is the material's opacity
     if (u_MaterialFlags.y == 1 && alpha < u_SurfaceParams2.y)
+        discard;
+    // A decal is mostly the empty part of its quad: nothing is lit or blended where it would not show.
+    if (u_MaterialFlags.y == 3 && alpha < kDecalMinAlpha)
         discard;
     const float3 albedo = u_AlbedoColor.rgb * albedoSample.rgb;
 

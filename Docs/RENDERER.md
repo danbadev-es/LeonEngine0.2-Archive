@@ -39,7 +39,7 @@ lights             the point and spot lights that get the shader's slots, by imp
 probe captures     only while a reflection probe has no cube yet: two views of the static level a frame
 shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
-scene pass (HDR)   opaque → skinned outlines → sky → blended (back to front) → queued world-space batches
+scene pass (HDR)   opaque → decals → skinned outlines → sky → blended (back to front) → queued world-space batches
 post-processing    ambient occlusion → bloom → tone mapping and the look of the map → FXAA → film grain, into the output
 ```
 
@@ -247,6 +247,85 @@ rooms is a blend of two cubes, not a view through the door; the reflection is of
 captured, so an open door, a moved crate or a character is not in it; with a black sky the fade
 outside the last box goes to black. Placing or moving a probe does not make the lightmap bake stale.
 There is nothing in the editor to edit the block; probes are captured again when their actor moves.
+
+## Decals: marks laid over the level's surfaces
+
+A stain, a damp patch, blood, scratches, a marking on a floor: one texture set that can lie on any
+wall without the wall needing a second set of maps. A decal is ordinary geometry (a quad, or a strip
+fitted to the surface it lies on, on that surface or a millimetre proud of it) with a material whose
+`AlphaMode` is `Decal`. It is drawn with the surface shader like everything else: lit by the same
+lights, shadowed by the same shadow maps, reflecting the same probes. Nothing is projected in screen
+space.
+
+- **Material** (`.lmat`): `AlphaMode: "Decal"`. The alpha of a pixel is the alpha of the albedo map
+  times `Opacity`; where it is below half a step of an 8-bit texture the pixel is dropped before any
+  lighting is done, so the empty part of a decal's quad costs next to nothing. A normal map and an
+  ORM map are the decal's own: the decal is lit with its own normal, roughness and metalness, and
+  that lit colour is mixed over the lit surface by the alpha. That is as far as a forward renderer
+  goes: the surface under a decal keeps its own normal and roughness, they are not blended into.
+- **`SortPriority`** (`.lmat`, a whole number, default 0, may be negative): among decals the lower is
+  drawn first, so the higher lies on top where two overlap. Decals of equal priority are drawn in the
+  order their actors came into the world, which for a map is the order of the file: the later one is
+  on top. Other materials ignore the key; it is written only when it is not 0.
+- **Depth.** A decal is tested against the depth buffer and does not write to it. It is drawn pulled
+  towards the camera (`kDecalDepthBias`, `kDecalSlopeScaledDepthBias` in `FWorldRendererRHI.cpp`), so
+  a decal in the very plane of its surface never fights it, at any angle. The pull is about a
+  millimetre at 5 m and grows with the square of the distance (two centimetres at 20 m): a decal
+  does not show through something standing in front of it unless that thing is closer to it than
+  that.
+- **Order in the frame.** After the opaque surfaces, before skinned outlines, the sky and every other
+  blended surface (glass, particles, world text): those are drawn over the decals. Blended surfaces
+  are not sorted against decals: a decal in front of a pane of glass is still drawn before it.
+- **What a decal is left out of.** Shadow maps (it casts no shadow), ambient occlusion and the
+  volumetric fog (both read the depth buffer, which it does not touch), and the lightmap bake (below).
+  Reflection captures draw the decals they collect, after their opaque surfaces: a planar reflection
+  shows decals that are not Movable, a reflection probe those that are Static. Placed as Movable, as
+  below, a decal is in neither.
+- **Placing one.** A static mesh actor, Movable, without collision and without a lightmap, whose
+  material is the decal:
+
+```text
+  - Name: "Decal_BloodPool_Ward"
+    Class: "AActor"
+    Transform:
+      Translation: [4.2, 0.001, -7.6]
+      Rotation: [0, 35, 0]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Floor.lmesh"
+      CastShadows: false
+      Collision: false
+      Mobility: Movable
+      MaterialOverrides:
+        - Slot: 0
+          Asset: "/Game/Materials/M_DecalBloodPool.lmat"
+```
+
+The override is only needed where the mesh does not name the decal material itself.
+
+```text
+Material:
+  AlphaMode: "Decal"
+  Opacity: 0.9
+  SortPriority: 2
+  AlbedoMap: "/Game/Textures/T_DecalBloodPool_Color.ltex"     # its alpha is the shape of the decal
+  NormalMap: "/Game/Textures/T_DecalBloodPool_Normal.ltex"
+  ORMMap: "/Game/Textures/T_DecalBloodPool_ORM.ltex"
+```
+
+- **Ambient light.** A decal has no lightmap, so its ambient light is that of the map's light probes,
+  one sample for the whole decal at the middle of its bounds (next section). Its direct light is what
+  the lights give it at run time: under a Static light, which is only in the lightmaps, a decal
+  takes the light of the probes and nothing else.
+- **Bakes.** The baker leaves out every actor whose materials are all decals
+  (`FLightmapBakeInputs::IsDecal`), whatever its mobility: no chart in the lightmap, no shadow, no
+  bounce. It is left out of the bake hash too, so decals can be added to a baked map, moved and
+  removed without a new bake.
+
+Limits: the ambient light of a decal is one sample, not the lightmap of the wall under it, so a decal
+in a baked shadow (under a bed) is lit like the open floor next to it and can look lighter than the
+wall around it where its alpha is high; a decal is flat geometry and does not wrap around a corner
+unless its mesh does; draw calls are not instanced, one per decal; in the debug views of the surface
+shader a decal covers its whole quad where its alpha is not zero.
 
 ## Ambient light for characters and moving things
 

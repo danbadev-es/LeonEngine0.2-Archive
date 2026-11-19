@@ -452,6 +452,8 @@ namespace Leon {
                 auto& smc = actorRef->GetComponent<FStaticMeshComponent>();
                 if (smc.Mobility != EComponentMobility::Static || !smc.StaticMesh)
                     continue;
+                if (FLightmapBakeInputs::IsDecal(*actorRef))
+                    continue;
                 PersistMissingLightmapUVs(*smc.StaticMesh);
             }
         }
@@ -615,7 +617,9 @@ namespace Leon {
         for (auto& actorRef : world->GetAllActors()) {
             if (!actorRef)
                 continue;
-            if (actorRef->HasComponent<FStaticMeshComponent>()) {
+            // Decals have no chart, and are not expected to.
+            const bool bDecal = FLightmapBakeInputs::IsDecal(*actorRef);
+            if (!bDecal && actorRef->HasComponent<FStaticMeshComponent>()) {
                 auto& smc = actorRef->GetComponent<FStaticMeshComponent>();
                 if (smc.Mobility == EComponentMobility::Static) {
                     ++staticMeshes;
@@ -624,7 +628,7 @@ namespace Leon {
                         ++badCharts;
                 }
             }
-            if (actorRef->HasComponent<FMeshComponent>()) {
+            if (!bDecal && actorRef->HasComponent<FMeshComponent>()) {
                 auto& mc = actorRef->GetComponent<FMeshComponent>();
                 if (mc.Mobility == EComponentMobility::Static) {
                     ++staticMeshes;
@@ -786,6 +790,10 @@ namespace Leon {
 
         for (auto& actorRef : world->GetAllActors()) {
             if (!actorRef)
+                continue;
+            // A decal is a mark on a surface: it gets no lightmap of its own, and it must neither
+            // shadow the surface it lies on nor tint the light that surface bounces.
+            if (FLightmapBakeInputs::IsDecal(*actorRef))
                 continue;
 
             if (actorRef->HasComponent<FStaticMeshComponent>()) {

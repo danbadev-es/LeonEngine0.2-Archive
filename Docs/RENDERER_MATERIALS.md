@@ -7,7 +7,8 @@ PBR materials for LeonEngine2. Contracts: [RENDERER_CONTRACT.md](RENDERER_CONTRA
 - Gram-Schmidt TBN in the pixel shader; normal strength in `u_SurfaceParams.w`; fallback to geometric normal
 - Color maps (albedo, emissive): hardware sRGB decode via `.ltex` / `RGBA8_UNorm_sRGB`
 - Data maps (normal, metallic, roughness, AO): linear
-- Alpha: `Opaque`, `Mask` (`discard`), `Blend` (depth write off)
+- Alpha: `Opaque`, `Mask` (`discard`), `Blend` (depth write off), `Decal` (a blended mark laid over another
+  surface, ordered by `SortPriority`; see "Decals" in [RENDERER.md](RENDERER.md))
 - UV tiling / offset; double-sided cull bypass
 - Debug modes via `u_DebugMode` (see contract)
 

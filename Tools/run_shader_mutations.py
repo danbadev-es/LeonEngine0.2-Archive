@@ -155,6 +155,23 @@ MUTATIONS = [
       "const float3 cascadeColors[4] = {float3(1.0, 0.15, 0.15),",
       "const float3 cascadeColors[4] = {float3(0.15, 0.15, 1.0),"),
 
+    # --- Decals and blended surfaces (PBR_Lit.hlsl) ---
+    M("DECAL_ALPHA_OPACITY", LIT, "Alpha: the opacity of the material ignored",
+      "const float alpha = albedoSample.a * u_AlbedoColor.a; // the colour's alpha is the material's opacity",
+      "const float alpha = albedoSample.a;"),
+    M("DECAL_ALPHA_TEXTURE", LIT, "Alpha: the alpha of the albedo map ignored",
+      "const float alpha = albedoSample.a * u_AlbedoColor.a; // the colour's alpha is the material's opacity",
+      "const float alpha = u_AlbedoColor.a;"),
+    M("DECAL_DISCARD_INVERTED", LIT, "Decal: dropped where it has alpha instead of where it has none",
+      "if (u_MaterialFlags.y == 3 && alpha < kDecalMinAlpha)",
+      "if (u_MaterialFlags.y == 3 && alpha >= kDecalMinAlpha)"),
+    M("DECAL_DISCARD_ALL", LIT, "Decal: dropped everywhere",
+      "if (u_MaterialFlags.y == 3 && alpha < kDecalMinAlpha)",
+      "if (u_MaterialFlags.y == 3)"),
+    M("DECAL_DISCARD_THRESHOLD", LIT, "Decal: dropped below half alpha, like a masked surface",
+      "static const float kDecalMinAlpha = 0.5 / 255.0;",
+      "static const float kDecalMinAlpha = 0.75;"),
+
     # --- Shadows (Shadows.hlsli) ---
     M("SHADOW_CASCADE_SPLIT", SHADOWS, "Cascades: first split comparison inverted",
       "if (viewDepth < u_CascadeSplits.x)",

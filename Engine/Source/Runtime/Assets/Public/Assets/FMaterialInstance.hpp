@@ -53,6 +53,7 @@ namespace Leon {
         bool GetDoubleSided() const;
         bool IsPackedORM() const { return ParentMaterial && ParentMaterial->IsPackedORM(); }
         float GetOpacity() const { return ParentMaterial ? ParentMaterial->GetOpacity() : 1.0f; }
+        int32_t GetSortPriority() const { return ParentMaterial ? ParentMaterial->GetSortPriority() : 0; }
         glm::vec2 GetUVTiling() const;
         glm::vec2 GetUVOffset() const;
         bool GetUsePlanarReflection() const;

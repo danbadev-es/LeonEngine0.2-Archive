@@ -2,6 +2,7 @@
 
 #include "Engine/FLightProbeAsset.hpp"
 
+#include "Assets/FMaterialInstance.hpp"
 #include "Assets/UAssetManager.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FAssetPath.hpp"
@@ -87,6 +88,27 @@ namespace Leon {
             OutLightmapVirtual = Ws.LightmapAssetPath;
     }
 
+    bool FLightmapBakeInputs::IsDecal(const AActor& InActor) {
+        const auto isDecal = [](const TRef<FMaterialInstance>& InMaterial) {
+            return InMaterial && InMaterial->GetAlphaMode() == EAlphaMode::Decal;
+        };
+        if (InActor.HasComponent<FStaticMeshComponent>()) {
+            const auto& component = InActor.GetComponent<FStaticMeshComponent>();
+            if (!component.StaticMesh || component.StaticMesh->GetSubmeshes().empty())
+                return false;
+            // The materials the renderer draws the mesh with, part by part. A mesh that is a decal
+            // only in part is baked whole: its other parts are surfaces like any other.
+            for (const auto& submesh : component.StaticMesh->GetSubmeshes()) {
+                if (!isDecal(ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides)))
+                    return false;
+            }
+            return true;
+        }
+        if (InActor.HasComponent<FMeshComponent>() && InActor.HasComponent<FMaterialComponent>())
+            return isDecal(InActor.GetComponent<FMaterialComponent>().MaterialInstance);
+        return false;
+    }
+
     uint64_t FLightmapBakeInputs::ComputeHash(const UWorld& InWorld, const FLightmassSettings& InSettings) {
         uint64_t hash = 14695981039346656037ull;
         constexpr uint32_t kBakerAlgorithmVersion = 5;
@@ -124,6 +146,9 @@ namespace Leon {
             // A reflection probe is captured from the baked scene and puts no light into it: placing
             // or moving one must not make the bake stale.
             if (actor.HasComponent<FReflectionProbeComponent>())
+                continue;
+            // Nor does a decal: the baker leaves it out altogether.
+            if (IsDecal(actor))
                 continue;
 
             if (actor.HasComponent<FTransformComponent>()) {

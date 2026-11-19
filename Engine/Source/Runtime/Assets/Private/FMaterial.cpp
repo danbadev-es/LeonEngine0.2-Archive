@@ -17,7 +17,7 @@ namespace Leon {
 
     void FMaterial::SetAlphaMode(EAlphaMode InMode) {
         AlphaMode = InMode;
-        if (AlphaMode == EAlphaMode::Blend) {
+        if (IsBlendedAlphaMode(AlphaMode)) {
             PipelineState.bBlend = true;
             PipelineState.SrcBlend = EBlendFactor::SrcAlpha;
             PipelineState.DstBlend = EBlendFactor::OneMinusSrcAlpha;

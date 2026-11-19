@@ -51,6 +51,10 @@ Reflection probes (`AReflectionProbe`) are left out of the hash: they take light
 give none to the bake, so placing or moving one keeps a bake valid. Their captures are cached under
 the bake hash (see `Docs/RENDERER.md`), so a new bake also captures them again.
 
+Decals (actors whose materials are all `AlphaMode: "Decal"`, `FLightmapBakeInputs::IsDecal`) are left out
+of the bake and of the hash, whatever their mobility: they get no chart, cast no baked shadow and
+bounce no light, and adding, moving or removing one leaves the bake valid.
+
 ### Validate
 
 `ValidateMap` requires Static meshes; when `StaticLighting` is on, also checks atlas exists, header valid, hash not stale, and chart metadata finiteness.

@@ -7,6 +7,7 @@
 
 namespace Leon {
 
+    class AActor;
     class UWorld;
 
     struct FLightmassSettings {
@@ -70,6 +71,14 @@ namespace Leon {
          * and asset of each lightmap).
          */
         static uint64_t ComputeHash(const UWorld& InWorld, const FLightmassSettings& InSettings);
+
+        /**
+         * True when everything the actor draws is a decal (EAlphaMode::Decal): a mark laid over a
+         * surface of the level. A decal takes no part in a bake whatever its mobility: it gets no
+         * lightmap, blocks no light and bounces none, and it is left out of the hash, so decals can be
+         * added to a baked level, moved and removed without making the bake stale.
+         */
+        static bool IsDecal(const AActor& InActor);
 
         /**
          * Compares the stored hash with the world as loaded and stops lightmaps being used when stale.

@@ -12,7 +12,18 @@ namespace Leon {
 
     class FMaterialInstance;
 
-    enum class EAlphaMode : uint8_t { Opaque = 0, Mask = 1, Blend = 2 };
+    /**
+     * How a surface covers what is behind it. Decal is a blended surface laid over another one (a
+     * stain on a wall, a marking on a floor): drawn after the opaque geometry and before the other
+     * blended surfaces, pulled towards the camera so it never fights the surface under it, and left
+     * out of shadow maps and lightmap bakes.
+     */
+    enum class EAlphaMode : uint8_t { Opaque = 0, Mask = 1, Blend = 2, Decal = 3 };
+
+    /** The surface is mixed with what is already drawn, by its alpha, and writes no depth. */
+    inline bool IsBlendedAlphaMode(EAlphaMode InMode) {
+        return InMode == EAlphaMode::Blend || InMode == EAlphaMode::Decal;
+    }
 
     /**
      * @brief Pipeline state configuration associated with a material.
@@ -114,6 +125,13 @@ namespace Leon {
 
         float GetAlphaCutoff() const { return AlphaCutoff; }
         void SetAlphaCutoff(float InCutoff) { AlphaCutoff = InCutoff; }
+
+        /**
+         * Among decals, the order they are drawn in: lower first, so a higher one lies on top where two
+         * overlap. Decals of equal priority keep the order of the world. Other materials ignore it.
+         */
+        int32_t GetSortPriority() const { return SortPriority; }
+        void SetSortPriority(int32_t InPriority) { SortPriority = InPriority; }
 
         bool GetDoubleSided() const { return bDoubleSided; }
         void SetDoubleSided(bool bDouble);
@@ -228,6 +246,7 @@ namespace Leon {
         float EmissiveIntensity{0.0f};
         float AlphaCutoff{0.5f};
         float Opacity{1.0f};
+        int32_t SortPriority{0};
         EAlphaMode AlphaMode{EAlphaMode::Opaque};
         bool bDoubleSided{false};
 

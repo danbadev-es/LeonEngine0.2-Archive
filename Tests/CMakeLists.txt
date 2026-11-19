@@ -86,6 +86,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Shader/PBRShaderEmissiveTests.cpp
     Shader/ShadowSelectionTests.cpp
     Shader/PBRShaderAlphaTests.cpp
+    Shader/DecalTests.cpp
     Shader/ShadowPointTests.cpp
     Shader/PBRShaderNormalMappingTests.cpp
     Shader/PBRShaderColorSpaceTests.cpp

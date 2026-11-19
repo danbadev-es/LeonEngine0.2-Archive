@@ -1,6 +1,6 @@
 // How a world is drawn.
 //
-// Drawn today: static and skinned geometry (opaque, masked and blended) with materials, direct lights,
+// Drawn today: static and skinned geometry (opaque, masked, blended and decals) with materials, direct lights,
 // lightmaps, image-based lighting, fog and shadows (sun cascades, spot lights, point lights), plus
 // skinned outlines and the sky, into an HDR target that FPostProcessRHI turns into the final image
 // (ambient occlusion, bloom, tone mapping, anti-aliasing). World-space text, debug lines and particles
@@ -123,6 +123,9 @@ namespace Leon {
             uint32_t IndexCount = 0;
             uint32_t FirstIndex = 0;
             float DistanceSq = 0.0f;
+            /** Decals only: lower is drawn first (FMaterial::GetSortPriority); then the older actor first. */
+            int32_t SortPriority = 0;
+            uint32_t SortOrder = 0;
             /** Bounds in world space. */
             glm::vec3 WorldMin{0.0f};
             glm::vec3 WorldMax{0.0f};
@@ -198,6 +201,14 @@ namespace Leon {
         bool HeldSlot(const std::vector<uint32_t>& InHistory, uint32_t InId) {
             return std::find(InHistory.begin(), InHistory.end(), InId) != InHistory.end();
         }
+
+        // How far a decal is pulled towards the camera so that it never fights the surface it lies
+        // on: a few steps of the depth buffer, and twice the depth the surface gains across a pixel
+        // (what counts when it is seen at a grazing angle). Small enough that a decal does not show
+        // through something standing a few millimetres in front of it: at 5 m the constant part is
+        // about a millimetre.
+        constexpr int32_t kDecalDepthBias = -24;
+        constexpr float kDecalSlopeScaledDepthBias = -2.0f;
 
         float BrightestChannel(const glm::vec3& InColor) {
             return std::max(InColor.r, std::max(InColor.g, InColor.b));
@@ -663,15 +674,19 @@ namespace Leon {
         // Where submitted draws go and how they are prepared. The main view uses the defaults; each
         // reflection capture points these at its own lists while it collects.
         std::vector<FSceneDraw>* collectOpaque = nullptr;
+        std::vector<FSceneDraw>* collectDecals = nullptr;
         std::vector<FSceneDraw>* collectTransparent = nullptr;
+        // The actor being submitted, as its place in the world: what orders decals of equal priority.
+        uint32_t collectOrder = 0;
         bool bCollectMirrored = false;
         glm::mat4 collectNormalTransform(1.0f);
         // The probes draws choose from; the position in the list is the cube of the probe array.
         std::vector<FReflectionProbeBox> probeBoxes;
 
+        // bInTransparent: blended, without writing depth. bInDecal: a blended surface lying on another one.
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
                                          const glm::mat4& InModel, bool bInTransparent, bool bInSkinned,
-                                         bool bInInstanced = false) -> IRHIPipeline* {
+                                         bool bInInstanced = false, bool bInDecal = false) -> IRHIPipeline* {
             IRHIShader* vertexShader =
                 bInSkinned ? skinnedVS.get() : (bInInstanced ? instancedVS.get() : surfaceVS.get());
             if (!vertexShader || !surfacePS)
@@ -688,6 +703,10 @@ namespace Leon {
             desc.Raster.Cull =
                 cull == ECullMode::Back ? ERHICull::Back : (cull == ECullMode::Front ? ERHICull::Front : ERHICull::None);
             desc.Raster.bWireframe = bWireframeEnabled;
+            if (bInDecal) {
+                desc.Raster.DepthBias = kDecalDepthBias;
+                desc.Raster.SlopeScaledDepthBias = kDecalSlopeScaledDepthBias;
+            }
             desc.Depth.bWrite = !bInTransparent;
             desc.Depth.Compare = ToRHICompare(materialState.DepthFunc);
             desc.Blend.bEnabled = bInTransparent;
@@ -698,7 +717,7 @@ namespace Leon {
             for (const FRHIVertexAttribute& attribute : desc.VertexLayout.Attributes)
                 key += ":" + std::to_string(static_cast<int>(attribute.Format)) + "@" + std::to_string(attribute.Offset);
             key += std::string(bInSkinned ? "|skinned" : "") + (bInInstanced ? "|instanced" : "") +
-                   (bWireframeEnabled ? "|wire" : "") + "|c" +
+                   (bWireframeEnabled ? "|wire" : "") + (bInDecal ? "|decal" : "") + "|c" +
                    std::to_string(static_cast<int>(desc.Raster.Cull)) + "d" +
                    std::to_string(static_cast<int>(desc.Depth.Compare)) + (bInTransparent ? "t" : "o") +
                    std::to_string(static_cast<int>(desc.Blend.SrcColor)) + "," +
@@ -754,6 +773,7 @@ namespace Leon {
         // Everything is resolved to device objects here, before the pass starts: creating a buffer or a
         // texture uploads data, which must not happen in the middle of a render pass.
         std::vector<FSceneDraw> opaque;
+        std::vector<FSceneDraw> decals;
         std::vector<FSceneDraw> transparent;
         std::vector<FOutlineDraw> outlines;
         std::vector<FShadowCaster> staticCasters;
@@ -917,9 +937,11 @@ namespace Leon {
                                 bool bInReceiveShadows) {
             if (!InMaterial || InIndexCount == 0)
                 return;
-            const bool bTransparent = InMaterial->GetAlphaMode() == EAlphaMode::Blend;
+            const bool bDecal = InMaterial->GetAlphaMode() == EAlphaMode::Decal;
+            const bool bTransparent = IsBlendedAlphaMode(InMaterial->GetAlphaMode());
             FSceneDraw draw;
-            draw.Pipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent, InBones != nullptr);
+            draw.Pipeline =
+                surfacePipeline(InVertexArray, *InMaterial, InModel, bTransparent, InBones != nullptr, false, bDecal);
             // Blended surfaces are drawn back to front one by one, and skinned ones have their own palette.
             if (bInstancingEnabled && !bTransparent && !InBones)
                 draw.InstancedPipeline = surfacePipeline(InVertexArray, *InMaterial, InModel, false, false, true);
@@ -944,7 +966,11 @@ namespace Leon {
             // One sample for the whole object, at the middle of its bounds.
             if (!InLightmap)
                 draw.bAmbient = World->SampleLightProbes(0.5f * (draw.WorldMin + draw.WorldMax), draw.Ambient);
-            if (bTransparent) {
+            if (bDecal) {
+                draw.SortPriority = InMaterial->GetSortPriority();
+                draw.SortOrder = collectOrder;
+                collectDecals->push_back(draw);
+            } else if (bTransparent) {
                 draw.DistanceSq = TransparentSortDistanceSq(InModel, InLocalMin, InLocalMax, cameraPosition);
                 collectTransparent->push_back(draw);
             } else {
@@ -952,6 +978,7 @@ namespace Leon {
             }
         };
         collectOpaque = &opaque;
+        collectDecals = &decals;
         collectTransparent = &transparent;
 
         // A mesh section that blocks light. Lights cull the list themselves: a caster outside the
@@ -962,6 +989,9 @@ namespace Leon {
                                       const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones,
                                       bool bInStatic = false) {
             if (!bShadowsOn || !InMaterial || InIndexCount == 0)
+                return;
+            // A decal is a mark on a surface, not a thing in front of it: it blocks no light.
+            if (InMaterial->GetAlphaMode() == EAlphaMode::Decal)
                 return;
             FShadowCaster caster;
             caster.bStatic = bInStatic;
@@ -991,6 +1021,7 @@ namespace Leon {
         auto meshView = registry.view<FTransformComponent, FMeshComponent>();
         for (auto entity : meshView) {
             auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
+            collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
             if (!mesh.VertexArray || !mesh.bVisible)
                 continue;
             const glm::mat4 model = ResolveActorWorldMatrix(World, entity, transform);
@@ -1015,6 +1046,7 @@ namespace Leon {
         auto staticView = registry.view<FTransformComponent, FStaticMeshComponent>();
         for (auto entity : staticView) {
             auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
+            collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
             if (!component.bVisible || !component.StaticMesh)
                 continue;
             const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
@@ -1055,6 +1087,7 @@ namespace Leon {
         auto skinnedView = registry.view<FTransformComponent, FSkinnedMeshRenderState>();
         for (auto entity : skinnedView) {
             auto [transform, skinned] = skinnedView.get<FTransformComponent, FSkinnedMeshRenderState>(entity);
+            collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
             if (!skinned.bVisible || !skinned.SkeletalMesh)
                 continue;
             const TRef<FVertexArray> vertexArray = skinned.SkeletalMesh->GetVertexArray();
@@ -1129,7 +1162,18 @@ namespace Leon {
                 return InA.Probes[0] < InB.Probes[0];
             return InA.Probes[1] < InB.Probes[1];
         };
+        // Decals by their priority and, where it is equal, in the order their actors came into the
+        // world (the order of the map): which of two overlapping decals is on top is the author's
+        // choice and must not change from frame to frame.
+        const auto sortDecals = [](std::vector<FSceneDraw>& InOutDecals) {
+            std::stable_sort(InOutDecals.begin(), InOutDecals.end(), [](const FSceneDraw& InA, const FSceneDraw& InB) {
+                if (InA.SortPriority != InB.SortPriority)
+                    return InA.SortPriority < InB.SortPriority;
+                return InA.SortOrder < InB.SortOrder;
+            });
+        };
         std::sort(opaque.begin(), opaque.end(), sortForState);
+        sortDecals(decals);
         std::sort(transparent.begin(), transparent.end(),
                   [](const FSceneDraw& InA, const FSceneDraw& InB) { return InA.DistanceSq > InB.DistanceSq; });
 
@@ -1168,6 +1212,8 @@ namespace Leon {
             materialBindings.emplace(&InMaterial, binding);
         };
         for (const FSceneDraw& draw : opaque)
+            prepareMaterial(*draw.Material);
+        for (const FSceneDraw& draw : decals)
             prepareMaterial(*draw.Material);
         for (const FSceneDraw& draw : transparent)
             prepareMaterial(*draw.Material);
@@ -1508,6 +1554,7 @@ namespace Leon {
         {
             // The static level, collected once for every capture of this frame.
             std::vector<FSceneDraw> staticOpaque;
+            std::vector<FSceneDraw> staticDecals;
             std::vector<FSceneDraw> staticTransparent;
             bool bStaticCollected = false;
             const auto collectStaticLevel = [&]() {
@@ -1515,11 +1562,13 @@ namespace Leon {
                     return;
                 bStaticCollected = true;
                 collectOpaque = &staticOpaque;
+                collectDecals = &staticDecals;
                 collectTransparent = &staticTransparent;
                 // The faces of a cube are drawn mirrored vertically (ClipFlipY), which reverses the winding.
                 bCollectMirrored = true;
                 for (auto entity : meshView) {
                     auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
+                    collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
                     if (!mesh.VertexArray || !mesh.bVisible || !mesh.bVisibleInReflection ||
                         mesh.Mobility != EComponentMobility::Static)
                         continue;
@@ -1536,6 +1585,7 @@ namespace Leon {
                 }
                 for (auto entity : staticView) {
                     auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
+                    collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
                     if (!component.StaticMesh || !component.bVisible || !component.bVisibleInReflection ||
                         component.Mobility != EComponentMobility::Static)
                         continue;
@@ -1556,10 +1606,14 @@ namespace Leon {
                     }
                 }
                 collectOpaque = &opaque;
+                collectDecals = &decals;
                 collectTransparent = &transparent;
                 bCollectMirrored = false;
                 std::sort(staticOpaque.begin(), staticOpaque.end(), sortForState);
+                sortDecals(staticDecals);
                 for (const FSceneDraw& draw : staticOpaque)
+                    prepareMaterial(*draw.Material);
+                for (const FSceneDraw& draw : staticDecals)
                     prepareMaterial(*draw.Material);
                 for (const FSceneDraw& draw : staticTransparent)
                     prepareMaterial(*draw.Material);
@@ -1616,6 +1670,7 @@ namespace Leon {
 
                 const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, 500.0f);
                 std::vector<FSceneDraw> faceOpaque;
+                std::vector<FSceneDraw> faceDecals;
                 std::vector<FSceneDraw> faceTransparent;
                 const uint32_t endFace = std::min(InFirstFace + InFaceCount, 6u);
                 for (uint32_t face = InFirstFace; face < endFace; ++face) {
@@ -1625,8 +1680,10 @@ namespace Leon {
                         return AABBIntersectsFrustum(InDraw.WorldMin, InDraw.WorldMax, faceFrustum);
                     };
                     faceOpaque.clear();
+                    faceDecals.clear();
                     faceTransparent.clear();
                     std::copy_if(staticOpaque.begin(), staticOpaque.end(), std::back_inserter(faceOpaque), inFace);
+                    std::copy_if(staticDecals.begin(), staticDecals.end(), std::back_inserter(faceDecals), inFace);
                     std::copy_if(staticTransparent.begin(), staticTransparent.end(), std::back_inserter(faceTransparent), inFace);
 
                     FFrameConstants faceFrame;
@@ -1649,6 +1706,7 @@ namespace Leon {
                     InCommands.SetConstants(ERHIConstantSlot::Pass, &capturePass, sizeof(capturePass));
                     bindSceneTextures(nullptr, nullptr, false);
                     drawAll(faceOpaque, "Opaque", true, false);
+                    drawAll(faceDecals, "Decals", true, false);
                     drawSky(faceView, ClipFlipY() * faceProjection);
                     drawAll(faceTransparent, "Transparent", true, false);
                     InCommands.EndRenderPass();
@@ -1810,6 +1868,7 @@ namespace Leon {
         gpuStage.emplace(InCommands, EGPUTimerSlot::Planar);
         const auto wantsPlanar = [](const FSceneDraw& InDraw) { return InDraw.bPlanar; };
         const bool bPlanar = bEnablePlanarReflection && (std::any_of(opaque.begin(), opaque.end(), wantsPlanar) ||
+                                                         std::any_of(decals.begin(), decals.end(), wantsPlanar) ||
                                                          std::any_of(transparent.begin(), transparent.end(), wantsPlanar));
         bool bPlanarCaptured[2] = {false, false};
         if (bPlanar) {
@@ -1869,14 +1928,17 @@ namespace Leon {
 
                 // What the mirrored camera sees.
                 std::vector<FSceneDraw> captureOpaque;
+                std::vector<FSceneDraw> captureDecals;
                 std::vector<FSceneDraw> captureTransparent;
                 collectOpaque = &captureOpaque;
+                collectDecals = &captureDecals;
                 collectTransparent = &captureTransparent;
                 bCollectMirrored = true;
                 collectNormalTransform = reflection;
                 const FFrustumPlanes captureFrustum = ExtractFrustumPlanes(InMirroredViewProjection);
                 for (auto entity : meshView) {
                     auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
+                    collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
                     if (!mesh.VertexArray ||
                         !CanContributeToPlanarReflection(mesh.bVisible, mesh.bVisibleInReflection, mesh.Mobility))
                         continue;
@@ -1895,6 +1957,7 @@ namespace Leon {
                 }
                 for (auto entity : staticView) {
                     auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
+                    collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
                     if (!component.StaticMesh || !CanContributeToPlanarReflection(component.bVisible,
                                                                                   component.bVisibleInReflection,
                                                                                   component.Mobility))
@@ -1920,6 +1983,7 @@ namespace Leon {
                 }
                 for (auto entity : skinnedView) {
                     auto [transform, skinned] = skinnedView.get<FTransformComponent, FSkinnedMeshRenderState>(entity);
+                    collectOrder = static_cast<uint32_t>(entt::entt_traits<entt::entity>::to_entity(entity));
                     if (!skinned.bVisible || !skinned.bVisibleInReflection || !skinned.SkeletalMesh)
                         continue;
                     const TRef<FVertexArray> vertexArray = skinned.SkeletalMesh->GetVertexArray();
@@ -1939,10 +2003,14 @@ namespace Leon {
                     }
                 }
                 collectOpaque = &opaque;
+                collectDecals = &decals;
                 collectTransparent = &transparent;
                 bCollectMirrored = false;
                 collectNormalTransform = glm::mat4(1.0f);
+                sortDecals(captureDecals);
                 for (const FSceneDraw& draw : captureOpaque)
+                    prepareMaterial(*draw.Material);
+                for (const FSceneDraw& draw : captureDecals)
                     prepareMaterial(*draw.Material);
                 for (const FSceneDraw& draw : captureTransparent)
                     prepareMaterial(*draw.Material);
@@ -1974,6 +2042,7 @@ namespace Leon {
                 InCommands.SetConstants(ERHIConstantSlot::Pass, &capturePass, sizeof(capturePass));
                 bindSceneTextures(nullptr, nullptr, false);
                 drawAll(captureOpaque, "Opaque", false, false);
+                drawAll(captureDecals, "Decals", false, false);
                 drawSky(mirrorView, InCamera.GetProjectionMatrix());
                 drawAll(captureTransparent, "Transparent", false, false);
                 InCommands.EndRenderPass();
@@ -2006,6 +2075,9 @@ namespace Leon {
         bindSceneTextures(bPlanarCaptured[0] ? state.PlanarColor[0].get() : nullptr,
                           bPlanarCaptured[1] ? state.PlanarColor[1].get() : nullptr, true);
         drawAll(opaque, "Opaque", true, true);
+        // Decals straight after the surfaces they lie on, before anything else that leaves depth
+        // alone: an outline or a pane of glass in front of a wall must end up over the wall's stains.
+        drawAll(decals, "Decals", true, true);
         if (!outlines.empty() && state.OutlinePipeline) {
             InCommands.PushMarker("Outlines");
             InCommands.SetPipeline(state.OutlinePipeline.get());
