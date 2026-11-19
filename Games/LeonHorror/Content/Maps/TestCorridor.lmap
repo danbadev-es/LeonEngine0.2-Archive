@@ -209,6 +209,7 @@ Actors:
       Intensity: 5
       Radius: 6.5
       Mobility: Stationary
+      CastShadows: true
   - Name: "Light_1_Fitting"
     Class: "AActor"
     GUID: "bbd3ab508a8161eeedd6fb052639b431"
@@ -236,3 +237,4 @@ Actors:
       Intensity: 2.8
       Radius: 6.5
       Mobility: Stationary
+      CastShadows: true

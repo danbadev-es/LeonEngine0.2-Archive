@@ -105,10 +105,13 @@ class Level:
         self.add(self.head(name, cls, loc, rot=(0, yaw, 0), props=props) + self.mesh_block(mesh, static=False))
 
     def point_light(self, name: str, loc, color=(1.0, 0.95, 0.85), intensity: float = 8.0, radius: float = 7.0,
-                    mobility: str = "Stationary") -> None:
-        self.add(self.head(name, "AActor", loc) + [
-            "    PointLight:", "      Enabled: true", f"      Color: {vec(color)}", f"      Intensity: {num(intensity)}",
-            f"      Radius: {num(radius)}", f"      Mobility: {mobility}"])
+                    mobility: str = "Stationary", cast_shadows: bool = False) -> None:
+        """A point light casts no shadows unless asked: only four of them can at a time."""
+        lines = ["    PointLight:", "      Enabled: true", f"      Color: {vec(color)}", f"      Intensity: {num(intensity)}",
+                 f"      Radius: {num(radius)}", f"      Mobility: {mobility}"]
+        if cast_shadows:
+            lines.append("      CastShadows: true")
+        self.add(self.head(name, "AActor", loc) + lines)
 
     def spot_light(self, name: str, loc, direction=(0, -1, 0), color=(1.0, 0.95, 0.85), intensity: float = 20.0,
                    radius: float = 9.0, inner: float = 28.0, outer: float = 42.0, mobility: str = "Stationary") -> None:

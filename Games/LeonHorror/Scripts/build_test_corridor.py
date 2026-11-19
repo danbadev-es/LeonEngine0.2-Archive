@@ -59,7 +59,7 @@ def build(quality: str) -> Level:
         # Not part of the bake: its glowing face is what the eye sees, the point light below is what
         # lights the room. A small bright surface in the bake only adds noise.
         lv.movable_mesh(f"Light_{index}_Fitting", "SM_Light_Panel", from_blender((x, WIDTH * 0.5, HEIGHT)))
-        lv.point_light(f"Light_{index}", from_blender((x, WIDTH * 0.5, HEIGHT - 0.25)), color, intensity, 6.5)
+        lv.point_light(f"Light_{index}", from_blender((x, WIDTH * 0.5, HEIGHT - 0.25)), color, intensity, 6.5, cast_shadows=True)
     return lv
 
 
