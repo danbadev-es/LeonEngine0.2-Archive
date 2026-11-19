@@ -9,7 +9,8 @@
 namespace Leon {
 
     constexpr uint32_t LLIGHTMAP_MAGIC = 0x4D4C4C4C; // 'LLLM' little-endian mnemonic
-    constexpr uint32_t LLIGHTMAP_VERSION = 2;
+    constexpr uint32_t LLIGHTMAP_VERSION = 3;        ///< half floats, deflated (see FLightmapAsset.cpp)
+    constexpr uint32_t LLIGHTMAP_VERSION_FLOATS = 2; ///< raw RGBA32F; still read
 
     enum class ELightmapPixelFormat : uint32_t {
         RGBA16F = 1, ///< HDR irradiance (preferred)
@@ -27,11 +28,11 @@ namespace Leon {
         uint32_t Version = LLIGHTMAP_VERSION;
         uint32_t Width = 0;
         uint32_t Height = 0;
-        /** On-disk payload is always RGBA32F; GPU upload may convert to RGBA16F. */
+        /** What the file stores: RGBA16F from version 3 on. In memory the atlas is always floats. */
         uint32_t PixelFormat = static_cast<uint32_t>(ELightmapPixelFormat::RGBA32F);
         uint32_t ChannelCount = 4;
         uint32_t bIsHDR = 1;
-        uint32_t PayloadSize = 0;
+        uint32_t PayloadSize = 0; ///< bytes that follow the header
         uint64_t ContentHash = 0; ///< Bake-input hash (see SetContentHash / GetBakeInputHash)
         uint32_t Reserved[4] = {0, 0, 0, 0};
     };

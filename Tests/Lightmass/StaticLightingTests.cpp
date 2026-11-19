@@ -59,6 +59,57 @@ TEST_CASE("Lightmap rejects corrupted assets") {
     std::filesystem::remove(path);
 }
 
+TEST_CASE("Lightmap files are stored small and read back as they were baked") {
+    FLightmapAsset asset;
+    asset.Allocate(256, 128);
+    auto& pixels = asset.GetPixelsRGBA32F();
+    // Half the atlas is lit by a smooth gradient with a bright spot above 1; the rest is empty.
+    for (uint32_t y = 0; y < 128; ++y) {
+        for (uint32_t x = 0; x < 128; ++x) {
+            const size_t texel = (static_cast<size_t>(y) * 256 + x) * 4;
+            pixels[texel + 0] = 0.02f + 0.01f * static_cast<float>(x);
+            pixels[texel + 1] = 0.5f + 0.003f * static_cast<float>(y);
+            pixels[texel + 2] = (x == 40 && y == 40) ? 37.5f : 0.125f;
+            pixels[texel + 3] = 1.0f;
+        }
+    }
+    const std::string path = "lightmap_test_packed.llightmap";
+    REQUIRE(asset.SaveToFile(path));
+    const auto rawBytes = static_cast<std::uintmax_t>(256 * 128 * 4 * sizeof(float));
+    CHECK(std::filesystem::file_size(path) < rawBytes / 8);
+
+    FLightmapAsset loaded;
+    REQUIRE(loaded.LoadFromFile(path));
+    REQUIRE(loaded.GetPixelsRGBA32F().size() == pixels.size());
+    float worst = 0.0f;
+    for (size_t i = 0; i < pixels.size(); ++i) {
+        // Half floats keep about three significant digits.
+        const float tolerance = 1.0e-3f * std::max(std::abs(pixels[i]), 1.0e-2f);
+        worst = std::max(worst, std::abs(loaded.GetPixelsRGBA32F()[i] - pixels[i]) / tolerance);
+    }
+    CHECK(worst <= 1.0f);
+    std::filesystem::remove(path);
+
+    // A file from before, with the floats as they are, still loads.
+    FLightmapHeader old;
+    old.Version = LLIGHTMAP_VERSION_FLOATS;
+    old.Width = 2;
+    old.Height = 1;
+    old.PayloadSize = 2 * 4 * sizeof(float);
+    const float texels[8] = {0.25f, 0.5f, 0.75f, 1.0f, 2.0f, 3.0f, 4.0f, 1.0f};
+    const std::string oldPath = "lightmap_test_floats.llightmap";
+    {
+        std::ofstream f(oldPath, std::ios::binary);
+        f.write(reinterpret_cast<const char*>(&old), sizeof(old));
+        f.write(reinterpret_cast<const char*>(texels), sizeof(texels));
+    }
+    FLightmapAsset before;
+    REQUIRE(before.LoadFromFile(oldPath));
+    CHECK(before.GetPixelsRGBA32F()[4] == doctest::Approx(2.0f));
+    CHECK(before.GetPixelsRGBA32F()[6] == doctest::Approx(4.0f));
+    std::filesystem::remove(oldPath);
+}
+
 TEST_CASE("Lightmap UV validation and barycentric") {
     auto mesh = UStaticMesh::Create("UVTest");
     auto& verts = mesh->GetVertices();
