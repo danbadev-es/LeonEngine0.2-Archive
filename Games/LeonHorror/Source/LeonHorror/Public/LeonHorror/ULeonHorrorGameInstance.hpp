@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Leon {
@@ -22,6 +23,9 @@ namespace Leon {
         /** What the player of a smoke run starts with (--validate-give). */
         void SetValidateItems(const std::vector<std::string>& InItems) { ValidateItems = InItems; }
         const std::vector<std::string>& GetValidateItems() const { return ValidateItems; }
+        /** Where the player of a smoke run is stood (--validate-at), if anywhere but the PlayerStart. */
+        void SetValidatePlace(float InX, float InZ) { ValidatePlace = std::make_pair(InX, InZ); }
+        const std::optional<std::pair<float, float>>& GetValidatePlace() const { return ValidatePlace; }
 
         /** A save waiting to be applied once the map it travels to has begun play. */
         void SetPendingSave(const FLeonHorrorSaveGame& InSave) { PendingSave = InSave; }
@@ -34,6 +38,7 @@ namespace Leon {
     private:
         std::optional<FLeonHorrorSaveGame> PendingSave;
         std::vector<std::string> ValidateItems;
+        std::optional<std::pair<float, float>> ValidatePlace;
         float ValidateSeconds = -1.0f;
     };
 

@@ -19,7 +19,8 @@ Environment:
     TexelPadding: 4
     WorldScale: 1
     LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
-    LightmapBakeHash: "ca32d490db55c556"
+    LightmapBakeHash: "adf3269e2fafea02"
+    LightProbeAsset: "/Game/Lightmaps/Clinic.lprobes"
   Skybox:
     Enabled: true
     Exposure: 1.05
@@ -1456,6 +1457,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5505371, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Corridor"
+    Class: "AActor"
+    GUID: "15f2aaa89484e19e9559e0506f38455b"
+    Transform:
+      Translation: [5.85, 1.62, -5.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Corridor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Corridor_A"
     Class: "ALeonHorrorDoor"
     GUID: "592510dec3491ce8e1de6aed175265ad"
@@ -1515,6 +1531,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5546875, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Consult1"
+    Class: "AActor"
+    GUID: "517bcf9ec89c24b756714c2496ec74ba"
+    Transform:
+      Translation: [6.075, 1.62, -9.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Consult1.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Consult1"
     Class: "ALeonHorrorDoor"
     GUID: "ee511e10fc271ce7148906084f13c98d"
@@ -1553,6 +1584,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5588379, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Consult2"
+    Class: "AActor"
+    GUID: "060ae96acdab6f4e8ee703c4d42601a2"
+    Transform:
+      Translation: [6.075, 1.62, -13.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Consult2.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Consult2"
     Class: "ALeonHorrorDoor"
     GUID: "f8f507884ab4f0acb1d32ad112d32564"
@@ -1592,6 +1638,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5629883, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Pharmacy"
+    Class: "AActor"
+    GUID: "ee779e57404a3d84e27b87c3b4b9053b"
+    Transform:
+      Translation: [6.075, 1.62, -18]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Pharmacy.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Pharmacy"
     Class: "ALeonHorrorDoor"
     GUID: "658bc530b958a1823c05a9f16ccb2e5b"
@@ -1631,6 +1692,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5671387, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Staff"
+    Class: "AActor"
+    GUID: "cdc12e5fcb93917d880652d0cc74305d"
+    Transform:
+      Translation: [6.075, 1.62, -22.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Staff.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Staff"
     Class: "ALeonHorrorDoor"
     GUID: "acabff2d6d536f06234604a61a1ae109"
@@ -1669,6 +1745,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.57128906, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Ward"
+    Class: "AActor"
+    GUID: "0cf6c53558e725775cd6a9760dbb1e31"
+    Transform:
+      Translation: [8.325, 1.62, -10.85]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Ward.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Ward_A"
     Class: "ALeonHorrorDoor"
     GUID: "61a7761638ad7200e51c702e312507b7"
@@ -1728,6 +1819,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.57543945, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_XRay"
+    Class: "AActor"
+    GUID: "65c14b0e041331b2eef984eecc15f7f1"
+    Transform:
+      Translation: [8.325, 1.62, -16.2]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_XRay.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_XRay"
     Class: "ALeonHorrorDoor"
     GUID: "801d728e2183abb750006f2b5be65e40"
@@ -1766,6 +1872,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.57958984, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Toilets"
+    Class: "AActor"
+    GUID: "1c2078d351c7bb0abefcd951b43dde85"
+    Transform:
+      Translation: [8.325, 1.62, -19.8]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Toilets.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Toilets"
     Class: "ALeonHorrorDoor"
     GUID: "05a60947a1c3c9bd138f2ae2ff12ba64"
@@ -1804,6 +1925,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.58374023, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Storage"
+    Class: "AActor"
+    GUID: "fe1bb39f115d4ed9398ea8dc6a802f12"
+    Transform:
+      Translation: [8.325, 1.62, -23]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Storage.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Storage"
     Class: "ALeonHorrorDoor"
     GUID: "43d5a210289812e9e99d87667ab3cc01"
@@ -1843,6 +1979,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5878906, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Service"
+    Class: "AActor"
+    GUID: "5cf0885127751992b69170b1c0bc4c82"
+    Transform:
+      Translation: [5.85, 1.62, -23.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Service.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Service_A"
     Class: "ALeonHorrorDoor"
     GUID: "a37b2fdb8c4fbc0707332c8aa63823d1"
@@ -1902,6 +2053,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.592041, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Theatre"
+    Class: "AActor"
+    GUID: "6467ef635f2d47e2cb1184aefe8d2775"
+    Transform:
+      Translation: [4.35, 1.62, -26.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Theatre.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Theatre_A"
     Class: "ALeonHorrorDoor"
     GUID: "70f1a805ea7783975414e208e0fb78c2"
@@ -1961,6 +2127,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.5961914, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Morgue"
+    Class: "AActor"
+    GUID: "3bc41afcb4da068e122b959e307a7728"
+    Transform:
+      Translation: [9, 1.62, -26.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Morgue.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Morgue"
     Class: "ALeonHorrorDoor"
     GUID: "4bec904b498282ef4482827bddae50f3"
@@ -2000,6 +2181,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.6003418, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Plant"
+    Class: "AActor"
+    GUID: "cebf1f4ddc439c2ecb438bc3ce7d969e"
+    Transform:
+      Translation: [13.2, 1.62, -26.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Plant.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Plant"
     Class: "ALeonHorrorDoor"
     GUID: "e6517969cb4a17909f79ddfd5198fa87"
@@ -2038,6 +2234,21 @@ Actors:
       LightmapScale: [0.00390625, 0.125]
       LightmapBias: [0.6044922, 0.0078125]
       LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
+  - Name: "Sign_Bay"
+    Class: "AActor"
+    GUID: "e51a4cd8afcbe05f7d40cecba48e9306"
+    Transform:
+      Translation: [14.325, 1.62, -24.2]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Sign_Bay.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
   - Name: "Door_Bay"
     Class: "ALeonHorrorDoor"
     GUID: "7678672a2ed2134b1f175373d184fd34"

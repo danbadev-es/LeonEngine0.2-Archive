@@ -16,13 +16,25 @@ int main(int argc, char** argv) {
         // --validate-seconds=N : play for N seconds and exit with code 0 (automated smoke run).
         // --validate-give=A,B  : in a smoke run, start with these items (Weapon.Pipe, Weapon.Pistol, ...);
         //                        the last weapon named is the one in the hand.
+        // --validate-at=X,Z       : in a smoke run, stand the player there (metres, engine axes) instead of
+        //                           at the PlayerStart. Moving the start in the map would make its bake stale.
         float validateSeconds = -1.0f;
         std::vector<std::string> validateItems;
+        bool bValidateAt = false;
+        float validateX = 0.0f;
+        float validateZ = 0.0f;
         for (int i = 1; i < InArgs.Count; ++i) {
             const std::string arg = InArgs[i] ? InArgs[i] : "";
             if (arg.rfind("--validate-seconds=", 0) == 0)
                 validateSeconds = std::strtof(arg.c_str() + 19, nullptr);
-            else if (arg.rfind("--validate-give=", 0) == 0) {
+            else if (arg.rfind("--validate-at=", 0) == 0) {
+                char* rest = nullptr;
+                validateX = std::strtof(arg.c_str() + 14, &rest);
+                if (rest && *rest == ',') {
+                    validateZ = std::strtof(rest + 1, nullptr);
+                    bValidateAt = true;
+                }
+            } else if (arg.rfind("--validate-give=", 0) == 0) {
                 std::string item;
                 for (const char c : arg.substr(16) + ",") {
                     if (c != ',') {
@@ -34,10 +46,12 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        InOutHooks.GameInstanceFactory = [validateSeconds, validateItems]() -> Leon::TRef<Leon::UGameInstance> {
+        InOutHooks.GameInstanceFactory = [=]() -> Leon::TRef<Leon::UGameInstance> {
             auto instance = Leon::CreateRef<Leon::ULeonHorrorGameInstance>("LeonHorrorGameInstance");
             instance->SetValidateSeconds(validateSeconds);
             instance->SetValidateItems(validateItems);
+            if (bValidateAt)
+                instance->SetValidatePlace(validateX, validateZ);
             return instance;
         };
     };

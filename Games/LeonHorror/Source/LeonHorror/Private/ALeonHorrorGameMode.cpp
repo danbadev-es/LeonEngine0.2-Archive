@@ -366,6 +366,10 @@ namespace Leon {
         if (!bSmokeRunEquipped) {
             bSmokeRunEquipped = true;
             ALeonHorrorCharacter* player = GetPlayerCharacter();
+            if (player && instance->GetValidatePlace()) {
+                const auto [x, z] = *instance->GetValidatePlace();
+                player->SetActorLocation({x, player->GetCapsuleHalfHeight() + 0.02f, z});
+            }
             for (const std::string& item : instance->GetValidateItems()) {
                 if (!player || !player->GetInventory())
                     break;

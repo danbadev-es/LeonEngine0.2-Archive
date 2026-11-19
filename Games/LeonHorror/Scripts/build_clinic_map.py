@@ -188,6 +188,23 @@ class Clinic:
             frame = "SM_DoorFrame_Double" if kind == "double" else "SM_DoorFrame_Single"
             self.lv.static_mesh(f"Door_{name}_Frame", frame, from_blender(centre), yaw, collision=False)
 
+            # Its sign hangs on the side people come from (the first room of the opening), past the latch.
+            sign = f"SM_Sign_{name}"
+            if (self.lv.project / "Intermediate" / "Art" / "Raw" / "Meshes" / f"{sign}.json").is_file():
+                first = self.rooms[opening["rooms"][0]]
+                if axis == "x":
+                    side = "east" if abs(first.x1 - value) < 1.0e-6 else "west"
+                else:
+                    side = "north" if abs(first.y1 - value) < 1.0e-6 else "south"
+                reach = width * 0.5 + 0.55
+                along = opening["at"] + reach
+                low, high = (first.y0, first.y1) if axis == "x" else (first.x0, first.x1)
+                if along > high - 0.3:
+                    along = opening["at"] - reach
+                spot = first.wall(side, along - low, 1.62)
+                # Not baked: its lettering is far finer than a lightmap texel.
+                self.lv.movable_mesh(f"Sign_{name}", sign, from_blender(spot), BACK_ON[side], collision=False)
+
             # Leaves open into the second room of the opening (away from the corridor, as a rule).
             target = self.rooms[opening["rooms"][1]].centre
             into = (target[0] - centre[0], target[1] - centre[1])
