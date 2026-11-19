@@ -160,8 +160,17 @@ TEST_SUITE("Automatic static mesh LOD") {
             FMeshSimplifier::Simplify(tri->GetVertices(), tri->GetIndices(), tri->GetSubmeshes(), 0.05f, 16, lod));
     }
 
-    TEST_CASE("BuildAutomaticLODs produces strictly fewer triangles per level") {
+    TEST_CASE("a mesh of a few thousand triangles is not reduced") {
+        // A wall, a chair, a bed frame: merging their vertices by grid cell gives another shape,
+        // not a cheaper one, and the shadow pass drew that shape across a whole room.
         auto mesh = MakeGridMesh(32);
+        REQUIRE(mesh->GetIndices().size() / 3 < FLODSettings::Default().MinSourceTriangles);
+        mesh->BuildAutomaticLODs();
+        CHECK(mesh->GetLODCount() == 1);
+    }
+
+    TEST_CASE("BuildAutomaticLODs produces strictly fewer triangles per level") {
+        auto mesh = MakeGridMesh(104); // large enough to be reduced at all
         mesh->BuildAutomaticLODs();
         REQUIRE(mesh->GetLODCount() >= 2);
         CHECK(LodGeometryValid(*mesh, 0));
@@ -176,7 +185,7 @@ TEST_SUITE("Automatic static mesh LOD") {
     }
 
     TEST_CASE("Generated LODs roundtrip through .lmesh v5 cache") {
-        auto mesh = MakeGridMesh(20);
+        auto mesh = MakeGridMesh(104);
         mesh->BuildAutomaticLODs();
         REQUIRE(mesh->GetLODCount() >= 2);
         const uint32_t lodCount = mesh->GetLODCount();
@@ -197,7 +206,7 @@ TEST_SUITE("Automatic static mesh LOD") {
         TestGPU::FHeadlessDevice gl;
         REQUIRE(gl.IsValid());
         gl.UseEngineResources();
-        auto mesh = MakeGridMesh(16);
+        auto mesh = MakeGridMesh(104);
         mesh->BuildAutomaticLODs();
         mesh->CreateGPUResources();
         REQUIRE(mesh->GetVertexArray() != nullptr);

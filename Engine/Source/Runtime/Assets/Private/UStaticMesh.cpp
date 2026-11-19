@@ -98,6 +98,8 @@ namespace Leon {
             return;
 
         const uint32_t srcTris = static_cast<uint32_t>(Indices.size() / 3);
+        if (srcTris < InSettings.MinSourceTriangles)
+            return;
         for (size_t i = 1; i < InSettings.Levels.size() && ReducedLODs.size() + 1 < kMaxStaticMeshLODCount; ++i) {
             const FLODLevel& level = InSettings.Levels[i];
             FStaticMeshLOD lod;
@@ -473,7 +475,10 @@ namespace Leon {
                 }
             }
         }
-        if (ReducedLODs.empty() || LODSettingsHash != FLODSettings::Default().Hash())
+        // Rebuilt when the file has none or was cooked with other settings. A mesh too small to be
+        // reduced ends up with none either way, including levels an older cook stored for it.
+        if (ReducedLODs.empty() || LODSettingsHash != FLODSettings::Default().Hash() ||
+            Indices.size() / 3 < FLODSettings::Default().MinSourceTriangles)
             BuildAutomaticLODs();
 
         AssetPath = InFilePath;
