@@ -279,11 +279,14 @@ namespace Leon {
         // starts to close.
         RefreshCollision();
 
-        // Enemies path on a grid built from static collision: a door changing state changes the grid.
+        // Enemies path on a grid built from collision: a door changing state changes the grid around it.
         if (World && World->HasBegunPlay()) {
             UNavigationSystem* navigation = World->GetNavigationSystem();
-            if (navigation && navigation->IsBuilt())
-                World->RebuildNavigation();
+            if (navigation && navigation->IsBuilt()) {
+                const glm::vec3 middle = GetInteractLocation();
+                const float half = std::max(Size.x, Size.z) * 0.5f;
+                navigation->UpdateRegion(*World, middle - glm::vec3(half, 0.0f, half), middle + glm::vec3(half, 0.0f, half));
+            }
         }
     }
 

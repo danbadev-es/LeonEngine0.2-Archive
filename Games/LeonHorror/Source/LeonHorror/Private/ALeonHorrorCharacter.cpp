@@ -297,11 +297,12 @@ namespace Leon {
             const float alignment = distance > 0.35f ? glm::dot(to / distance, look) : 1.0f;
             if (alignment < minCos)
                 continue;
-            // Nothing solid in between (the candidate itself may be the thing that is hit).
+            // Nothing solid in between. The candidate itself may be the thing that is hit, and so may
+            // what it rests on: a key lying on a desk is reached where the desk begins.
             FHitResult hit;
             if (World->LineTraceSingleByChannel(eye, candidate->GetInteractLocation(), ECollisionChannel::WorldStatic,
                                                 const_cast<ALeonHorrorCharacter*>(this), hit) &&
-                hit.Actor && hit.Actor != actor)
+                hit.Actor && hit.Actor != actor && hit.Distance < distance - Tuning.InteractRestingSlack)
                 continue;
             // Prefer what is closest to the centre of the view, then what is nearer.
             const float score = alignment * 10.0f - distance;

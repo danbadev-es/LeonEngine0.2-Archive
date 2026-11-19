@@ -17,6 +17,11 @@ namespace Leon {
     class UNavigationSystem {
     public:
         void Rebuild(UWorld& InWorld);
+        /**
+         * Looks again at the cells a box touches and leaves the rest as built: what a door does when
+         * it opens or shuts. The box is in world space; the agent radius is added to it here.
+         */
+        void UpdateRegion(UWorld& InWorld, const glm::vec3& InMin, const glm::vec3& InMax);
         bool IsBuilt() const { return bBuilt && Width > 0 && Depth > 0; }
 
         FNavPath FindPath(const glm::vec3& InStart, const glm::vec3& InGoal) const;
@@ -46,6 +51,7 @@ namespace Leon {
             return InRange(X, Z) && Walkable[static_cast<size_t>(Index(X, Z))] != 0;
         }
         glm::vec3 CellCenter(int32_t X, int32_t Z) const;
+        bool ProbeCell(UWorld& InWorld, int32_t X, int32_t Z) const;
         bool WorldToCell(const glm::vec3& InPoint, int32_t& OutX, int32_t& OutZ) const;
         bool FindNearestWalkable(int32_t InX, int32_t InZ, int32_t& OutX, int32_t& OutZ) const;
         bool LineWalkable(int32_t X0, int32_t Z0, int32_t X1, int32_t Z1) const;

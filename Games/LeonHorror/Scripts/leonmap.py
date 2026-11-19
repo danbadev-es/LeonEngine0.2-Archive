@@ -141,8 +141,14 @@ class Level:
         """The player starts looking along -Z (north on a plan drawn in Blender)."""
         self.add(self.head("PlayerStart", "APlayerStart", loc, rot=(0, yaw, 0)))
 
-    def nav_bounds(self, centre, size) -> None:
-        self.add(self.head("NavBounds", "ANavMeshBoundsVolume", centre, scale=size))
+    def nav_bounds(self, centre, size, cell_size: float = 0.0, agent_radius: float = 0.0) -> None:
+        """Where enemies may walk. A level with ordinary doors needs a grid finer than the default 0.75 m."""
+        props = {}
+        if cell_size > 0.0:
+            props["CellSize"] = num(cell_size)
+        if agent_radius > 0.0:
+            props["AgentRadius"] = num(agent_radius)
+        self.add(self.head("NavBounds", "ANavMeshBoundsVolume", centre, scale=size, props=props or None))
 
     # ------------------------------------------------------------------ the file
     def text(self, generator: str) -> str:

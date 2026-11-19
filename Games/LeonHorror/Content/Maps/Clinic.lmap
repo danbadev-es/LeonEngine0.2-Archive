@@ -19,7 +19,7 @@ Environment:
     TexelPadding: 4
     WorldScale: 1
     LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
-    LightmapBakeHash: "5200f5add9bafbbf"
+    LightmapBakeHash: "ca32d490db55c556"
   Skybox:
     Enabled: true
     Exposure: 1.05
@@ -59,6 +59,9 @@ Actors:
   - Name: "NavBounds"
     Class: "ANavMeshBoundsVolume"
     GUID: "1301de7c9f80a204c653c7c88d753194"
+    Properties:
+      AgentRadius: "0.25"
+      CellSize: "0.25"
     Transform:
       Translation: [9, 1.4, -16.2]
       Rotation: [0, 0, 0]
@@ -2058,7 +2061,7 @@ Actors:
     Class: "AActor"
     GUID: "fddce4aff586445580ebc2d19a4f9988"
     Transform:
-      Translation: [7.4, 0, -5.3]
+      Translation: [7.85, 0, -0.6]
       Rotation: [0, 30, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -2689,7 +2692,7 @@ Actors:
     Class: "AActor"
     GUID: "fa1332583d4d04efe711ecdf3b806390"
     Transform:
-      Translation: [6.55, 0, -12.9]
+      Translation: [6.55, 0, -10.5]
       Rotation: [0, 4, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -2707,7 +2710,7 @@ Actors:
     Class: "AActor"
     GUID: "b6b7b9d4d40502a40b5656d4f64f3b7c"
     Transform:
-      Translation: [7.85, 0, -19.6]
+      Translation: [7.85, 0, -20.5]
       Rotation: [0, -160, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -2725,7 +2728,7 @@ Actors:
     Class: "AActor"
     GUID: "ff85458e0810a4ab4a9872a69308f34d"
     Transform:
-      Translation: [6.4, 0, -16.2]
+      Translation: [6.4, 0, -15.6]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -2743,7 +2746,7 @@ Actors:
     Class: "AActor"
     GUID: "85cbf4bb0d7ce69ad4fb1cea49b76d17"
     Transform:
-      Translation: [7.95, 0, -22.6]
+      Translation: [6.42, 0, -22.9]
       Rotation: [0, 80, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -2799,7 +2802,7 @@ Actors:
     Class: "AActor"
     GUID: "cd7493a86562e7a02824a84562aac283"
     Transform:
-      Translation: [7.9, 0, -10.4]
+      Translation: [7.95, 0, -12.2]
       Rotation: [0, 60, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -5233,7 +5236,7 @@ Actors:
     Class: "AActor"
     GUID: "f48c40d66f2806b0cc6bde93fe7fbd70"
     Transform:
-      Translation: [13.5, 0, -24.6]
+      Translation: [12.4, 0, -24.5]
       Rotation: [0, 20, 0]
       Scale: [1, 1, 1]
     StaticMesh:
@@ -6107,8 +6110,8 @@ Actors:
     Class: "AActor"
     GUID: "e3ac77da124284ee9a78ba70c981b8c2"
     Transform:
-      Translation: [15.6, 0, -25.4]
-      Rotation: [0, 80, 0]
+      Translation: [15.7, 0, -27.4]
+      Rotation: [0, 85, 0]
       Scale: [1, 1, 1]
     StaticMesh:
       Asset: "/Game/Meshes/SM_Prop_Gurney.lmesh"

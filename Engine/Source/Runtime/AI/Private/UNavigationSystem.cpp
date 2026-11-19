@@ -9,8 +9,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <queue>
+#include <string>
 #include <vector>
 
 namespace Leon {
@@ -98,6 +100,20 @@ namespace Leon {
         InOutCells.swap(out);
     }
 
+    namespace {
+
+        /** A positive number stored as an actor property, or 0 when it is absent or not a number. */
+        float PropertyAsFloat(const AActor& InActor, const char* InKey) {
+            const std::string& text = InActor.GetProperty(InKey);
+            if (text.empty())
+                return 0.0f;
+            char* end = nullptr;
+            const float value = std::strtof(text.c_str(), &end);
+            return end != text.c_str() && std::isfinite(value) ? value : 0.0f;
+        }
+
+    } // namespace
+
     void UNavigationSystem::Rebuild(UWorld& InWorld) {
         bBuilt = false;
         Width = Depth = WalkableCount = 0;
@@ -116,6 +132,13 @@ namespace Leon {
             bmin = glm::min(bmin, vmin);
             bmax = glm::max(bmax, vmax);
             bAny = true;
+            // A level with doorways narrower than the default grid asks for a finer one on its volume.
+            const float cellSize = PropertyAsFloat(*vol, "CellSize");
+            if (cellSize > 0.0f)
+                CellSize = glm::clamp(cellSize, 0.1f, 4.0f);
+            const float agentRadius = PropertyAsFloat(*vol, "AgentRadius");
+            if (agentRadius > 0.0f)
+                AgentRadius = glm::clamp(agentRadius, 0.05f, 4.0f);
         }
         if (!bAny)
             return;
@@ -129,12 +152,9 @@ namespace Leon {
         Depth = std::max(1, static_cast<int32_t>(std::ceil(spanZ / CellSize)));
         Walkable.assign(static_cast<size_t>(Width * Depth), 0);
 
-        const glm::vec3 probeHalf(AgentRadius, ProbeHeight * 0.5f, AgentRadius);
         for (int32_t z = 0; z < Depth; ++z) {
             for (int32_t x = 0; x < Width; ++x) {
-                const glm::vec3 c = CellCenter(x, z);
-                const glm::vec3 probe(c.x, FloorY + ProbeHeight, c.z);
-                if (!InWorld.OverlapAnyTestByChannel(probe, probeHalf, ECollisionChannel::WorldStatic, nullptr)) {
+                if (ProbeCell(InWorld, x, z)) {
                     Walkable[static_cast<size_t>(Index(x, z))] = 1;
                     ++WalkableCount;
                 }
@@ -143,6 +163,32 @@ namespace Leon {
         bBuilt = WalkableCount > 0;
         LE_CORE_INFO("NavMesh rebuilt: {0}x{1} cells, {2} walkable, bounds ({3:.1f},{4:.1f})-({5:.1f},{6:.1f})", Width,
                      Depth, WalkableCount, BoundsMin.x, BoundsMin.z, BoundsMax.x, BoundsMax.z);
+    }
+
+    bool UNavigationSystem::ProbeCell(UWorld& InWorld, int32_t X, int32_t Z) const {
+        const glm::vec3 c = CellCenter(X, Z);
+        const glm::vec3 probe(c.x, FloorY + ProbeHeight, c.z);
+        const glm::vec3 probeHalf(AgentRadius, ProbeHeight * 0.5f, AgentRadius);
+        return !InWorld.OverlapAnyTestByChannel(probe, probeHalf, ECollisionChannel::WorldStatic, nullptr);
+    }
+
+    void UNavigationSystem::UpdateRegion(UWorld& InWorld, const glm::vec3& InMin, const glm::vec3& InMax) {
+        if (!IsBuilt())
+            return;
+        // A cell is affected when its probe, not just its centre, reaches the box.
+        const float reach = AgentRadius + CellSize * 0.5f;
+        const int32_t x0 = std::max(0, static_cast<int32_t>(std::floor((InMin.x - reach - BoundsMin.x) / CellSize)));
+        const int32_t z0 = std::max(0, static_cast<int32_t>(std::floor((InMin.z - reach - BoundsMin.z) / CellSize)));
+        const int32_t x1 = std::min(Width - 1, static_cast<int32_t>(std::floor((InMax.x + reach - BoundsMin.x) / CellSize)));
+        const int32_t z1 = std::min(Depth - 1, static_cast<int32_t>(std::floor((InMax.z + reach - BoundsMin.z) / CellSize)));
+        for (int32_t z = z0; z <= z1; ++z) {
+            for (int32_t x = x0; x <= x1; ++x) {
+                uint8_t& cell = Walkable[static_cast<size_t>(Index(x, z))];
+                const uint8_t now = ProbeCell(InWorld, x, z) ? 1 : 0;
+                WalkableCount += static_cast<int32_t>(now) - static_cast<int32_t>(cell);
+                cell = now;
+            }
+        }
     }
 
     bool UNavigationSystem::ProjectPoint(const glm::vec3& InPoint, glm::vec3& OutProjected) const {

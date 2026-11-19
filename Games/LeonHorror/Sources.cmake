@@ -25,6 +25,7 @@ set(LEONHORROR_GAME_SOURCES
 set(LEONHORROR_TEST_SOURCES
     "${LEONHORROR_ROOT}/Tests/Main.cpp"
     "${LEONHORROR_ROOT}/Tests/BootTests.cpp"
+    "${LEONHORROR_ROOT}/Tests/ClinicMapTests.cpp"
     "${LEONHORROR_ROOT}/Tests/AnimationPipelineTests.cpp"
     "${LEONHORROR_ROOT}/Tests/CharacterTests.cpp"
     "${LEONHORROR_ROOT}/Tests/InteractionTests.cpp"

@@ -215,7 +215,7 @@ class Clinic:
         self.wall_prop("Reception", "SM_Prop_Extinguisher", "west", 2.4, 0.25)
         self.wall_prop("Reception", "SM_Prop_Radiator", "south", 5.6, collision=True)
         self.prop("SM_Prop_Bench", r.at(1.0, 0.45), 180.0)
-        self.prop("SM_Prop_Boxes", r.at(7.4, 5.3), 30.0)
+        self.prop("SM_Prop_Boxes", r.at(7.85, 0.6), 30.0)
         self.prop("SM_Prop_Bin", r.at(5.3, 3.9), 0.0)
         self.prop("SM_Prop_Typewriter", r.at(2.9, 3.72, 0.74), 180.0, collision=False)
         self.lv.actor("SavePoint_Reception", "ALeonHorrorSavePoint", from_blender(r.at(2.9, 3.75, 0.86)))
@@ -248,13 +248,14 @@ class Clinic:
         states = [("on", 4.2, True), ("dead", 0.0, False), ("flicker", 4.0, False), ("dead", 0.0, False), ("on", 3.4, True), ("dead", 0.0, False)]
         for i, (state, intensity, shadows) in enumerate(states):
             self.light("Corridor", 1.2, 1.5 + i * 3.0, state=state, intensity=intensity or 4.0, color=WARM if i < 3 else SICK, shadows=shadows)
-        self.prop("SM_Prop_Gurney", r.at(0.55, 6.9), 4.0)
-        self.prop("SM_Prop_Wheelchair", r.at(1.85, 13.6), -160.0)
-        self.prop("SM_Prop_IVStand", r.at(0.4, 10.2), 0.0)
-        self.prop("SM_Prop_Trolley", r.at(1.95, 16.6), 80.0)
+        # Furniture left along the walls, clear of every doorway.
+        self.prop("SM_Prop_Gurney", r.at(0.55, 4.5), 4.0)
+        self.prop("SM_Prop_Wheelchair", r.at(1.85, 14.5), -160.0)
+        self.prop("SM_Prop_IVStand", r.at(0.4, 9.6), 0.0)
+        self.prop("SM_Prop_Trolley", r.at(0.42, 16.9), 80.0)
         self.wall_prop("Corridor", "SM_Prop_Extinguisher", "east", 11.4, 0.25)
         self.wall_prop("Corridor", "SM_Prop_Clock", "west", 4.6, 2.2)
-        self.prop("SM_Prop_Boxes", r.at(1.9, 4.4), 60.0)
+        self.prop("SM_Prop_Boxes", r.at(1.95, 6.2), 60.0)
         self.enemy("EnemySpawn_Corridor", r.at(1.2, 12.5), "Patient", 5.0)
 
     def consult(self, room: str, mirrored: bool) -> None:
@@ -400,7 +401,7 @@ class Clinic:
             self.light("Service", x, 1.2, color=COLD, intensity=3.4, group="North", state="flicker" if i == 2 else "on", shadows=i in (0, 3))
         self.prop("SM_Prop_Gurney", r.at(3.8, 0.5), 92.0)
         self.prop("SM_Prop_Trolley", r.at(10.6, 1.9), -30.0)
-        self.prop("SM_Prop_Boxes", r.at(13.5, 0.6), 20.0)
+        self.prop("SM_Prop_Boxes", r.at(12.4, 0.5), 20.0)
         self.prop("SM_Prop_OxygenTank", r.at(0.4, 0.5), 0.0)
         self.wall_prop("Service", "SM_Prop_Extinguisher", "south", 9.6, 0.25)
         self.sound("Sound_Service_Vent", r.at(7.2, 1.2, 2.5), "AMB_Ventilation", 0.6, 12.0, "North")
@@ -464,7 +465,7 @@ class Clinic:
 
     def bay(self) -> None:
         r = self.rooms["Bay"]
-        self.prop("SM_Prop_Gurney", r.at(1.2, 1.4), 80.0)
+        self.prop("SM_Prop_Gurney", r.at(1.3, 3.4), 85.0)
         self.prop("SM_Prop_Boxes", r.at(3.0, 3.4), 0.0)
         self.prop("SM_Prop_OxygenTank", r.at(0.4, 3.5), 0.0)
         self.light("Bay", 1.8, 2.0, color=(1.0, 0.5, 0.4), intensity=2.0, radius=6.0)
@@ -489,7 +490,9 @@ class Clinic:
         }
         width = max(r.x1 for r in self.rooms.values())
         depth = max(r.y1 for r in self.rooms.values())
-        lv.nav_bounds(from_blender((width * 0.5, depth * 0.5, 1.4)), (width + 2.0, 3.0, depth + 2.0))
+        # Doorways are 0.9 m. A cell is walkable when a box of the agent's radius fits around its centre,
+        # so the doorway less twice the radius has to be wider than a cell for one to always land in it.
+        lv.nav_bounds(from_blender((width * 0.5, depth * 0.5, 1.4)), (width + 2.0, 3.0, depth + 2.0), cell_size=0.25, agent_radius=0.25)
         lv.actor("Music", "ALeonHorrorAmbientSound", (0, 0, 0), props={"Sound": "/Game/Audio/MUS_Clinic_Ambience", "Volume": "0.5", "Music": "true"})
 
         self.shells()

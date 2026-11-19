@@ -36,6 +36,8 @@ namespace Leon {
         glm::vec3 ShoulderOffset{0.62f, 0.02f, 0.0f};
         /** How far the player can reach to use something, from the eye, in metres. */
         float InteractReach = 2.4f;
+        /** How far inside a surface something may lie and still be reached (things rest on furniture). */
+        float InteractRestingSlack = 0.12f;
         /** Half-angle of the cone around the view direction in which things can be targeted. */
         float InteractConeDegrees = 28.0f;
 
