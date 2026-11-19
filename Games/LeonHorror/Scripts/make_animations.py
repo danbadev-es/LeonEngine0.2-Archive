@@ -15,7 +15,13 @@ keyed on every frame). One command authors and imports the ten of them and nothi
 
     python Games/LeonHorror/Scripts/import_animations.py --enemies
 
-which runs this file with `--set enemies` (`--set mannequin` is the clips below, the default is both).
+which runs this file with `--set enemies`. The player's clips are in player_clips.py, made the same
+way for the protagonist's body and what it carries:
+
+    python Games/LeonHorror/Scripts/import_animations.py --player
+
+(`--set player`). `--set mannequin` is the clips below - the ones still posed here, on the
+mannequin - and the default is all three.
 
 How the engine reads the result (Engine/Source/Runtime/Assets/Private/FSkeletalImporter.cpp):
   * one clip per FBX, named after the file, when the file has a single animation stack;
@@ -32,6 +38,7 @@ from mathutils import Euler, Quaternion, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import enemy_clips  # noqa: E402
+import player_clips  # noqa: E402
 
 FPS = 30
 
@@ -250,14 +257,14 @@ RELAXED = {
 
 
 def clip_poses():
-    """name -> (list of (time seconds, pose), loop flag)"""
+    """
+    name -> (list of (time seconds, pose), loop flag).
+
+    The player's idle, swing, aim, shot, hit and reach used to be posed here too; they are in
+    player_clips.py now, made for the protagonist and for what it holds.
+    """
     clips = {}
     steps = 8
-
-    # Standing still, arms at the sides, breathing. The Mixamo Idle is a rifle-ready stance.
-    breathe = merge(RELAXED, {"Spine": torso(5), "Spine1": torso(2), "Head": torso(-4),
-                              "LeftArm": arm("L", 78), "RightArm": arm("R", 78)})
-    clips["IdleRelaxed"] = ([(0.0, RELAXED), (1.6, breathe), (3.2, RELAXED)], True)
 
     # Enemy at rest: hunched and lopsided, like its walk, swaying slightly.
     slump = merge(RELAXED, {"Spine": torso(24, 0, 8), "Spine1": torso(10, 0, 5), "Neck": torso(8),
@@ -279,41 +286,6 @@ def clip_poses():
             "Spine": torso(6, 4 * swing), "Hips": torso(0, -3 * swing),
         })
     clips["WalkForward"] = ([(1.1 * i / steps, walk(2 * math.pi * i / steps)) for i in range(steps + 1)], True)
-
-    # Two-handed overhead swing with a blunt weapon.
-    ready = merge(RELAXED, {"RightArm": arm("R", 88, 40, 10), "RightForeArm": elbow("R", 85),
-                            "LeftArm": arm("L", 88, 30, 20), "LeftForeArm": elbow("L", 75),
-                            "Spine": torso(-3, -10)})
-    wind = merge(RELAXED, {"RightArm": arm("R", 90, 160, 5), "RightForeArm": elbow("R", 75),
-                           "LeftArm": arm("L", 90, 140, 20), "LeftForeArm": elbow("L", 85),
-                           "Spine": torso(-14, -16), "Spine1": torso(-6, -6), "Head": torso(6)})
-    hit = merge(RELAXED, {"RightArm": arm("R", 90, 42, 12), "RightForeArm": elbow("R", 14),
-                          "LeftArm": arm("L", 90, 38, 22), "LeftForeArm": elbow("L", 22),
-                          "Spine": torso(24, 14), "Spine1": torso(8, 6), "Head": torso(-10),
-                          "LeftUpLeg": thigh(14), "LeftLeg": knee(18)})
-    clips["MeleeSwing"] = ([(0.0, ready), (0.22, wind), (0.36, hit), (0.5, hit), (0.8, ready)], False)
-
-    # Pistol held out in the right hand, left hand supporting. Layered on the upper body at runtime.
-    aim = merge(RELAXED, {"RightArm": arm("R", 90, 86, 8), "RightForeArm": elbow("R", 5),
-                          "LeftArm": arm("L", 90, 74, 26), "LeftForeArm": elbow("L", 38),
-                          "Spine": torso(2, -8), "Head": torso(0, 6)})
-    aim_breathe = merge(aim, {"Spine": torso(4, -8), "RightArm": arm("R", 90, 84, 8)})
-    clips["PistolAimIdle"] = ([(0.0, aim), (1.0, aim_breathe), (2.0, aim)], True)
-    recoil = merge(aim, {"RightArm": arm("R", 90, 100, 8), "RightForeArm": elbow("R", 24),
-                         "LeftArm": arm("L", 90, 86, 26), "Spine": torso(-3, -8)})
-    clips["PistolFire"] = ([(0.0, aim), (0.05, recoil), (0.3, aim)], False)
-
-    # Staggered backwards by a blow.
-    flinch = merge(RELAXED, {"Spine": torso(-20, 8, 6), "Spine1": torso(-10, 4), "Head": torso(-16, -10),
-                             "LeftArm": arm("L", 55, -25), "RightArm": arm("R", 50, -30),
-                             "LeftForeArm": elbow("L", 40), "RightForeArm": elbow("R", 40),
-                             "RightUpLeg": thigh(-12), "RightLeg": knee(10)})
-    clips["HitReact"] = ([(0.0, RELAXED), (0.1, flinch), (0.5, RELAXED)], False)
-
-    # Reaching forward and down to pick something up or work a handle.
-    reach = merge(RELAXED, {"RightArm": arm("R", 90, 62, 8), "RightForeArm": elbow("R", 22),
-                            "Spine": torso(18, -6), "Head": torso(10)})
-    clips["Interact"] = ([(0.0, RELAXED), (0.3, reach), (0.55, reach), (0.9, RELAXED)], False)
 
     # Enemy: a dragging, lopsided shamble; one arm hangs, the other is drawn up against the chest.
     def shamble(phase):
@@ -393,12 +365,17 @@ def run_author(rig_path, out_dir, only, preview_dir, which="all"):
             render_preview(name, key_frames[:4], preview_dir)
         export_armature(armature, os.path.join(out_dir, name + ".fbx"), 1, last_frame)
 
-    for name in (enemy_clips.CLIPS if which in ("all", "enemies") else ()):
+    solved = []
+    if which in ("all", "enemies"):
+        solved += [(name, enemy_clips.CLIPS) for name in enemy_clips.CLIPS]
+    if which in ("all", "player"):
+        solved += [(name, player_clips.CLIPS) for name in player_clips.CLIPS]
+    for name, table in solved:
         if wanted and name not in wanted:
             continue
         reset_scene()
         armature = import_fbx(rig_path)
-        last_frame = enemy_clips.author(armature, name)
+        last_frame = enemy_clips.author(armature, name, table)
         if preview_dir:
             render_preview(name, [1 + (last_frame - 1) * i // 3 for i in range(4)], preview_dir)
         export_armature(armature, os.path.join(out_dir, name + ".fbx"), 1, last_frame)

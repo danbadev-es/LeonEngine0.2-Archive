@@ -338,6 +338,12 @@ def solve(sk, p, stats=None):
                 bone = "%sHand%s%d" % (side, finger, index + 1)
                 D[bone] = D[above] @ about(h[bone], Ry(s * curl * angle))
                 above = bone
+        # The thumb folds down towards the palm at its root, then closes over the fingers.
+        above = hand
+        for index, turn in enumerate((Rx(curl * 38.0) @ Rz(s * curl * 12.0), Rz(s * curl * 26.0), Rz(s * curl * 30.0))):
+            bone = "%sHandThumb%d" % (side, index + 1)
+            D[bone] = D[above] @ about(h[bone], turn)
+            above = bone
 
         # ---- leg
         up_leg, leg, foot, toe = side + "UpLeg", side + "Leg", side + "Foot", side + "ToeBase"
@@ -905,14 +911,15 @@ CLIPS = {
 }
 
 
-def author(armature, name):
+def author(armature, name, clips=None):
     """
     Keys the clip `name` on the armature, one key a bone a frame, from frame 1. Returns the last
     frame. The armature is the one of Raw/YBot.fbx, as imported by make_animations.import_fbx.
+    `clips` is the table the clip is in (this module's, or player_clips.CLIPS).
     """
     import bpy
 
-    seconds, loop, pose = CLIPS[name]
+    seconds, loop, pose = (clips or CLIPS)[name]
     count = int(round(seconds * FPS))
     if armature.animation_data:
         armature.animation_data.action = None

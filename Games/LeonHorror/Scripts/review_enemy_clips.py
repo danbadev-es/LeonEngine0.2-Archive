@@ -1,7 +1,7 @@
 """
-LeonHorror - look at the enemy kinds' clips on the characters they were made for.
+LeonHorror - look at the solved clips (the enemy kinds' and the player's) on the characters they were made for.
 
-Run by Blender, after import_animations.py --enemies has written the clips' FBX files:
+Run by Blender, after import_animations.py --enemies / --player has written the clips' FBX files:
 
     "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b --factory-startup \
         --python Games/LeonHorror/Scripts/review_enemy_clips.py -- [--only PatientWalk,OrderlyDeath] \
@@ -35,6 +35,14 @@ sys.path.insert(0, HERE)
 
 from leonart import charsheet, png  # noqa: E402
 import enemy_clips  # noqa: E402
+import player_clips  # noqa: E402
+
+ALL_CLIPS = {**enemy_clips.CLIPS, **player_clips.CLIPS}
+
+
+def character_of(name):
+    """The Patient's and the Orderly's clips carry their names; everything else is the player's."""
+    return next((kind for kind in ("Patient", "Orderly") if name.startswith(kind)), "Protagonist")
 
 P = "mixamorig:"
 
@@ -45,6 +53,9 @@ VIEWS = {
     "OrderlyAttack": ((0.0, -0.3, 1.05), 8.0, 1.4, (420, 660)),
     "PatientDeath": ((-0.45, -0.2, 0.45), 6.4, 2.2, (560, 460)),
     "OrderlyDeath": ((0.0, -0.75, 0.5), 7.4, 2.4, (600, 480)),
+    "MeleeSwing": ((0.0, -0.35, 1.05), 8.4, 1.5, (460, 640)),
+    "PlayerPickupLow": ((0.0, -0.25, 0.75), 6.8, 1.3, (400, 600)),
+    "PlayerDeathBackward": ((0.0, 0.55, 0.5), 7.6, 2.4, (600, 480)),
 }
 
 
@@ -240,6 +251,26 @@ def check_walk(name, checker, first, last, speed):
                 name, side.lower(), len(speeds), last - first, min(speeds), max(speeds), speed))
 
 
+def add_pipe(armature):
+    """
+    A stand-in for the pipe, for the swing: 0.8 m along the right hand bone from just behind the
+    grip, as the game hangs SM_Held_Pipe (ALeonHorrorCharacter::UpdateHeldItems).
+    """
+    scale = armature.matrix_world.to_scale().x
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.014 / scale, depth=0.8 / scale, vertices=10)
+    pipe = bpy.context.active_object
+    pipe.name = "PipeStandIn"
+    pipe.parent = armature
+    pipe.parent_type = "BONE"
+    pipe.parent_bone = P + "RightHand"
+    # A bone's children sit at its tail; the cylinder runs along Z and the bone along Y.
+    length = armature.data.bones[P + "RightHand"].length
+    pipe.matrix_parent_inverse.identity()
+    pipe.rotation_euler = (math.radians(90.0), 0.0, 0.0)
+    pipe.location = (0.0, -length + (0.09 + 0.28) / scale, 0.03 / scale)
+    return pipe
+
+
 def render_clip(name, armature, first, last, loop, args):
     frames = int(args["frames"])
     target, distance, height, size = VIEWS.get(name, STANDING)
@@ -262,10 +293,10 @@ def render_clip(name, armature, first, last, loop, args):
 
 def main():
     args = parse_args()
-    wanted = [n for n in args["only"].split(",") if n] or list(enemy_clips.CLIPS)
+    wanted = [n for n in args["only"].split(",") if n] or list(ALL_CLIPS)
     os.makedirs(args["out"], exist_ok=True)
-    for character in ("Patient", "Orderly"):
-        names = [n for n in wanted if n.startswith(character)]
+    for character in ("Patient", "Orderly", "Protagonist"):
+        names = [n for n in wanted if character_of(n) == character]
         if not names:
             continue
         armature, mesh = load_character(character, args)
@@ -276,16 +307,20 @@ def main():
         if not args["no-render"]:
             charsheet.studio(int(args["samples"]))
         for name in names:
-            seconds, loop, _pose = enemy_clips.CLIPS[name]
+            seconds, loop, _pose = ALL_CLIPS[name]
             _action, first, last = load_clip(armature, os.path.join(args["anims"], name + ".fbx"))
             if last - first != int(round(seconds * 30)):
                 print("CHECK %-14s WARNING: %d frames in the file, %d expected" % (name, last - first, int(round(seconds * 30))))
             check_clip(name, checker, first, last, loop)
             if name.endswith("Walk"):
-                speed = enemy_clips.PATIENT_WALK_SPEED if character == "Patient" else enemy_clips.ORDERLY_WALK_SPEED
+                speed = {"Patient": enemy_clips.PATIENT_WALK_SPEED, "Orderly": enemy_clips.ORDERLY_WALK_SPEED,
+                         "Protagonist": player_clips.PLAYER_WALK_SPEED}[character]
                 check_walk(name, checker, first, last, speed)
             if not args["no-render"]:
+                pipe = add_pipe(armature) if name == "MeleeSwing" else None
                 render_clip(name, armature, first, last, loop, args)
+                if pipe is not None:
+                    bpy.data.objects.remove(pipe, do_unlink=True)
 
 
 main()

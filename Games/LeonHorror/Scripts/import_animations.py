@@ -5,6 +5,7 @@ LeonHorror - build the Blender-authored animation clips and import them into Con
     python Games/LeonHorror/Scripts/import_animations.py              # author + import every clip
     python Games/LeonHorror/Scripts/import_animations.py --only MeleeSwing
     python Games/LeonHorror/Scripts/import_animations.py --enemies    # only the Patient's and the Orderly's ten clips
+    python Games/LeonHorror/Scripts/import_animations.py --player     # only the player's clips (player_clips.py)
     python Games/LeonHorror/Scripts/import_animations.py --roundtrip  # pipeline check only
 
 Steps:
@@ -38,8 +39,7 @@ BLENDER_CANDIDATES = [
 ]
 
 # Clips that existed before authoring; never deleted by the cleanup below.
-AUTHORED = ["IdleRelaxed", "EnemyIdle", "WalkForward", "MeleeSwing", "PistolAimIdle", "PistolFire", "HitReact",
-            "Interact", "EnemyShamble", "EnemyAttack"]
+AUTHORED = ["EnemyIdle", "WalkForward", "EnemyShamble", "EnemyAttack"]
 # The two enemy kinds' own clips (enemy_clips.py); the game takes them by name, <Kind><Clip>.
 ENEMIES = [kind + clip for kind in ("Patient", "Orderly") for clip in ("Idle", "Walk", "Attack", "Hit", "Death")]
 
@@ -85,6 +85,7 @@ def main() -> int:
     parser.add_argument("--roundtrip", action="store_true")
     parser.add_argument("--only", default="", help="author these clips only (names, comma separated)")
     parser.add_argument("--enemies", action="store_true", help="author the enemy kinds' clips only")
+    parser.add_argument("--player", action="store_true", help="author the player's clips only")
     args = parser.parse_args()
 
     if args.roundtrip:
@@ -109,6 +110,8 @@ def main() -> int:
         author += ["--only", args.only]
     if args.enemies:
         author += ["--set", "enemies"]
+    elif args.player:
+        author += ["--set", "player"]
     blender(author)
 
     produced = sorted(f for f in os.listdir(staging) if f.lower().endswith(".fbx"))
