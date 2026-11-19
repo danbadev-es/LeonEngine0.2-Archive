@@ -228,6 +228,7 @@ namespace Leon {
                     FRHIFrame::End();
                     FrameCommands = nullptr;
                     device->EndFrame();
+                    FRHIFrame::RunAfterFrameTasks();
                 }
                 AppWindow->OnUpdate();
                 if (bRenderFrame)

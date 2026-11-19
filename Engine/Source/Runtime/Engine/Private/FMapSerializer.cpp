@@ -522,6 +522,22 @@ namespace Leon {
                 }
             }
 
+            // Reflection probe
+            if (entity.HasComponent<FReflectionProbeComponent>()) {
+                const auto& probe = entity.GetComponent<FReflectionProbeComponent>();
+                Indent(ss, 2);
+                ss << "ReflectionProbe:\n";
+                Indent(ss, 3);
+                ss << "Extent: [" << probe.Extent.x << ", " << probe.Extent.y << ", " << probe.Extent.z << "]\n";
+                Indent(ss, 3);
+                ss << "CaptureOffset: [" << probe.CaptureOffset.x << ", " << probe.CaptureOffset.y << ", "
+                   << probe.CaptureOffset.z << "]\n";
+                Indent(ss, 3);
+                ss << "Intensity: " << probe.Intensity << "\n";
+                Indent(ss, 3);
+                ss << "BlendDistance: " << probe.BlendDistance << "\n";
+            }
+
             // Text Component
             if (entity.HasComponent<FTextComponent>()) {
                 const auto& txt = entity.GetComponent<FTextComponent>();

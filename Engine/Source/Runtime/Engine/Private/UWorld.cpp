@@ -526,6 +526,16 @@ namespace Leon {
         return PlayerControllers.empty() ? nullptr : PlayerControllers.front();
     }
 
+    uint64_t UWorld::GetStaticLightingHash() const {
+        if (!bLightmapsTrusted)
+            return 0;
+        const auto view = Registry.view<FWorldSettingsComponent>();
+        if (view.begin() == view.end())
+            return 0;
+        const FWorldSettingsComponent& settings = view.get<FWorldSettingsComponent>(*view.begin());
+        return settings.bStaticLighting ? settings.LightmapBakeHash : 0;
+    }
+
     FWorldRenderer* UWorld::GetWorldRenderer() {
         if (!Renderer) {
             Renderer = CreateScope<FWorldRenderer>(this);
@@ -544,6 +554,7 @@ namespace Leon {
                 shadows.MaxShadowedSpotLights = GetPendingMaxShadowedSpotLights();
             }
             shadows.FilterMode = GetPendingShadowFilter();
+            Renderer->SetReflectionProbeResolution(PendingReflectionProbeResolution);
             FPostProcessSettings& post = Renderer->GetPostProcessSettings();
             post.bSSAOEnabled = GetPendingSSAOEnabled();
             post.SSAORadius = GetPendingSSAORadius();
@@ -636,6 +647,12 @@ namespace Leon {
             sh.MaxShadowedPointLights = PendingMaxShadowedPointLights;
             sh.MaxShadowedSpotLights = PendingMaxShadowedSpotLights;
         }
+    }
+
+    void UWorld::SetProjectReflectionProbeResolution(uint32_t InResolution) {
+        PendingReflectionProbeResolution = InResolution > 0 ? InResolution : 128;
+        if (Renderer)
+            Renderer->SetReflectionProbeResolution(PendingReflectionProbeResolution);
     }
 
     void UWorld::ReloadTextures() {

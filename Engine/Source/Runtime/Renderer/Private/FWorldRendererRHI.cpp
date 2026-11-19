@@ -21,10 +21,12 @@
 #include "Assets/USkeletalMesh.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Core/FLog.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "Scene/Components.hpp"
 #include "Scene/IRenderScene.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
+#include "RHI/FRHIFrame.hpp"
 #include "RHI/FRenderer.hpp"
 #include "RHI/FTexture.hpp"
 #include "RHI/FTextureCube.hpp"
@@ -34,6 +36,7 @@
 #include "Renderer/FDebugRenderer.hpp"
 #include "RenderCore/FLight.hpp"
 #include "RenderCore/FLightSelection.hpp"
+#include "RenderCore/FReflectionProbeMath.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "Renderer/FParticleRenderer.hpp"
 #include "RenderCore/FShaderConstants.hpp"
@@ -42,8 +45,15 @@
 #include "Renderer/FTextRenderer.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -113,6 +123,11 @@ namespace Leon {
             uint32_t IndexCount = 0;
             uint32_t FirstIndex = 0;
             float DistanceSq = 0.0f;
+            /** Bounds in world space. */
+            glm::vec3 WorldMin{0.0f};
+            glm::vec3 WorldMax{0.0f};
+            /** The reflection probes the draw reads, as cubes of the probe array; -1 = none. */
+            int32_t Probes[kReflectionProbesPerDraw] = {-1, -1};
         };
 
         /** One section of a skinned mesh to outline. */
@@ -138,6 +153,8 @@ namespace Leon {
             glm::vec3 WorldMax{0.0f};
             uint32_t IndexCount = 0;
             uint32_t FirstIndex = 0;
+            /** Part of the level that never moves: the only casters a reflection probe's capture shows. */
+            bool bStatic = false;
         };
 
         void SetBonePalette(IRHICommandList& InCommands, const std::vector<glm::mat4>& InPalette) {
@@ -199,15 +216,21 @@ namespace Leon {
             return chosen;
         }
 
+        /**
+         * bInMovableLights false leaves out the lights gameplay moves (the player's flashlight): what a
+         * reflection probe captures must hold for as long as the level does.
+         */
         FSceneLighting GatherLighting(IRenderScene& InWorld, const glm::vec3& InViewPosition,
-                                      const FFrustumPlanes& InFrustum, FLightSlotHistory& InOutHistory) {
+                                      const FFrustumPlanes& InFrustum, FLightSlotHistory& InOutHistory,
+                                      bool bInMovableLights = true) {
             FSceneLighting lighting;
             FLitPassConstants& constants = lighting.Constants;
             auto& registry = InWorld.GetRegistry();
             // Static lights are in the lightmaps; adding them again would light the scene twice.
             const bool bSkipBakedLights = InWorld.AreLightmapsTrusted();
-            const auto contributes = [bSkipBakedLights](bool bInEnabled, ELightMobility InMobility) {
-                return bInEnabled && !(InMobility == ELightMobility::Static && bSkipBakedLights);
+            const auto contributes = [bSkipBakedLights, bInMovableLights](bool bInEnabled, ELightMobility InMobility) {
+                return bInEnabled && !(InMobility == ELightMobility::Static && bSkipBakedLights) &&
+                       (bInMovableLights || InMobility != ELightMobility::Movable);
             };
 
             for (auto entity : registry.view<FDirectionalLightComponent>()) {
@@ -317,6 +340,131 @@ namespace Leon {
 
     } // namespace
 
+    /** One probe of the world and the state of its cube. */
+    struct FReflectionProbeSlot {
+        FReflectionProbeBox Box;
+        /** What the cube was captured from (ReflectionProbeCache::Key); 0 = not captured. */
+        uint64_t Key = 0;
+        /** The cube is not yet in the cache on disk. */
+        bool bUnsaved = false;
+    };
+
+    /**
+     * Captures of reflection probes kept on disk, so a level is captured once and not on every run.
+     * A file holds the cube of one probe: every level and face as RGBA16 float, after a small header.
+     * It is named by the key of the capture, which changes with anything the capture shows.
+     */
+    namespace {
+    namespace ReflectionProbeCache {
+
+        constexpr uint32_t kMagic = 0x4350524Cu; // "LRPC"
+        // Raise when captures made by older code must not be used (the capture or the filter changed).
+        constexpr uint32_t kVersion = 1;
+
+        struct FHeader {
+            uint32_t Magic = kMagic;
+            uint32_t Version = kVersion;
+            uint32_t Resolution = 0;
+            uint32_t MipLevels = 0;
+            uint64_t Key = 0;
+        };
+
+        uint64_t Mix(uint64_t InHash, const void* InData, size_t InSize) {
+            const auto* bytes = static_cast<const uint8_t*>(InData);
+            for (size_t i = 0; i < InSize; ++i) {
+                InHash ^= bytes[i];
+                InHash *= 1099511628211ull;
+            }
+            return InHash;
+        }
+
+        /** Never 0. InLightingHash is IRenderScene::GetStaticLightingHash. */
+        uint64_t Key(uint64_t InLightingHash, bool bInLightmapsTrusted, const glm::vec3& InCapturePosition,
+                     uint32_t InResolution) {
+            uint64_t hash = 14695981039346656037ull;
+            const uint32_t trusted = bInLightmapsTrusted ? 1u : 0u;
+            hash = Mix(hash, &kVersion, sizeof(kVersion));
+            hash = Mix(hash, &InLightingHash, sizeof(InLightingHash));
+            hash = Mix(hash, &trusted, sizeof(trusted));
+            hash = Mix(hash, &InCapturePosition, sizeof(InCapturePosition));
+            hash = Mix(hash, &InResolution, sizeof(InResolution));
+            return hash != 0 ? hash : 1;
+        }
+
+        std::string FilePath(const std::string& InDirectory, uint64_t InKey) {
+            char name[32];
+            std::snprintf(name, sizeof(name), "%016llx.lprobecube", static_cast<unsigned long long>(InKey));
+            return (std::filesystem::path(InDirectory) / name).string();
+        }
+
+        /** Bytes of one face of a level. */
+        size_t FaceBytes(uint32_t InResolution, uint32_t InMip) {
+            const size_t size = std::max(InResolution >> InMip, 1u);
+            return size * size * 8;
+        }
+
+        /** Fills one cube of the array from its file. False when there is no usable file. */
+        bool Load(IRHIDevice& InDevice, IRHITexture& InCubes, uint32_t InCube, const std::string& InPath, uint64_t InKey) {
+            std::ifstream file(InPath, std::ios::binary);
+            FHeader header;
+            if (!file || !file.read(reinterpret_cast<char*>(&header), sizeof(header)))
+                return false;
+            const FRHITextureDesc& desc = InCubes.GetDesc();
+            if (header.Magic != kMagic || header.Version != kVersion || header.Key != InKey ||
+                header.Resolution != desc.Width || header.MipLevels != desc.MipLevels)
+                return false;
+            // Read everything before touching the texture: a file cut short must not leave half a cube.
+            std::vector<std::vector<char>> faces;
+            for (uint32_t mip = 0; mip < desc.MipLevels; ++mip) {
+                for (uint32_t face = 0; face < 6; ++face) {
+                    faces.emplace_back(FaceBytes(desc.Width, mip));
+                    if (!file.read(faces.back().data(), static_cast<std::streamsize>(faces.back().size())))
+                        return false;
+                }
+            }
+            for (uint32_t mip = 0; mip < desc.MipLevels; ++mip) {
+                for (uint32_t face = 0; face < 6; ++face)
+                    InDevice.UploadTexture(InCubes, mip, InCube * 6 + face, faces[mip * 6 + face].data(),
+                                           std::max(desc.Width >> mip, 1u) * 8);
+            }
+            return true;
+        }
+
+        /** Writes one cube of the array to its file. Reads the texture back: call between frames. */
+        bool Save(IRHIDevice& InDevice, IRHITexture& InCubes, uint32_t InCube, const std::string& InPath, uint64_t InKey) {
+            const FRHITextureDesc& desc = InCubes.GetDesc();
+            FHeader header;
+            header.Resolution = desc.Width;
+            header.MipLevels = desc.MipLevels;
+            header.Key = InKey;
+            std::vector<uint8_t> bytes(sizeof(header));
+            std::memcpy(bytes.data(), &header, sizeof(header));
+            std::vector<uint8_t> pixels;
+            for (uint32_t mip = 0; mip < desc.MipLevels; ++mip) {
+                for (uint32_t face = 0; face < 6; ++face) {
+                    if (!InDevice.ReadTexture(InCubes, mip, InCube * 6 + face, pixels) ||
+                        pixels.size() != FaceBytes(desc.Width, mip))
+                        return false;
+                    bytes.insert(bytes.end(), pixels.begin(), pixels.end());
+                }
+            }
+            std::error_code error;
+            const std::filesystem::path path(InPath);
+            std::filesystem::create_directories(path.parent_path(), error);
+            // Under another name first: a run that is killed half way leaves no file that looks whole.
+            const std::filesystem::path temporary = path.string() + ".tmp";
+            {
+                std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
+                if (!file || !file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size())))
+                    return false;
+            }
+            std::filesystem::rename(temporary, path, error);
+            return !error;
+        }
+
+    } // namespace ReflectionProbeCache
+    } // namespace
+
     struct FWorldRendererRHIState {
         TRef<IRHITexture> SceneColor;
         TRef<IRHITexture> SceneDepth;
@@ -335,6 +483,18 @@ namespace Leon {
         TRef<IRHITexture> SpotShadowMap;
         TRef<IRHITexture> PointShadowMap;
         std::map<std::string, TRef<IRHIPipeline>> ShadowPipelines;
+        /** Reflection probes: one cube of ProbeCubes per probe of the world, in the order of Probes. */
+        TRef<IRHITexture> ProbeCubes;
+        /** Bound in place of ProbeCubes when the world has no probe, and while one is being captured. */
+        TRef<IRHITexture> BlackCubeArray;
+        /** A capture as it is drawn, a quarter-size copy of it, and the depth buffer of its faces. */
+        TRef<IRHITexture> ProbeCapture;
+        TRef<IRHITexture> ProbeCaptureSmall;
+        TRef<IRHITexture> ProbeDepth;
+        TRef<IRHIPipeline> ProbeFilterPipeline;
+        TRef<IRHIPipeline> ProbeShrinkPipeline;
+        std::vector<FReflectionProbeSlot> Probes;
+        bool bWarnedTooManyProbes = false;
         /** FShaderLibrary::GetGeneration when the pipelines above were built. */
         uint64_t ShaderGeneration = 0;
         FLightSlotHistory LightHistory;
@@ -357,6 +517,8 @@ namespace Leon {
             state.OutlinePipeline.reset();
             state.SkyPipeline.reset();
             state.DownsamplePipeline.reset();
+            state.ProbeFilterPipeline.reset();
+            state.ProbeShrinkPipeline.reset();
             state.ShaderGeneration = FShaderLibrary::GetGeneration();
         }
         // CPU time of each stage, for the on-screen profiler.
@@ -428,6 +590,11 @@ namespace Leon {
             const uint8_t black[4] = {0, 0, 0, 255};
             for (uint32_t face = 0; state.BlackCube && face < 6; ++face)
                 device->UploadTexture(*state.BlackCube, 0, face, black, 4);
+            cubeDesc.Dimension = ERHITextureDimension::TextureCubeArray;
+            cubeDesc.DebugName = "BlackCubeArray";
+            state.BlackCubeArray = device->CreateTexture(cubeDesc);
+            for (uint32_t face = 0; state.BlackCubeArray && face < 6; ++face)
+                device->UploadTexture(*state.BlackCubeArray, 0, face, black, 4);
         }
         // Shadow maps exist even with shadows off (at 1x1), so the shaders always have something bound.
         const bool bShadowsOn = ShadowSettings.bEnableShadows;
@@ -456,7 +623,7 @@ namespace Leon {
         ensureShadowMap(state.PointShadowMap, ERHITextureDimension::TextureCubeArray,
                         ShadowSettings.PointShadowResolution, FShadowSettings::kMaxShadowedPointLights,
                         "PointShadowMap");
-        if (!state.SceneColor || !state.SceneDepth || !state.BlackCube || !state.CascadeShadowMap ||
+        if (!state.SceneColor || !state.SceneDepth || !state.BlackCube || !state.BlackCubeArray || !state.CascadeShadowMap ||
             !state.SpotShadowMap || !state.PointShadowMap)
             return;
 
@@ -483,6 +650,8 @@ namespace Leon {
         std::vector<FSceneDraw>* collectTransparent = nullptr;
         bool bCollectMirrored = false;
         glm::mat4 collectNormalTransform(1.0f);
+        // The probes draws choose from; the position in the list is the cube of the probe array.
+        std::vector<FReflectionProbeBox> probeBoxes;
 
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
                                          const glm::mat4& InModel, bool bInTransparent, bool bInSkinned,
@@ -579,6 +748,112 @@ namespace Leon {
         const bool bLightmapsTrusted = World->AreLightmapsTrusted();
         const TRef<FMaterialInstance> defaultMaterial = UAssetManager::GetDefaultMaterialInstance();
 
+        // The reflection probes of the world, before anything is collected: each draw chooses its
+        // probes as it is submitted. Their cubes are captured further down, before the scene is drawn.
+        std::vector<FReflectionProbeSlot> probes;
+        if (bReflectionProbesEnabled) {
+            std::vector<entt::entity> entities;
+            for (auto entity : registry.view<FTransformComponent, FReflectionProbeComponent>())
+                entities.push_back(entity);
+            // In a fixed order, so a probe keeps its cube from frame to frame.
+            std::sort(entities.begin(), entities.end());
+            if (entities.size() > kMaxReflectionProbes) {
+                if (!state.bWarnedTooManyProbes)
+                    LE_CORE_WARN("Reflection probes: the world has {0}, only the first {1} are used", entities.size(),
+                                 kMaxReflectionProbes);
+                state.bWarnedTooManyProbes = true;
+                entities.resize(kMaxReflectionProbes);
+            }
+            for (const entt::entity entity : entities) {
+                const auto& component = registry.get<FReflectionProbeComponent>(entity);
+                const glm::vec3 center =
+                    glm::vec3(ResolveActorWorldMatrix(World, entity, registry.get<FTransformComponent>(entity))[3]);
+                const glm::vec3 extent = glm::max(glm::abs(component.Extent), glm::vec3(0.01f));
+                FReflectionProbeSlot slot;
+                slot.Box.BoxMin = center - extent;
+                slot.Box.BoxMax = center + extent;
+                // A capture point outside the box would project the room inside out.
+                slot.Box.CapturePosition = glm::clamp(center + component.CaptureOffset, slot.Box.BoxMin, slot.Box.BoxMax);
+                slot.Box.Intensity = std::max(component.Intensity, 0.0f);
+                slot.Box.BlendDistance = std::max(component.BlendDistance, 0.0f);
+                probes.push_back(slot);
+            }
+        }
+
+        const uint32_t probeResolution = std::clamp(ReflectionProbeResolution, 16u, 1024u);
+        const uint64_t lightingHash = World->GetStaticLightingHash();
+        // Without a trusted bake nothing says when the level changed: such captures are not kept.
+        const bool bUseCache = lightingHash != 0;
+        const std::string cacheDirectory =
+            !ReflectionProbeCacheDirectory.empty()
+                ? ReflectionProbeCacheDirectory
+                : (std::filesystem::path(FProjectPaths::ProjectSavedDir()) / "ReflectionProbes").string();
+
+        if (probes.empty()) {
+            state.ProbeCubes.reset();
+            state.Probes.clear();
+        } else if (!state.ProbeCubes || state.ProbeCubes->GetDesc().Width != probeResolution ||
+                   state.ProbeCubes->GetDesc().ArraySize != probes.size()) {
+            FRHITextureDesc desc;
+            desc.Width = probeResolution;
+            desc.Height = probeResolution;
+            desc.ArraySize = static_cast<uint32_t>(probes.size());
+            desc.MipLevels = kReflectionProbeMipLevels;
+            desc.Format = ERHIFormat::RGBA16_Float;
+            desc.Dimension = ERHITextureDimension::TextureCubeArray;
+            desc.Usage = RHITextureUsage_Sampled | RHITextureUsage_RenderTarget;
+            desc.DebugName = "ReflectionProbes";
+            state.ProbeCubes = device->CreateTexture(desc);
+            state.Probes.clear();
+
+            desc.ArraySize = 1;
+            desc.MipLevels = 1;
+            desc.Dimension = ERHITextureDimension::TextureCube;
+            desc.DebugName = "ReflectionProbeCapture";
+            state.ProbeCapture = device->CreateTexture(desc);
+            desc.Width = desc.Height = std::max(probeResolution / 4, 1u);
+            desc.DebugName = "ReflectionProbeCaptureSmall";
+            state.ProbeCaptureSmall = device->CreateTexture(desc);
+            FRHITextureDesc depthDesc;
+            depthDesc.Width = probeResolution;
+            depthDesc.Height = probeResolution;
+            depthDesc.Format = ERHIFormat::D32_Float;
+            depthDesc.Usage = RHITextureUsage_DepthStencil;
+            depthDesc.DebugName = "ReflectionProbeDepth";
+            state.ProbeDepth = device->CreateTexture(depthDesc);
+        }
+        if (bReflectionProbesInvalidated)
+            state.Probes.clear();
+        const bool bIgnoreCache = bReflectionProbesInvalidated;
+        bReflectionProbesInvalidated = false;
+
+        if (!state.ProbeFilterPipeline || !state.ProbeShrinkPipeline) {
+            const TRef<IRHIShader> filterVS = FShaderLibrary::Get("ReflectionProbeFilter.hlsl", "VSMain", ERHIShaderStage::Vertex);
+            const TRef<IRHIShader> filterPS = FShaderLibrary::Get("ReflectionProbeFilter.hlsl", "PSMain", ERHIShaderStage::Pixel);
+            const TRef<IRHIShader> shrinkPS = FShaderLibrary::Get("ReflectionProbeFilter.hlsl", "PSShrink", ERHIShaderStage::Pixel);
+            if (!probes.empty() && filterVS && filterPS && shrinkPS) {
+                FRHIGraphicsPipelineDesc desc;
+                desc.VertexShader = filterVS.get();
+                desc.PixelShader = filterPS.get();
+                desc.Raster.Cull = ERHICull::None;
+                desc.Depth.bTest = false;
+                desc.Depth.bWrite = false;
+                desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
+                desc.DebugName = "ReflectionProbeFilter";
+                state.ProbeFilterPipeline = device->CreateGraphicsPipeline(desc);
+                desc.PixelShader = shrinkPS.get();
+                desc.DebugName = "ReflectionProbeShrink";
+                state.ProbeShrinkPipeline = device->CreateGraphicsPipeline(desc);
+            }
+        }
+
+        const bool bCanCapture = state.ProbeCubes && state.ProbeCapture && state.ProbeCaptureSmall && state.ProbeDepth &&
+                                 state.ProbeFilterPipeline && state.ProbeShrinkPipeline;
+        state.Probes.resize(bCanCapture ? probes.size() : 0);
+        for (uint32_t index = 0; bCanCapture && index < probes.size(); ++index)
+            probeBoxes.push_back(probes[index].Box);
+
+
         const auto lightmapFor = [&](EComponentMobility InMobility, int32_t InIndex,
                                      const std::string& InAssetPath) -> IRHITexture* {
             if (!bLightmapsTrusted || InMobility != EComponentMobility::Static || InIndex < 0 || InAssetPath.empty())
@@ -617,6 +892,9 @@ namespace Leon {
             draw.LightmapBias = InLightmapBias;
             draw.IndexCount = InIndexCount;
             draw.FirstIndex = InFirstIndex;
+            TransformAABB(InLocalMin, InLocalMax, InModel, draw.WorldMin, draw.WorldMax);
+            if (!probeBoxes.empty())
+                SelectReflectionProbes(probeBoxes, draw.WorldMin, draw.WorldMax, draw.Probes);
             if (bTransparent) {
                 draw.DistanceSq = TransparentSortDistanceSq(InModel, InLocalMin, InLocalMax, cameraPosition);
                 collectTransparent->push_back(draw);
@@ -632,10 +910,12 @@ namespace Leon {
         const auto submitCaster = [&](std::vector<FShadowCaster>& OutCasters, const FVertexArray& InVertexArray,
                                       const FMaterialInstance* InMaterial, const glm::mat4& InModel,
                                       uint32_t InIndexCount, uint32_t InFirstIndex, const glm::vec3& InLocalMin,
-                                      const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones) {
+                                      const glm::vec3& InLocalMax, const std::vector<glm::mat4>* InBones,
+                                      bool bInStatic = false) {
             if (!bShadowsOn || !InMaterial || InIndexCount == 0)
                 return;
             FShadowCaster caster;
+            caster.bStatic = bInStatic;
             caster.VertexArray = &InVertexArray;
             caster.Vertices = GetRHIVertexBuffer(InVertexArray);
             caster.Indices = GetRHIIndexBuffer(InVertexArray);
@@ -674,7 +954,7 @@ namespace Leon {
             const uint32_t indexCount = GetRHIIndexCount(*mesh.VertexArray);
             if (mesh.bCastShadows)
                 submitCaster(staticCasters, *mesh.VertexArray, material.get(), model, indexCount, 0, -extent, extent,
-                             nullptr);
+                             nullptr, mesh.Mobility == EComponentMobility::Static);
             if (IsProceduralMeshCulled(model, mesh, frustum))
                 continue;
             submit(*mesh.VertexArray, material.get(), model, indexCount, 0,
@@ -698,7 +978,8 @@ namespace Leon {
                             ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides);
                         submitCaster(staticCasters, *shadowVertexArray, material ? material.get() : defaultMaterial.get(),
                                      world * submesh.LocalTransform, submesh.IndexCount, submesh.IndexOffset,
-                                     component.StaticMesh->GetBoundsMin(), component.StaticMesh->GetBoundsMax(), nullptr);
+                                     component.StaticMesh->GetBoundsMin(), component.StaticMesh->GetBoundsMax(), nullptr,
+                                     component.Mobility == EComponentMobility::Static);
                     }
                 }
             }
@@ -783,7 +1064,7 @@ namespace Leon {
         }
 
         // Fewest state changes for opaque surfaces; back to front for blended ones.
-        std::sort(opaque.begin(), opaque.end(), [](const FSceneDraw& InA, const FSceneDraw& InB) {
+        const auto sortForState = [](const FSceneDraw& InA, const FSceneDraw& InB) {
             if (InA.Pipeline != InB.Pipeline)
                 return InA.Pipeline < InB.Pipeline;
             if (InA.Material != InB.Material)
@@ -793,8 +1074,13 @@ namespace Leon {
             // Sections of one mesh and lightmap charts next to each other, so equal draws form runs.
             if (InA.FirstIndex != InB.FirstIndex)
                 return InA.FirstIndex < InB.FirstIndex;
-            return InA.Lightmap < InB.Lightmap;
-        });
+            if (InA.Lightmap != InB.Lightmap)
+                return InA.Lightmap < InB.Lightmap;
+            if (InA.Probes[0] != InB.Probes[0])
+                return InA.Probes[0] < InB.Probes[0];
+            return InA.Probes[1] < InB.Probes[1];
+        };
+        std::sort(opaque.begin(), opaque.end(), sortForState);
         std::sort(transparent.begin(), transparent.end(),
                   [](const FSceneDraw& InA, const FSceneDraw& InB) { return InA.DistanceSq > InB.DistanceSq; });
 
@@ -849,178 +1135,6 @@ namespace Leon {
         const bool bIBL = bUseIBL && brdfLut && irradiance && prefilter;
         lighting.Constants.PassFlags = glm::ivec4(bIBL ? 1 : 0, DebugMode, 0, 0);
 
-        // --- Shadow maps ---
-        stageTimer.emplace(&FFrameProfiler::Working().ShadowMs);
-        gpuStage.emplace(InCommands, EGPUTimerSlot::Shadow);
-        const uint32_t drawsBeforeShadows = FRenderer::GetStats().DrawCalls;
-        FLitPassConstants& lit = lighting.Constants;
-        lit.ShadowParams = glm::vec4(ShadowSettings.ConstantBias, ShadowSettings.SlopeBias, ShadowSettings.NormalBias,
-                                     ShadowSettings.CascadeBlendWidth);
-
-        // Draws the casters a light can see into one slice of a shadow map.
-        // InLightViewProjection is in the engine's clip convention (depth -1..1).
-        const auto drawShadowMap = [&](IRHITexture& InMap, uint32_t InSlice, const glm::mat4& InLightViewProjection,
-                                       bool bInCullFrontFaces, bool bInBias, bool bInSkinnedCasters,
-                                       const glm::vec4& InPointLight, const char* InName) {
-            const bool bCubeFace = InPointLight.w > 0.0f;
-            const FFrustumPlanes lightFrustum = ExtractFrustumPlanes(InLightViewProjection);
-            FShadowPassConstants passConstants;
-            passConstants.LightViewProjection =
-                (bCubeFace ? ClipFlipY() : glm::mat4(1.0f)) * ClipDepthZeroToOne() * InLightViewProjection;
-            passConstants.PointLight = InPointLight;
-            // Mirroring the image reverses the winding, so the face to cull swaps with it.
-            const ERHICull cull = (bInCullFrontFaces != bCubeFace) ? ERHICull::Front : ERHICull::Back;
-
-            FRHIRenderPassDesc pass;
-            pass.Depth.Texture = &InMap;
-            pass.Depth.ArraySlice = InSlice;
-            pass.Name = InName;
-            InCommands.BeginRenderPass(pass);
-            InCommands.SetConstants(ERHIConstantSlot::Pass, &passConstants, sizeof(passConstants));
-
-            IRHIPipeline* boundPipeline = nullptr;
-            const FMaterialInstance* boundMaterial = nullptr;
-            const auto drawCasters = [&](const std::vector<FShadowCaster>& InCasters) {
-                for (const FShadowCaster& caster : InCasters) {
-                    if (!AABBIntersectsFrustum(caster.WorldMin, caster.WorldMax, lightFrustum))
-                        continue;
-                    IRHIPipeline* pipeline =
-                        shadowPipeline(*caster.VertexArray, caster.Bones != nullptr,
-                                       caster.Material->GetDoubleSided() ? ERHICull::None : cull, bInBias, bCubeFace);
-                    if (!pipeline)
-                        continue;
-                    if (pipeline != boundPipeline) {
-                        InCommands.SetPipeline(pipeline);
-                        boundPipeline = pipeline;
-                    }
-                    if (caster.Material != boundMaterial) {
-                        // Only masked materials need their texture: the alpha cuts holes in the shadow.
-                        const FMaterialBinding& binding = materialBindings.at(caster.Material);
-                        const bool bAlphaTest =
-                            caster.Material->GetAlphaMode() == EAlphaMode::Mask && binding.Textures[0] != nullptr;
-                        FShadowMaterialConstants material;
-                        material.UVTransform = binding.Constants.UVTransform;
-                        material.AlphaTest = glm::vec4(bAlphaTest ? 1.0f : 0.0f, caster.Material->GetAlphaCutoff(), 0.0f, 0.0f);
-                        InCommands.SetConstants(ERHIConstantSlot::Material, &material, sizeof(material));
-                        InCommands.SetTexture(kSlotAlbedo, bAlphaTest ? binding.Textures[0] : nullptr);
-                        boundMaterial = caster.Material;
-                    }
-                    if (caster.Bones)
-                        SetBonePalette(InCommands, *caster.Bones);
-                    InCommands.SetConstants(ERHIConstantSlot::Draw, &caster.Model, sizeof(caster.Model));
-                    InCommands.SetVertexBuffer(caster.Vertices);
-                    InCommands.SetIndexBuffer(caster.Indices);
-                    InCommands.DrawIndexed(caster.IndexCount, caster.FirstIndex);
-                    ++FRenderer::GetStatsMutable().DrawCalls;
-                }
-            };
-            drawCasters(staticCasters);
-            if (bInSkinnedCasters)
-                drawCasters(skinnedCasters);
-            InCommands.EndRenderPass();
-        };
-
-        // Sun: the view frustum is cut into slices by distance, each with its own map.
-        const uint32_t cascadeCount = std::min(ShadowSettings.CascadeCount, 4u);
-        if (bShadowsOn && lighting.bHasSun && cascadeCount > 0) {
-            const float nearClip = InCamera.GetNearClip();
-            const float farClip = ShadowSettings.ShadowDistance;
-            const std::vector<float> splits = ShadowMath::CalculateCascadeSplits(
-                cascadeCount, nearClip, farClip, ShadowSettings.SplitLambda, ShadowSettings.SplitScheme);
-            // Four far distances are always sent; unused cascades repeat the last one.
-            float splitPlane[5] = {nearClip, farClip, farClip, farClip, farClip};
-            for (size_t i = 0; i < splits.size() && i < 5; ++i)
-                splitPlane[i] = splits[i];
-            lit.CascadeSplits = glm::vec4(splitPlane[1], splitPlane[2], splitPlane[3], splitPlane[4]);
-
-            glm::mat4 lastMatrix(1.0f);
-            for (uint32_t cascade = 0; cascade < 4; ++cascade) {
-                if (cascade < cascadeCount) {
-                    float sliceNear = splitPlane[cascade];
-                    float sliceFar = splitPlane[cascade + 1];
-                    ShadowMath::CascadeSliceDepthRange(cascade, splits, ShadowSettings.CascadeBlendWidth,
-                                                       FShadowSettings::kCascadeBlendMinMeters, sliceNear, sliceFar);
-                    const glm::mat4 sliceProjection = glm::perspective(
-                        glm::radians(InCamera.GetFOV()), InCamera.GetAspectRatio(), sliceNear, sliceFar);
-                    const auto corners = ShadowMath::GetFrustumCornersWorldSpace(sliceProjection, InCamera.GetViewMatrix());
-                    float worldUnitsPerTexel = 0.01f;
-                    lastMatrix = ShadowMath::CalculateCascadeMatrix(corners, lighting.SunDirection,
-                                                                    ShadowSettings.CascadeResolution,
-                                                                    ShadowSettings.bStabilizeCascades, worldUnitsPerTexel);
-                    drawShadowMap(*state.CascadeShadowMap, cascade, lastMatrix, true, true,
-                                  cascade < ShadowSettings.MaxSkinnedShadowCascades, glm::vec4(0.0f), "SunShadow");
-                }
-                lit.LightSpaceMatrices[cascade] = ClipToShadowMap() * lastMatrix;
-            }
-            lit.ShadowFlags.x = 1;
-        }
-
-        // Which lit lights of one kind get shadow maps, as indices into the lists of FSceneLighting: the
-        // most important of those that cast shadows and can reach something on screen.
-        const auto chooseShadowed = [&](const std::vector<FLightCandidate>& InLights,
-                                        const std::vector<bool>& InCastsShadows, uint32_t InMaxCount,
-                                        std::vector<uint32_t>& InOutHistory) {
-            std::vector<FLightCandidate> casters;
-            std::vector<uint32_t> slots;
-            for (uint32_t i = 0; bShadowsOn && i < InLights.size(); ++i) {
-                if (!InCastsShadows[i])
-                    continue;
-                casters.push_back(InLights[i]);
-                casters.back().bWasSelected = HeldSlot(InOutHistory, InLights[i].Id);
-                slots.push_back(i);
-            }
-            std::vector<uint32_t> chosen = SelectLightsByImportance(casters, cameraPosition, frustum, InMaxCount, true);
-            InOutHistory.clear();
-            for (uint32_t& index : chosen) {
-                InOutHistory.push_back(casters[index].Id);
-                index = slots[index];
-            }
-            return chosen;
-        };
-
-        // Spot: each shadowed light gets a layer of the map.
-        const std::vector<uint32_t> shadowedSpots =
-            chooseShadowed(lighting.SpotCandidates, lighting.SpotCastsShadows,
-                           std::min(ShadowSettings.MaxShadowedSpotLights, state.SpotShadowMap->GetDesc().ArraySize),
-                           state.LightHistory.ShadowedSpots);
-        for (uint32_t layer = 0; layer < shadowedSpots.size(); ++layer) {
-            const FSpotLight& spot = lighting.Spots[shadowedSpots[layer]];
-            const glm::vec3 direction = glm::normalize(spot.Direction);
-            const glm::vec3 up = std::abs(direction.y) < 0.99f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f);
-            const float fieldOfView = glm::clamp(spot.OuterCutOff * 2.0f + 2.0f, 10.0f, 160.0f);
-            const float farPlane = std::max(spot.Radius * 1.05f, 1.0f);
-            const glm::mat4 spotMatrix = glm::perspective(glm::radians(fieldOfView), 1.0f, 0.1f, farPlane) *
-                                         glm::lookAt(spot.Position, spot.Position + direction, up);
-            drawShadowMap(*state.SpotShadowMap, layer, spotMatrix, false, true, true, glm::vec4(0.0f), "SpotShadow");
-            lit.SpotLightSpaceMatrices[layer] = ClipToShadowMap() * spotMatrix;
-            lit.SpotLights[shadowedSpots[layer]].Params.z = static_cast<float>(layer);
-        }
-        lit.ShadowFlags.y = shadowedSpots.empty() ? 0 : 1;
-
-        // Point: each shadowed light gets a cube, six views from its position.
-        const std::vector<uint32_t> shadowedPoints =
-            chooseShadowed(lighting.PointCandidates, lighting.PointCastsShadows,
-                           std::min(ShadowSettings.MaxShadowedPointLights, FShadowSettings::kMaxShadowedPointLights),
-                           state.LightHistory.ShadowedPoints);
-        for (uint32_t cube = 0; cube < shadowedPoints.size(); ++cube) {
-            FPointLightConstants& light = lit.PointLights[shadowedPoints[cube]];
-            const glm::vec3 position(light.Position);
-            const float farPlane = std::max(light.Params.x, 1.0f);
-            const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, farPlane);
-            for (uint32_t face = 0; face < 6; ++face)
-                drawShadowMap(*state.PointShadowMap, cube * 6 + face,
-                              faceProjection * ShadowMath::PointCubeFaceView(position, face), false, false, true,
-                              glm::vec4(position, farPlane), "PointShadow");
-            light.Params.y = static_cast<float>(cube);
-        }
-        lit.ShadowFlags.z = shadowedPoints.empty() ? 0 : 1;
-        lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), 0,
-                                        static_cast<int>(ShadowSettings.CascadeCount), 0);
-
-        FFrameProfiler::Working().ShadowDrawCalls = FRenderer::GetStats().DrawCalls - drawsBeforeShadows;
-        stageTimer.reset();
-        gpuStage.reset();
-
         // --- Sky ---
         const bool bDrawSky = lighting.bHasSkybox && lighting.Skybox.bEnabled && skyVS && skyPS;
         if (bDrawSky && !state.SkyPipeline) {
@@ -1051,7 +1165,9 @@ namespace Leon {
         // --- Helpers shared by the scene pass and the reflection captures ---
         // Textures every lit draw can read. The planar captures are passed in: while one is being drawn
         // it cannot also be read.
-        const auto bindSceneTextures = [&](IRHITexture* InPlanarFloor, IRHITexture* InPlanarWall) {
+        const auto bindSceneTextures = [&](IRHITexture* InPlanarFloor, IRHITexture* InPlanarWall, bool bInProbes) {
+            InCommands.SetTexture(kSlotReflectionProbes,
+                                  bInProbes && state.ProbeCubes ? state.ProbeCubes.get() : state.BlackCubeArray.get());
             InCommands.SetTexture(kSlotBRDFLUT, brdfLut);
             InCommands.SetTexture(kSlotIrradiance, bIBL ? irradiance : state.BlackCube.get());
             InCommands.SetTexture(kSlotPrefilter, bIBL ? prefilter : state.BlackCube.get());
@@ -1062,8 +1178,10 @@ namespace Leon {
             InCommands.SetTexture(kSlotPlanarWall, InPlanarWall);
         };
 
-        // bInCapture: the draws belong to a reflection capture, which shows no shadows or reflections.
-        const auto drawAll = [&](const std::vector<FSceneDraw>& InDraws, const char* InName, bool bInCapture) {
+        // bInShadows off: nothing receives shadows (the planar captures draw none). bInReflections off:
+        // surfaces show neither planar captures nor reflection probes (every kind of capture).
+        const auto drawAll = [&](const std::vector<FSceneDraw>& InDraws, const char* InName, bool bInShadows,
+                                 bool bInReflections) {
             if (InDraws.empty())
                 return;
             InCommands.PushMarker(InName);
@@ -1081,7 +1199,8 @@ namespace Leon {
                        InA.Indices == InB.Indices && InA.Lightmap == InB.Lightmap && !InA.Bones && !InB.Bones &&
                        InA.IndexCount == InB.IndexCount && InA.FirstIndex == InB.FirstIndex &&
                        InA.bReceiveShadows == InB.bReceiveShadows && InA.bPlanar == InB.bPlanar &&
-                       InA.LightmapScale == InB.LightmapScale && InA.LightmapBias == InB.LightmapBias;
+                       InA.LightmapScale == InB.LightmapScale && InA.LightmapBias == InB.LightmapBias &&
+                       InA.Probes[0] == InB.Probes[0] && InA.Probes[1] == InB.Probes[1];
             };
             static FInstanceConstants instances;
             for (size_t index = 0; index < InDraws.size();) {
@@ -1136,8 +1255,16 @@ namespace Leon {
                 constants.Model = draw.Model;
                 constants.NormalMatrix = draw.NormalMatrix;
                 constants.LightmapScaleBias = glm::vec4(draw.LightmapScale, draw.LightmapBias);
-                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, (draw.bReceiveShadows && !bInCapture) ? 1 : 0,
-                                                 (draw.bPlanar && !bInCapture) ? 1 : 0);
+                constants.DrawFlags = glm::ivec4(draw.Lightmap ? 1 : 0, 0, (draw.bReceiveShadows && bInShadows) ? 1 : 0,
+                                                 (draw.bPlanar && bInReflections) ? 1 : 0);
+                for (uint32_t slot = 0; bInReflections && slot < kReflectionProbesPerDraw; ++slot) {
+                    if (draw.Probes[slot] < 0)
+                        continue;
+                    const FReflectionProbeBox& probe = probeBoxes[static_cast<size_t>(draw.Probes[slot])];
+                    constants.ProbeBoxMin[slot] = glm::vec4(probe.BoxMin, probe.Intensity);
+                    constants.ProbeBoxMax[slot] = glm::vec4(probe.BoxMax, static_cast<float>(draw.Probes[slot]));
+                    constants.ProbeCapture[slot] = glm::vec4(probe.CapturePosition, probe.BlendDistance);
+                }
                 InCommands.SetConstants(ERHIConstantSlot::Draw, &constants, sizeof(constants));
                 InCommands.DrawIndexed(draw.IndexCount, draw.FirstIndex, 0, instanceCount);
                 FRenderStats& stats = FRenderer::GetStatsMutable();
@@ -1171,6 +1298,435 @@ namespace Leon {
             InCommands.Draw(3);
             InCommands.PopMarker();
         };
+
+        // --- Shadow maps ---
+        FLitPassConstants& lit = lighting.Constants;
+        const glm::vec4 shadowParams(ShadowSettings.ConstantBias, ShadowSettings.SlopeBias, ShadowSettings.NormalBias,
+                                     ShadowSettings.CascadeBlendWidth);
+        lit.ShadowParams = shadowParams;
+
+        // Draws the casters a light can see into one slice of a shadow map.
+        // InLightViewProjection is in the engine's clip convention (depth -1..1).
+        // bInStaticOnly: only what never moves casts (the shadows a reflection probe's capture shows).
+        const auto drawShadowMap = [&](IRHITexture& InMap, uint32_t InSlice, const glm::mat4& InLightViewProjection,
+                                       bool bInCullFrontFaces, bool bInBias, bool bInSkinnedCasters,
+                                       const glm::vec4& InPointLight, const char* InName,
+                                       bool bInStaticOnly = false) {
+            const bool bCubeFace = InPointLight.w > 0.0f;
+            const FFrustumPlanes lightFrustum = ExtractFrustumPlanes(InLightViewProjection);
+            FShadowPassConstants passConstants;
+            passConstants.LightViewProjection =
+                (bCubeFace ? ClipFlipY() : glm::mat4(1.0f)) * ClipDepthZeroToOne() * InLightViewProjection;
+            passConstants.PointLight = InPointLight;
+            // Mirroring the image reverses the winding, so the face to cull swaps with it.
+            const ERHICull cull = (bInCullFrontFaces != bCubeFace) ? ERHICull::Front : ERHICull::Back;
+
+            FRHIRenderPassDesc pass;
+            pass.Depth.Texture = &InMap;
+            pass.Depth.ArraySlice = InSlice;
+            pass.Name = InName;
+            InCommands.BeginRenderPass(pass);
+            InCommands.SetConstants(ERHIConstantSlot::Pass, &passConstants, sizeof(passConstants));
+
+            IRHIPipeline* boundPipeline = nullptr;
+            const FMaterialInstance* boundMaterial = nullptr;
+            const auto drawCasters = [&](const std::vector<FShadowCaster>& InCasters) {
+                for (const FShadowCaster& caster : InCasters) {
+                    if (bInStaticOnly && !caster.bStatic)
+                        continue;
+                    if (!AABBIntersectsFrustum(caster.WorldMin, caster.WorldMax, lightFrustum))
+                        continue;
+                    IRHIPipeline* pipeline =
+                        shadowPipeline(*caster.VertexArray, caster.Bones != nullptr,
+                                       caster.Material->GetDoubleSided() ? ERHICull::None : cull, bInBias, bCubeFace);
+                    if (!pipeline)
+                        continue;
+                    if (pipeline != boundPipeline) {
+                        InCommands.SetPipeline(pipeline);
+                        boundPipeline = pipeline;
+                    }
+                    if (caster.Material != boundMaterial) {
+                        // Only masked materials need their texture: the alpha cuts holes in the shadow.
+                        const FMaterialBinding& binding = materialBindings.at(caster.Material);
+                        const bool bAlphaTest =
+                            caster.Material->GetAlphaMode() == EAlphaMode::Mask && binding.Textures[0] != nullptr;
+                        FShadowMaterialConstants material;
+                        material.UVTransform = binding.Constants.UVTransform;
+                        material.AlphaTest = glm::vec4(bAlphaTest ? 1.0f : 0.0f, caster.Material->GetAlphaCutoff(), 0.0f, 0.0f);
+                        InCommands.SetConstants(ERHIConstantSlot::Material, &material, sizeof(material));
+                        InCommands.SetTexture(kSlotAlbedo, bAlphaTest ? binding.Textures[0] : nullptr);
+                        boundMaterial = caster.Material;
+                    }
+                    if (caster.Bones)
+                        SetBonePalette(InCommands, *caster.Bones);
+                    InCommands.SetConstants(ERHIConstantSlot::Draw, &caster.Model, sizeof(caster.Model));
+                    InCommands.SetVertexBuffer(caster.Vertices);
+                    InCommands.SetIndexBuffer(caster.Indices);
+                    InCommands.DrawIndexed(caster.IndexCount, caster.FirstIndex);
+                    ++FRenderer::GetStatsMutable().DrawCalls;
+                }
+            };
+            drawCasters(staticCasters);
+            if (bInSkinnedCasters && !bInStaticOnly)
+                drawCasters(skinnedCasters);
+            InCommands.EndRenderPass();
+        };
+
+        // Which lit lights of one kind get shadow maps, as indices into the lists of FSceneLighting: the
+        // most important of those that cast shadows and can reach something in the view.
+        const auto chooseShadowed = [&](const std::vector<FLightCandidate>& InLights,
+                                        const std::vector<bool>& InCastsShadows, uint32_t InMaxCount,
+                                        const glm::vec3& InViewPosition, const FFrustumPlanes& InFrustum,
+                                        std::vector<uint32_t>& InOutHistory) {
+            std::vector<FLightCandidate> casters;
+            std::vector<uint32_t> slots;
+            for (uint32_t i = 0; bShadowsOn && i < InLights.size(); ++i) {
+                if (!InCastsShadows[i])
+                    continue;
+                casters.push_back(InLights[i]);
+                casters.back().bWasSelected = HeldSlot(InOutHistory, InLights[i].Id);
+                slots.push_back(i);
+            }
+            std::vector<uint32_t> chosen = SelectLightsByImportance(casters, InViewPosition, InFrustum, InMaxCount, true);
+            InOutHistory.clear();
+            for (uint32_t& index : chosen) {
+                InOutHistory.push_back(casters[index].Id);
+                index = slots[index];
+            }
+            return chosen;
+        };
+
+        // The shadow maps of the spot and point lights of a view: the camera's, or a probe capture's
+        // (bInStaticOnly). The lights of InOutLighting learn which layer or cube is theirs.
+        const auto drawLocalShadows = [&](FSceneLighting& InOutLighting, const glm::vec3& InViewPosition,
+                                          const FFrustumPlanes& InFrustum, FLightSlotHistory& InOutHistory,
+                                          bool bInStaticOnly) {
+            FLitPassConstants& constants = InOutLighting.Constants;
+            // Spot: each shadowed light gets a layer of the map.
+            const std::vector<uint32_t> shadowedSpots =
+                chooseShadowed(InOutLighting.SpotCandidates, InOutLighting.SpotCastsShadows,
+                               std::min(ShadowSettings.MaxShadowedSpotLights, state.SpotShadowMap->GetDesc().ArraySize),
+                               InViewPosition, InFrustum, InOutHistory.ShadowedSpots);
+            for (uint32_t layer = 0; layer < shadowedSpots.size(); ++layer) {
+                const FSpotLight& spot = InOutLighting.Spots[shadowedSpots[layer]];
+                const glm::vec3 direction = glm::normalize(spot.Direction);
+                const glm::vec3 up = std::abs(direction.y) < 0.99f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f);
+                const float fieldOfView = glm::clamp(spot.OuterCutOff * 2.0f + 2.0f, 10.0f, 160.0f);
+                const float farPlane = std::max(spot.Radius * 1.05f, 1.0f);
+                const glm::mat4 spotMatrix = glm::perspective(glm::radians(fieldOfView), 1.0f, 0.1f, farPlane) *
+                                             glm::lookAt(spot.Position, spot.Position + direction, up);
+                drawShadowMap(*state.SpotShadowMap, layer, spotMatrix, false, true, true, glm::vec4(0.0f), "SpotShadow",
+                              bInStaticOnly);
+                constants.SpotLightSpaceMatrices[layer] = ClipToShadowMap() * spotMatrix;
+                constants.SpotLights[shadowedSpots[layer]].Params.z = static_cast<float>(layer);
+            }
+            constants.ShadowFlags.y = shadowedSpots.empty() ? 0 : 1;
+
+            // Point: each shadowed light gets a cube, six views from its position.
+            const std::vector<uint32_t> shadowedPoints =
+                chooseShadowed(InOutLighting.PointCandidates, InOutLighting.PointCastsShadows,
+                               std::min(ShadowSettings.MaxShadowedPointLights, FShadowSettings::kMaxShadowedPointLights),
+                               InViewPosition, InFrustum, InOutHistory.ShadowedPoints);
+            for (uint32_t cube = 0; cube < shadowedPoints.size(); ++cube) {
+                FPointLightConstants& light = constants.PointLights[shadowedPoints[cube]];
+                const glm::vec3 position(light.Position);
+                const float farPlane = std::max(light.Params.x, 1.0f);
+                const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, farPlane);
+                for (uint32_t face = 0; face < 6; ++face)
+                    drawShadowMap(*state.PointShadowMap, cube * 6 + face,
+                                  faceProjection * ShadowMath::PointCubeFaceView(position, face), false, false, true,
+                                  glm::vec4(position, farPlane), "PointShadow", bInStaticOnly);
+                light.Params.y = static_cast<float>(cube);
+            }
+            constants.ShadowFlags.z = shadowedPoints.empty() ? 0 : 1;
+        };
+
+        // --- Reflection probes: a cube map of each room, for what the surfaces in it reflect ---
+        // A probe's cube is captured once: on the first frame after the level is there, and again when
+        // what it shows changes (its key). A capture shows the level's lasting state only: static
+        // geometry with its lightmaps, lit by the lights that do not move, shadowed by static casters.
+        // Nothing in a capture reads a probe (its own reflections are the sky's), so captures cannot
+        // feed back into each other.
+        {
+            // The static level, collected once for every capture of this frame.
+            std::vector<FSceneDraw> staticOpaque;
+            std::vector<FSceneDraw> staticTransparent;
+            bool bStaticCollected = false;
+            const auto collectStaticLevel = [&]() {
+                if (bStaticCollected)
+                    return;
+                bStaticCollected = true;
+                collectOpaque = &staticOpaque;
+                collectTransparent = &staticTransparent;
+                // The faces of a cube are drawn mirrored vertically (ClipFlipY), which reverses the winding.
+                bCollectMirrored = true;
+                for (auto entity : meshView) {
+                    auto [transform, mesh] = meshView.get<FTransformComponent, FMeshComponent>(entity);
+                    if (!mesh.VertexArray || !mesh.bVisible || !mesh.bVisibleInReflection ||
+                        mesh.Mobility != EComponentMobility::Static)
+                        continue;
+                    TRef<FMaterialInstance> material;
+                    if (const auto* component = registry.try_get<FMaterialComponent>(entity))
+                        material = component->MaterialInstance;
+                    if (!material)
+                        material = defaultMaterial;
+                    const glm::vec3 extent = ProceduralMeshLocalExtent(mesh);
+                    submit(*mesh.VertexArray, material.get(), ResolveActorWorldMatrix(World, entity, transform),
+                           GetRHIIndexCount(*mesh.VertexArray), 0,
+                           lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
+                           mesh.LightmapBias, -extent, extent, nullptr, mesh.bReceiveShadows);
+                }
+                for (auto entity : staticView) {
+                    auto [transform, component] = staticView.get<FTransformComponent, FStaticMeshComponent>(entity);
+                    if (!component.StaticMesh || !component.bVisible || !component.bVisibleInReflection ||
+                        component.Mobility != EComponentMobility::Static)
+                        continue;
+                    // The most detailed level: which one the camera happens to show must not end up in the cache.
+                    const TRef<FVertexArray> vertexArray = component.StaticMesh->GetLODVertexArray(0);
+                    if (!vertexArray)
+                        continue;
+                    const glm::mat4 world = ResolveActorWorldMatrix(World, entity, transform);
+                    IRHITexture* lightmap =
+                        lightmapFor(component.Mobility, component.LightmapIndex, component.LightmapAssetPath);
+                    for (const auto& submesh : component.StaticMesh->GetLODSubmeshes(0)) {
+                        const TRef<FMaterialInstance> material =
+                            ResolveStaticSubmeshMaterial(*component.StaticMesh, submesh, component.MaterialOverrides);
+                        submit(*vertexArray, material ? material.get() : defaultMaterial.get(),
+                               world * submesh.LocalTransform, submesh.IndexCount, submesh.IndexOffset, lightmap,
+                               component.LightmapScale, component.LightmapBias, component.StaticMesh->GetBoundsMin(),
+                               component.StaticMesh->GetBoundsMax(), nullptr, component.bReceiveShadows);
+                    }
+                }
+                collectOpaque = &opaque;
+                collectTransparent = &transparent;
+                bCollectMirrored = false;
+                std::sort(staticOpaque.begin(), staticOpaque.end(), sortForState);
+                for (const FSceneDraw& draw : staticOpaque)
+                    prepareMaterial(*draw.Material);
+                for (const FSceneDraw& draw : staticTransparent)
+                    prepareMaterial(*draw.Material);
+            };
+
+            // Which way each face of a cube looks, and the directions across it (left to right, bottom
+            // to top) as Direct3D lays cube faces out. Order: +X, -X, +Y, -Y, +Z, -Z.
+            static const glm::vec3 faceForward[6] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+            static const glm::vec3 faceRight[6] = {{0, 0, -1}, {0, 0, 1}, {1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {-1, 0, 0}};
+            static const glm::vec3 faceUp[6] = {{0, 1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {0, 1, 0}, {0, 1, 0}};
+
+            const auto captureProbe = [&](uint32_t InCube, const FReflectionProbeBox& InProbe) {
+                collectStaticLevel();
+                const glm::vec3 position = InProbe.CapturePosition;
+                InCommands.PushMarker("ReflectionProbe");
+
+                // The lights that matter where the probe is, wherever the camera happens to be.
+                FLightSlotHistory noHistory;
+                const FFrustumPlanes everywhere{};
+                FSceneLighting captureLighting = GatherLighting(*World, position, everywhere, noHistory, false);
+                FLitPassConstants& capturePass = captureLighting.Constants;
+                capturePass.PassFlags = glm::ivec4(bIBL ? 1 : 0, 0, 0, 0);
+                capturePass.ShadowParams = shadowParams;
+                if (bShadowsOn && captureLighting.bHasSun) {
+                    // One map around the room (and some of what is seen through its doors) for the sun.
+                    const glm::vec3 center = 0.5f * (InProbe.BoxMin + InProbe.BoxMax);
+                    const glm::vec3 reach = (InProbe.BoxMax - InProbe.BoxMin) * 0.75f + glm::vec3(1.0f);
+                    std::array<glm::vec3, 8> corners;
+                    for (uint32_t corner = 0; corner < 8; ++corner)
+                        corners[corner] = center + reach * glm::vec3((corner & 1) ? 1.0f : -1.0f, (corner & 2) ? 1.0f : -1.0f,
+                                                                    (corner & 4) ? 1.0f : -1.0f);
+                    float worldUnitsPerTexel = 0.01f;
+                    const glm::mat4 sunMatrix = ShadowMath::CalculateCascadeMatrix(
+                        corners, captureLighting.SunDirection, ShadowSettings.CascadeResolution, false, worldUnitsPerTexel);
+                    drawShadowMap(*state.CascadeShadowMap, 0, sunMatrix, true, true, false, glm::vec4(0.0f), "ProbeSunShadow",
+                                  true);
+                    for (uint32_t cascade = 0; cascade < 4; ++cascade)
+                        capturePass.LightSpaceMatrices[cascade] = ClipToShadowMap() * sunMatrix;
+                    capturePass.CascadeSplits = glm::vec4(1.0e9f);
+                    capturePass.ShadowFlags.x = 1;
+                }
+                drawLocalShadows(captureLighting, position, everywhere, noHistory, true);
+                capturePass.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), 0, 1, 0);
+
+                std::sort(staticTransparent.begin(), staticTransparent.end(),
+                          [&position](const FSceneDraw& InA, const FSceneDraw& InB) {
+                              const glm::vec3 a = 0.5f * (InA.WorldMin + InA.WorldMax) - position;
+                              const glm::vec3 b = 0.5f * (InB.WorldMin + InB.WorldMax) - position;
+                              return glm::dot(a, a) > glm::dot(b, b);
+                          });
+
+                const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, 500.0f);
+                std::vector<FSceneDraw> faceOpaque;
+                std::vector<FSceneDraw> faceTransparent;
+                for (uint32_t face = 0; face < 6; ++face) {
+                    const glm::mat4 faceView = ShadowMath::PointCubeFaceView(position, face);
+                    const FFrustumPlanes faceFrustum = ExtractFrustumPlanes(faceProjection * faceView);
+                    const auto inFace = [&faceFrustum](const FSceneDraw& InDraw) {
+                        return AABBIntersectsFrustum(InDraw.WorldMin, InDraw.WorldMax, faceFrustum);
+                    };
+                    faceOpaque.clear();
+                    faceTransparent.clear();
+                    std::copy_if(staticOpaque.begin(), staticOpaque.end(), std::back_inserter(faceOpaque), inFace);
+                    std::copy_if(staticTransparent.begin(), staticTransparent.end(), std::back_inserter(faceTransparent), inFace);
+
+                    FFrameConstants faceFrame;
+                    faceFrame.ViewProjection = ClipFlipY() * ClipDepthZeroToOne() * faceProjection * faceView;
+                    faceFrame.View = faceView;
+                    faceFrame.ViewPosition = glm::vec4(position, 1.0f);
+                    faceFrame.CameraForward = glm::vec4(faceForward[face], 0.0f);
+                    const float size = static_cast<float>(probeResolution);
+                    faceFrame.ViewportSize = {size, size, 1.0f / size, 1.0f / size};
+
+                    FRHIRenderPassDesc pass;
+                    pass.NumColorTargets = 1;
+                    pass.Color[0].Texture = state.ProbeCapture.get();
+                    pass.Color[0].ArraySlice = face;
+                    pass.Color[0].ClearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+                    pass.Depth.Texture = state.ProbeDepth.get();
+                    pass.Name = "ProbeFace";
+                    InCommands.BeginRenderPass(pass);
+                    InCommands.SetConstants(ERHIConstantSlot::Frame, &faceFrame, sizeof(faceFrame));
+                    InCommands.SetConstants(ERHIConstantSlot::Pass, &capturePass, sizeof(capturePass));
+                    bindSceneTextures(nullptr, nullptr, false);
+                    drawAll(faceOpaque, "Opaque", true, false);
+                    drawSky(faceView, ClipFlipY() * faceProjection);
+                    drawAll(faceTransparent, "Transparent", true, false);
+                    InCommands.EndRenderPass();
+                }
+
+                // From the capture to the levels surfaces read: level 0 as captured, then one level per
+                // quarter of roughness. Wide lobes read the small copy, where a lamp is not a single pixel.
+                const auto filterFace = [&](IRHITexture& InTarget, uint32_t InSlice, uint32_t InMip, IRHIPipeline* InPipeline,
+                                            IRHITexture& InSource, uint32_t InFace, const glm::vec4& InParams) {
+                    FProbeFilterConstants filter;
+                    filter.FaceForward = glm::vec4(faceForward[InFace], 0.0f);
+                    filter.FaceRight = glm::vec4(faceRight[InFace], 0.0f);
+                    filter.FaceUp = glm::vec4(faceUp[InFace], 0.0f);
+                    filter.FilterParams = InParams;
+                    FRHIRenderPassDesc pass;
+                    pass.NumColorTargets = 1;
+                    pass.Color[0].Texture = &InTarget;
+                    pass.Color[0].ArraySlice = InSlice;
+                    pass.Color[0].MipLevel = InMip;
+                    pass.Color[0].LoadOp = ERHILoadOp::DontCare;
+                    pass.Name = "ProbeFilter";
+                    InCommands.BeginRenderPass(pass);
+                    InCommands.SetPipeline(InPipeline);
+                    InCommands.SetConstants(ERHIConstantSlot::Pass, &filter, sizeof(filter));
+                    InCommands.SetTexture(0, &InSource);
+                    InCommands.Draw(3);
+                    InCommands.EndRenderPass();
+                };
+                for (uint32_t face = 0; face < 6; ++face)
+                    filterFace(*state.ProbeCaptureSmall, face, 0, state.ProbeShrinkPipeline.get(), *state.ProbeCapture, face,
+                               glm::vec4(0.0f, 0.0f, 1.0f / static_cast<float>(probeResolution), 0.0f));
+                for (uint32_t mip = 0; mip < kReflectionProbeMipLevels; ++mip) {
+                    const float roughness = static_cast<float>(mip) / static_cast<float>(kReflectionProbeMipLevels - 1);
+                    IRHITexture& source = mip >= 2 ? *state.ProbeCaptureSmall : *state.ProbeCapture;
+                    for (uint32_t face = 0; face < 6; ++face)
+                        filterFace(*state.ProbeCubes, InCube * 6 + face, mip, state.ProbeFilterPipeline.get(), source, face,
+                                   glm::vec4(roughness, mip >= 2 ? 96.0f : 48.0f, 0.0f, 0.0f));
+                }
+                // The shadow maps are drawn into again next (the next probe's, then the camera's): they
+                // must not stay bound for reading.
+                InCommands.SetTexture(kSlotCascadeShadow, nullptr);
+                InCommands.SetTexture(kSlotSpotShadow, nullptr);
+                InCommands.SetTexture(kSlotPointShadow, nullptr);
+                InCommands.PopMarker();
+            };
+
+            bool bSaveQueued = false;
+            for (uint32_t index = 0; index < state.Probes.size(); ++index) {
+                FReflectionProbeSlot& slot = state.Probes[index];
+                const bool bUnsaved = slot.bUnsaved;
+                const uint64_t previousKey = slot.Key;
+                slot = probes[index];
+                slot.Key = previousKey;
+                slot.bUnsaved = bUnsaved;
+                const uint64_t key = ReflectionProbeCache::Key(lightingHash, bLightmapsTrusted, slot.Box.CapturePosition,
+                                                               probeResolution);
+                if (slot.Key == key)
+                    continue;
+                slot.Key = key;
+                slot.bUnsaved = false;
+                if (bUseCache && !bIgnoreCache &&
+                    ReflectionProbeCache::Load(*device, *state.ProbeCubes, index,
+                                               ReflectionProbeCache::FilePath(cacheDirectory, key), key)) {
+                    ++ReflectionProbeCacheLoadCount;
+                    continue;
+                }
+                captureProbe(index, slot.Box);
+                ++ReflectionProbeCaptureCount;
+                slot.bUnsaved = bUseCache;
+                bSaveQueued = bSaveQueued || bUseCache;
+            }
+            if (bSaveQueued) {
+                // The cubes can only be read back once this frame is on the GPU.
+                const std::weak_ptr<FWorldRendererRHIState> weakState = RHIState;
+                FRHIFrame::RunAfterFrame([weakState, cacheDirectory]() {
+                    const std::shared_ptr<FWorldRendererRHIState> saved = weakState.lock();
+                    IRHIDevice* readDevice = FRHI::GetDevice();
+                    if (!saved || !readDevice || !saved->ProbeCubes)
+                        return;
+                    readDevice->WaitIdle();
+                    for (uint32_t index = 0; index < saved->Probes.size(); ++index) {
+                        FReflectionProbeSlot& slot = saved->Probes[index];
+                        if (!slot.bUnsaved)
+                            continue;
+                        slot.bUnsaved = false;
+                        const std::string path = ReflectionProbeCache::FilePath(cacheDirectory, slot.Key);
+                        if (!ReflectionProbeCache::Save(*readDevice, *saved->ProbeCubes, index, path, slot.Key))
+                            LE_CORE_WARN("Reflection probes: could not write '{0}'", path);
+                    }
+                });
+            }
+        }
+
+        // The shadow maps of the camera's view. After the probes: their captures use the same maps.
+        stageTimer.emplace(&FFrameProfiler::Working().ShadowMs);
+        gpuStage.emplace(InCommands, EGPUTimerSlot::Shadow);
+        const uint32_t drawsBeforeShadows = FRenderer::GetStats().DrawCalls;
+
+        // Sun: the view frustum is cut into slices by distance, each with its own map.
+        const uint32_t cascadeCount = std::min(ShadowSettings.CascadeCount, 4u);
+        if (bShadowsOn && lighting.bHasSun && cascadeCount > 0) {
+            const float nearClip = InCamera.GetNearClip();
+            const float farClip = ShadowSettings.ShadowDistance;
+            const std::vector<float> splits = ShadowMath::CalculateCascadeSplits(
+                cascadeCount, nearClip, farClip, ShadowSettings.SplitLambda, ShadowSettings.SplitScheme);
+            // Four far distances are always sent; unused cascades repeat the last one.
+            float splitPlane[5] = {nearClip, farClip, farClip, farClip, farClip};
+            for (size_t i = 0; i < splits.size() && i < 5; ++i)
+                splitPlane[i] = splits[i];
+            lit.CascadeSplits = glm::vec4(splitPlane[1], splitPlane[2], splitPlane[3], splitPlane[4]);
+
+            glm::mat4 lastMatrix(1.0f);
+            for (uint32_t cascade = 0; cascade < 4; ++cascade) {
+                if (cascade < cascadeCount) {
+                    float sliceNear = splitPlane[cascade];
+                    float sliceFar = splitPlane[cascade + 1];
+                    ShadowMath::CascadeSliceDepthRange(cascade, splits, ShadowSettings.CascadeBlendWidth,
+                                                       FShadowSettings::kCascadeBlendMinMeters, sliceNear, sliceFar);
+                    const glm::mat4 sliceProjection = glm::perspective(
+                        glm::radians(InCamera.GetFOV()), InCamera.GetAspectRatio(), sliceNear, sliceFar);
+                    const auto corners = ShadowMath::GetFrustumCornersWorldSpace(sliceProjection, InCamera.GetViewMatrix());
+                    float worldUnitsPerTexel = 0.01f;
+                    lastMatrix = ShadowMath::CalculateCascadeMatrix(corners, lighting.SunDirection,
+                                                                    ShadowSettings.CascadeResolution,
+                                                                    ShadowSettings.bStabilizeCascades, worldUnitsPerTexel);
+                    drawShadowMap(*state.CascadeShadowMap, cascade, lastMatrix, true, true,
+                                  cascade < ShadowSettings.MaxSkinnedShadowCascades, glm::vec4(0.0f), "SunShadow");
+                }
+                lit.LightSpaceMatrices[cascade] = ClipToShadowMap() * lastMatrix;
+            }
+            lit.ShadowFlags.x = 1;
+        }
+
+        drawLocalShadows(lighting, cameraPosition, frustum, state.LightHistory, false);
+        lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), 0,
+                                        static_cast<int>(ShadowSettings.CascadeCount), 0);
+
+        FFrameProfiler::Working().ShadowDrawCalls = FRenderer::GetStats().DrawCalls - drawsBeforeShadows;
+        stageTimer.reset();
+        gpuStage.reset();
 
         // --- Planar reflections: the scene again, mirrored in a plane ---
         // Only when something on screen shows them. The planes and the mirrored cameras were chosen in
@@ -1341,10 +1897,10 @@ namespace Leon {
                 InCommands.BeginRenderPass(pass);
                 InCommands.SetConstants(ERHIConstantSlot::Frame, &captureFrame, sizeof(captureFrame));
                 InCommands.SetConstants(ERHIConstantSlot::Pass, &capturePass, sizeof(capturePass));
-                bindSceneTextures(nullptr, nullptr);
-                drawAll(captureOpaque, "Opaque", true);
+                bindSceneTextures(nullptr, nullptr, false);
+                drawAll(captureOpaque, "Opaque", false, false);
                 drawSky(mirrorView, InCamera.GetProjectionMatrix());
-                drawAll(captureTransparent, "Transparent", true);
+                drawAll(captureTransparent, "Transparent", false, false);
                 InCommands.EndRenderPass();
                 InCommands.GenerateMips(*target, state.DownsamplePipeline.get());
 
@@ -1373,8 +1929,8 @@ namespace Leon {
         InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
         InCommands.SetConstants(ERHIConstantSlot::Pass, &lighting.Constants, sizeof(lighting.Constants));
         bindSceneTextures(bPlanarCaptured[0] ? state.PlanarColor[0].get() : nullptr,
-                          bPlanarCaptured[1] ? state.PlanarColor[1].get() : nullptr);
-        drawAll(opaque, "Opaque", false);
+                          bPlanarCaptured[1] ? state.PlanarColor[1].get() : nullptr, true);
+        drawAll(opaque, "Opaque", true, true);
         if (!outlines.empty() && state.OutlinePipeline) {
             InCommands.PushMarker("Outlines");
             InCommands.SetPipeline(state.OutlinePipeline.get());
@@ -1396,7 +1952,7 @@ namespace Leon {
             InCommands.PopMarker();
         }
         drawSky(InCamera.GetViewMatrix(), InCamera.GetProjectionMatrix());
-        drawAll(transparent, "Transparent", false);
+        drawAll(transparent, "Transparent", true, true);
         FSceneBatchesRHI::Flush(InCommands, ERHIFormat::RGBA16_Float, ERHIFormat::D32_Float);
         InCommands.EndRenderPass();
         stageTimer.reset();

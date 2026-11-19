@@ -23,6 +23,8 @@ namespace Leon {
         EShadowFilterMode ShadowFilter = EShadowFilterMode::PCF3x3;
         bool bEnablePlanarReflection = true;
         EPlanarReflectionQuality PlanarQuality = EPlanarReflectionQuality::Epic;
+        /** Pixels along the edge of a reflection probe's cube face (Low=32, Medium=64, High=128). */
+        uint32_t ReflectionProbeResolution = 128;
         bool bEnableSSAO = true;
         bool bEnableBloom = true;
         bool bEnableFXAA = true;

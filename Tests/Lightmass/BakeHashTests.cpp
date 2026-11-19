@@ -7,6 +7,7 @@
 #include "Engine/UWorld.hpp"
 #include "GPU/HeadlessDevice.hpp"
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/AReflectionProbe.hpp"
 #include "Lightmass/FLightmass.hpp"
 
 #include <filesystem>
@@ -102,6 +103,24 @@ namespace Leon {
             // It still follows the asset: another material is another hash.
             floor->GetComponent<FMaterialComponent>().AssetPath = "/Game/Materials/M_Other.lmat";
             CHECK(FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{}) != there);
+        }
+
+        TEST_CASE("placing or moving a reflection probe leaves a bake valid") {
+            auto world = UWorld::Create("Probed");
+            AActor* floor = world->SpawnActor<AActor>("Floor");
+            floor->AddComponent<FMeshComponent>().MeshType = "Plane";
+            const uint64_t before = FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{});
+
+            // A probe takes light from the level and gives none back to the bake.
+            auto* probe = world->SpawnActor<AReflectionProbe>("Probe");
+            CHECK(FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{}) == before);
+            probe->SetActorLocation({3.0f, 1.0f, 2.0f});
+            probe->GetComponent<FReflectionProbeComponent>().Extent = {5.0f, 2.0f, 5.0f};
+            CHECK(FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{}) == before);
+
+            // Anything else that moves still counts.
+            floor->SetActorLocation({0.0f, 0.5f, 0.0f});
+            CHECK(FLightmass::ComputeBakeInputHash(*world, FLightmassSettings{}) != before);
         }
 
         TEST_CASE("the hash does not depend on what loaded a mesh first") {

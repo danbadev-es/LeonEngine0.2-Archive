@@ -195,6 +195,7 @@ namespace Leon {
             preset.ShadowFilter = EShadowFilterMode::Hard;
             preset.bEnablePlanarReflection = false;
             preset.PlanarQuality = EPlanarReflectionQuality::Low;
+            preset.ReflectionProbeResolution = 32;
             preset.bEnableSSAO = false;
             preset.bEnableBloom = false;
             preset.bEnableFXAA = false;
@@ -211,6 +212,7 @@ namespace Leon {
             preset.ShadowFilter = EShadowFilterMode::PCF3x3;
             preset.bEnablePlanarReflection = true;
             preset.PlanarQuality = EPlanarReflectionQuality::Low;
+            preset.ReflectionProbeResolution = 64;
             preset.bEnableSSAO = true;
             preset.bEnableBloom = true;
             preset.bEnableFXAA = true;
@@ -228,6 +230,7 @@ namespace Leon {
             preset.ShadowFilter = EShadowFilterMode::PCF5x5;
             preset.bEnablePlanarReflection = true;
             preset.PlanarQuality = EPlanarReflectionQuality::Epic;
+            preset.ReflectionProbeResolution = 128;
             preset.bEnableSSAO = true;
             preset.bEnableBloom = true;
             preset.bEnableFXAA = true;
@@ -265,6 +268,7 @@ namespace Leon {
         InWorld.SetProjectShadowFilter(preset.ShadowFilter);
         InWorld.SetProjectOmniShadowDefaults(preset.SpotResolution, preset.PointShadowResolution,
                                              preset.MaxShadowedPointLights, preset.MaxShadowedSpotLights);
+        InWorld.SetProjectReflectionProbeResolution(preset.ReflectionProbeResolution);
         FRenderer::SetMaxTextureResolution(preset.MaxTextureResolution);
         InWorld.ReloadTextures();
         SyncEngineProjectDefaults(preset);

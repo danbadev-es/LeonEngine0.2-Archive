@@ -5,6 +5,8 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 
+#include <cstdint>
+
 namespace Leon {
 
     /**
@@ -22,6 +24,13 @@ namespace Leon {
 
         /** False when the map's baked lighting no longer matches it: lightmaps are then not sampled. */
         virtual bool AreLightmapsTrusted() const = 0;
+
+        /**
+         * Identifies the baked lighting in use: the hash of everything the bake depended on (geometry,
+         * materials, lights, sky). 0 when the world has no bake or does not trust it. What is derived
+         * from the lit static scene (reflection probe captures) is kept on disk under this number.
+         */
+        virtual uint64_t GetStaticLightingHash() const { return 0; }
 
         /**
          * Where an entity is in the world. For an entity that belongs to an actor this follows what the

@@ -158,4 +158,24 @@ namespace Leon {
         return GFrameOutput;
     }
 
+    namespace {
+        std::vector<std::function<void()>>& AfterFrameTasks() {
+            static std::vector<std::function<void()>> tasks;
+            return tasks;
+        }
+    } // namespace
+
+    void FRHIFrame::RunAfterFrame(std::function<void()> InTask) {
+        if (InTask)
+            AfterFrameTasks().push_back(std::move(InTask));
+    }
+
+    void FRHIFrame::RunAfterFrameTasks() {
+        // A task may queue another: those run after the next frame.
+        std::vector<std::function<void()>> tasks;
+        tasks.swap(AfterFrameTasks());
+        for (const std::function<void()>& task : tasks)
+            task();
+    }
+
 } // namespace Leon

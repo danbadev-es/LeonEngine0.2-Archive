@@ -33,6 +33,7 @@ namespace Leon {
     inline constexpr uint32_t kSlotLightmap = 12;
     inline constexpr uint32_t kSlotPlanarWall = 13;
     inline constexpr uint32_t kSlotPointShadow = 14;
+    inline constexpr uint32_t kSlotReflectionProbes = 15;
 
     // The structures below mirror constant buffers in Engine/Shaders. Keep field order and types
     // identical; every field is a multiple of 16 bytes so C++ and HLSL agree on the layout.
@@ -111,6 +112,10 @@ namespace Leon {
         glm::mat4 NormalMatrix;
         glm::vec4 LightmapScaleBias;
         glm::ivec4 DrawFlags;
+        // The two reflection probes the object reads; ProbeBoxMax.w < 0 = none (FReflectionProbeMath.hpp).
+        glm::vec4 ProbeBoxMin[2]{glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)};
+        glm::vec4 ProbeBoxMax[2]{glm::vec4(0.0f, 0.0f, 0.0f, -1.0f), glm::vec4(0.0f, 0.0f, 0.0f, -1.0f)};
+        glm::vec4 ProbeCapture[2]{glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)};
     };
 
     /** Copies of one mesh drawn in a single call (PBR_Lit.hlsl compiled with INSTANCED). */
@@ -171,6 +176,13 @@ namespace Leon {
         flip[1][1] = -1.0f;
         return flip;
     }
+
+    struct FProbeFilterConstants { // ReflectionProbeFilter.hlsl
+        glm::vec4 FaceForward{0.0f};
+        glm::vec4 FaceRight{0.0f};
+        glm::vec4 FaceUp{0.0f};
+        glm::vec4 FilterParams{0.0f};
+    };
 
     struct FBloomConstants { // Bloom.hlsl
         glm::vec4 BloomParams{0.0f};

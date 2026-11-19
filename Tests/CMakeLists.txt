@@ -76,6 +76,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Shader/PostProcessToneMappingTests.cpp
     Shader/PostProcessLookTests.cpp
     Shader/PBRShaderIBLTests.cpp
+    Shader/PBRShaderReflectionProbeTests.cpp
     Shader/PBRShaderPlanarReflectionTests.cpp
     Shader/PBRShaderPlanarHDRTests.cpp
     Shader/ShadowBiasTests.cpp

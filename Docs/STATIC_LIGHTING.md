@@ -43,6 +43,10 @@ Pipeline:
 
 `FLightmass::ComputeBakeInputHash(UWorld, settings)` fingerprints actors/transforms/mobility/resolutions, mesh/material **file content** (FNV-1a), and bake knobs — **not** the stamped Scale/Bias/Index/hash fields. Second bake without `--force` skips when hash matches. At play, a stale `LightmapBakeHash` disables lightmap sampling (`UWorld::AreLightmapsTrusted`).
 
+Reflection probes (`AReflectionProbe`) are left out of the hash: they take light from the level and
+give none to the bake, so placing or moving one keeps a bake valid. Their captures are cached under
+the bake hash (see `Docs/RENDERER.md`), so a new bake also captures them again.
+
 ### Validate
 
 `ValidateMap` requires Static meshes; when `StaticLighting` is on, also checks atlas exists, header valid, hash not stale, and chart metadata finiteness.

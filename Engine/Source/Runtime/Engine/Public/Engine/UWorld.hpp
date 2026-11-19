@@ -167,6 +167,7 @@ namespace Leon {
         FWorldRenderer* GetWorldRendererIfInitialized() { return Renderer.get(); }
 
         bool AreLightmapsTrusted() const override { return bLightmapsTrusted; }
+        uint64_t GetStaticLightingHash() const override;
 
         // The rest of IRenderScene.
         glm::mat4 GetEntityWorldMatrix(entt::entity InEntity, const FTransformComponent& InTransform) const override;
@@ -192,6 +193,9 @@ namespace Leon {
         void SetProjectShadowFilter(EShadowFilterMode InFilter);
         void SetProjectOmniShadowDefaults(uint32_t InSpotResolution, uint32_t InPointShadowResolution,
                                           uint32_t InMaxShadowedPointLights, uint32_t InMaxShadowedSpotLights);
+        /** Pixels along the edge of a reflection probe's cube face. A change captures the probes again. */
+        void SetProjectReflectionProbeResolution(uint32_t InResolution);
+        uint32_t GetPendingReflectionProbeResolution() const { return PendingReflectionProbeResolution; }
         bool GetPendingSSAOEnabled() const { return bPendingSSAOEnabled; }
         float GetPendingSSAORadius() const { return PendingSSAORadius; }
         float GetPendingSSAOIntensity() const { return PendingSSAOIntensity; }
@@ -293,6 +297,7 @@ namespace Leon {
         EShadowFilterMode PendingShadowFilter = EShadowFilterMode::PCF3x3;
         uint32_t PendingSpotResolution = 1024;
         uint32_t PendingPointShadowResolution = 512;
+        uint32_t PendingReflectionProbeResolution = 128;
         uint32_t PendingMaxShadowedPointLights = 4;
         uint32_t PendingMaxShadowedSpotLights = 4;
 

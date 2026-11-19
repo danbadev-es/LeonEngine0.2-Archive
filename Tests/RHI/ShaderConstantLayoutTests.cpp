@@ -125,6 +125,12 @@ namespace Leon {
                          {kFrame, {"PassConstants", sizeof(FFXAAConstants)}}});
         }
 
+        TEST_CASE("reflection probe filtering") {
+            const std::vector<FExpectedBuffer> filter = {kFrame, {"PassConstants", sizeof(FProbeFilterConstants)}};
+            CheckShader({"ReflectionProbeFilter.hlsl", "PSMain", ERHIShaderStage::Pixel, {}, filter});
+            CheckShader({"ReflectionProbeFilter.hlsl", "PSShrink", ERHIShaderStage::Pixel, {}, filter});
+        }
+
         TEST_CASE("2D drawing") {
             const std::vector<FExpectedBuffer> canvas = {kFrame, {"PassConstants", sizeof(FCanvasConstants)}};
             CheckShader({"Canvas.hlsl", "VSMain", ERHIShaderStage::Vertex, {}, canvas});

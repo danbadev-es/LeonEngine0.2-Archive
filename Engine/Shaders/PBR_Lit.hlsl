@@ -7,6 +7,7 @@
 
 #include "PBR_Common.hlsli"
 #include "Shadows.hlsli"
+#include "ReflectionProbes.hlsli"
 #ifdef SKINNED
 #include "Skinning.hlsli"
 #endif
@@ -35,6 +36,10 @@ cbuffer DrawConstants : register(b3) {
     float4x4 u_NormalMatrix;    // inverse transpose of u_Model (upper 3x3 used)
     float4 u_LightmapScaleBias; // xy = scale, zw = bias of this object's chart in the atlas
     int4 u_DrawFlags;           // x = has lightmap, y = lightmap uses the first UV set, z = receives shadows, w = shows planar reflections
+    // The two reflection probes this object reads (ReflectionProbes.hlsli).
+    float4 u_ProbeBoxMin[2];    // xyz = lower corner of the probe's box, w = intensity
+    float4 u_ProbeBoxMax[2];    // xyz = upper corner, w = the probe's cube in t_ReflectionProbes (-1 = no probe)
+    float4 u_ProbeCapture[2];   // xyz = where the cube was captured, w = metres over which the probe fades out
 };
 
 #ifdef INSTANCED
@@ -289,6 +294,7 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
     const float3 diffuseWeightIBL = (1.0 - fresnelIBL) * (1.0 - metallic);
     const float2 envBRDF = t_BRDFLUT.SampleLevel(s_LinearClamp, float2(NdotV, roughness), 0.0).rg;
 
+    const float kMaxProbeLod = 4.0;
     float3 diffuseIBL;
     float3 reflection;
     if (u_PassFlags.x == 1) {
@@ -298,6 +304,33 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
     } else {
         diffuseIBL = GetHemisphereIrradiance(N) * albedo / kPi;
         reflection = SampleEnvironmentAtmosphere(R);
+    }
+    // A probe of the room replaces the sky where the pixel is inside its box: the sky is not what a
+    // closed room reflects. Two probes share the pixel by their weights; what they leave is the sky's.
+    float3 probeReflection = float3(0.0, 0.0, 0.0);
+    float probeShare = 0.0;
+    {
+        float weights[2] = {0.0, 0.0};
+        float3 colors[2] = {float3(0.0, 0.0, 0.0), float3(0.0, 0.0, 0.0)};
+        for (int probe = 0; probe < 2; ++probe) {
+            if (u_ProbeBoxMax[probe].w < 0.0)
+                continue;
+            const float3 boxMin = u_ProbeBoxMin[probe].xyz;
+            const float3 boxMax = u_ProbeBoxMax[probe].xyz;
+            weights[probe] = ReflectionProbeWeight(InPixel.WorldPosition, boxMin, boxMax, u_ProbeCapture[probe].w);
+            if (weights[probe] <= 0.0)
+                continue;
+            const float3 lookup = BoxProjectedDirection(InPixel.WorldPosition, R, boxMin, boxMax, u_ProbeCapture[probe].xyz);
+            colors[probe] = t_ReflectionProbes.SampleLevel(s_LinearClamp, float4(lookup, u_ProbeBoxMax[probe].w),
+                                                           roughness * kMaxProbeLod).rgb * u_ProbeBoxMin[probe].w;
+        }
+        const float total = weights[0] + weights[1];
+        if (total > 0.0) {
+            const float scale = total > 1.0 ? 1.0 / total : 1.0;
+            probeShare = min(total, 1.0);
+            probeReflection = (colors[0] * weights[0] + colors[1] * weights[1]) * scale;
+            reflection = reflection * (1.0 - probeShare) + probeReflection;
+        }
     }
     // Planar captures replace the environment reflection where they apply. They hold linear scene
     // light along the mirror ray, so they go through the same split-sum factor as the environment.
@@ -406,6 +439,10 @@ float4 PSMain(FVertexOutput InPixel, bool bInFrontFace : SV_IsFrontFace) : SV_Ta
             view = diffuseIBL;
         else if (debugView == 37)
             view = color;
+        else if (debugView == 42)
+            view = reflection;
+        else if (debugView == 41)
+            view = probeShare > 0.0 ? probeReflection / probeShare : float3(0.0, 0.0, 0.0);
         else if (debugView == 38)
             view = directDiffuse;
         else if (debugView == 39)

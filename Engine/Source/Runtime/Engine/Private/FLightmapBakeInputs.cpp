@@ -105,6 +105,10 @@ namespace Leon {
             if (!actorRef)
                 continue;
             AActor& actor = *actorRef;
+            // A reflection probe is captured from the baked scene and puts no light into it: placing
+            // or moving one must not make the bake stale.
+            if (actor.HasComponent<FReflectionProbeComponent>())
+                continue;
 
             if (actor.HasComponent<FTransformComponent>()) {
                 const auto& t = actor.GetComponent<FTransformComponent>();

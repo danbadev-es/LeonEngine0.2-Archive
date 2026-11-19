@@ -120,6 +120,9 @@ namespace Leon {
         bool bHasText = false;
         FTextComponent TextComp;
 
+        bool bHasReflectionProbe = false;
+        FReflectionProbeComponent ReflectionProbe;
+
         bool bHasBoxCollision = false;
         FBoxCollisionComponent BoxCollision;
         bool bTriggerEnabled = true;
@@ -189,6 +192,7 @@ namespace Leon {
             PointLight,
             SpotLight,
             Text,
+            ReflectionProbe,
             BoxCollision,
             Properties
         };
@@ -503,6 +507,10 @@ namespace Leon {
                     currentCompSection = EActorComponentSection::Text;
                     currentActor.bHasText = true;
                     continue;
+                } else if (trimmed == "ReflectionProbe:") {
+                    currentCompSection = EActorComponentSection::ReflectionProbe;
+                    currentActor.bHasReflectionProbe = true;
+                    continue;
                 } else if (trimmed == "BoxCollision:" || trimmed == "BoxCollisionComponent:") {
                     currentCompSection = EActorComponentSection::BoxCollision;
                     currentActor.bHasBoxCollision = true;
@@ -758,6 +766,19 @@ namespace Leon {
                             currentActor.PointLightMobility = StringToLightMobility(val);
                         else if (key == "CastShadows")
                             currentActor.bPointLightCastShadows = (val == "true");
+                        break;
+
+                    case EActorComponentSection::ReflectionProbe:
+                        if (key == "Extent" || key == "CaptureOffset") {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 3) {
+                                (key == "Extent" ? currentActor.ReflectionProbe.Extent
+                                                 : currentActor.ReflectionProbe.CaptureOffset) = {v[0], v[1], v[2]};
+                            }
+                        } else if (key == "Intensity")
+                            currentActor.ReflectionProbe.Intensity = std::stof(val);
+                        else if (key == "BlendDistance")
+                            currentActor.ReflectionProbe.BlendDistance = std::stof(val);
                         break;
 
                     case EActorComponentSection::SpotLight:
@@ -1082,6 +1103,10 @@ namespace Leon {
             if (actorData.bHasText) {
                 entity->AddComponent<FTextComponent>(actorData.TextComp);
             }
+
+            // Reflection probe: AReflectionProbe creates the component itself, so assign rather than add.
+            if (actorData.bHasReflectionProbe)
+                entity->AddOrReplaceComponent<FReflectionProbeComponent>(actorData.ReflectionProbe);
 
             // Authored properties last, then the hook: the actor is complete when it runs.
             for (const auto& [key, value] : actorData.Properties) {

@@ -112,6 +112,24 @@ namespace Leon {
                                           EPlanarReflectionQuality InPlanarQuality = EPlanarReflectionQuality::Epic,
                                           float InPlanarResolutionScale = 0.0f);
 
+        /**
+         * Reflection probes (FReflectionProbeComponent): each is a cube map of the static level around
+         * it, captured on the first frame that shows the world and kept on disk under the hash of the
+         * level's bake, so later runs load it instead. Off: surfaces reflect the sky everywhere.
+         */
+        void SetReflectionProbesEnabled(bool bEnabled) { bReflectionProbesEnabled = bEnabled; }
+        bool AreReflectionProbesEnabled() const { return bReflectionProbesEnabled; }
+        /** Pixels along the edge of a cube face. A change captures every probe again. */
+        void SetReflectionProbeResolution(uint32_t InResolution) { ReflectionProbeResolution = InResolution; }
+        uint32_t GetReflectionProbeResolution() const { return ReflectionProbeResolution; }
+        /** Captures every probe again on the next frame, whatever is on disk. */
+        void InvalidateReflectionProbes() { bReflectionProbesInvalidated = true; }
+        /** Where captures are kept. Empty (the default): Saved/ReflectionProbes of the project. */
+        void SetReflectionProbeCacheDirectory(const std::string& InDirectory) { ReflectionProbeCacheDirectory = InDirectory; }
+        /** How many cubes this renderer has captured, and how many it took from disk instead. */
+        uint32_t GetReflectionProbeCaptureCount() const { return ReflectionProbeCaptureCount; }
+        uint32_t GetReflectionProbeCacheLoadCount() const { return ReflectionProbeCacheLoadCount; }
+
         /** Rebuilds the image-based lighting environment on the next frame (e.g. after a quality change). */
         void InvalidateEnvironment();
 
@@ -166,6 +184,14 @@ namespace Leon {
         bool bUseIBL = true;
         bool bEnvironmentGenerated = false;
         std::string LoadedHDRPath;
+
+        // Reflection probes.
+        bool bReflectionProbesEnabled = true;
+        bool bReflectionProbesInvalidated = false;
+        uint32_t ReflectionProbeResolution = 128;
+        std::string ReflectionProbeCacheDirectory;
+        uint32_t ReflectionProbeCaptureCount = 0;
+        uint32_t ReflectionProbeCacheLoadCount = 0;
 
         FPostProcessSettings PostProcessSettings;
 

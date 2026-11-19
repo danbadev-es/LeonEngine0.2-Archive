@@ -36,6 +36,7 @@ UpdateViewState    level of detail, IBL environment, spot light aim, skinned sha
 queue              world text, particles, gameplay debug shapes (drawn at the end of the scene pass)
 collect            visible mesh sections, resolved to pipelines, buffers and textures; shadow casters
 lights             the point and spot lights that get the shader's slots, by importance for the camera
+probe captures     only when a reflection probe has no cube yet: six views of the static level each
 shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
 scene pass (HDR)   opaque → skinned outlines → sky → blended (back to front) → queued world-space batches
@@ -71,7 +72,7 @@ Fixed for every shader and every backend (`RHITypes.hpp`, `Engine/Shaders/Common
 | `b0` | Frame: camera. `FrameConstants` in `Common.hlsli` |
 | `b1` | Pass: lights, fog, shadows, reflections — or a post-process pass's parameters |
 | `b2` | Material |
-| `b3` | Draw: object transform, lightmap placement, per-draw flags |
+| `b3` | Draw: object transform, lightmap placement, per-draw flags, the reflection probes the object reads |
 | `b4` | Extra: bone palette |
 | `t0`..`t15` | Textures. The surface shader's slots are listed in `PBR_Lit.hlsl` |
 | `s0`..`s4` | Static samplers: linear wrap, linear clamp, point clamp, point wrap, shadow comparison |
@@ -89,6 +90,7 @@ per-frame memory.
 | :--- | :--- |
 | `PBR_Lit.hlsl` (+ `PBR_Common.hlsli`, `Shadows.hlsli`, `Skinning.hlsli`) | Surfaces. Compiled again with `SKINNED` for skeletal meshes |
 | `ShadowDepth.hlsl` | Shadow casters; `PSMainLinear` for point-light cubes |
+| `ReflectionProbeFilter.hlsl` (+ `ReflectionProbes.hlsli`, used by the surface shader) | The levels of a reflection probe's cube, from its capture |
 | `Outline_Skinned.hlsl` | Silhouette around a skinned mesh |
 | `Skybox.hlsl` | Sky: HDR panorama or procedural gradient |
 | `SSAO.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl`, `FXAA.hlsl` | Post-processing, one entry point per step |
@@ -114,7 +116,8 @@ Editing a `.hlsl` file and restarting is enough; nothing is rebuilt.
 
 `u_PassFlags.y` selects a debug view of the surface shader (`FWorldRenderer::SetDebugMode`). The numbers
 are listed where they are handled in `PBR_Lit.hlsl`: material channels, direct and indirect light, sun
-shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture (13).
+shadow (24), cascades (25), spot shadow (26), point shadow (40), planar capture (13), reflection
+probes (41), the reflection as used (42).
 
 ## Lights: who gets a slot, who gets a shadow
 
@@ -160,6 +163,84 @@ long corridor can lose to weaker ones around the camera; a light dropped from th
 at once rather than fading out; a spot light's shadow is lost where the occluder is close to the surface
 it shadows and both are several metres from the light (the map stores perspective depth from a near
 plane of 0.1 m, which leaves little precision out there, and the bias is larger than what is left).
+
+## Reflection probes: what a room reflects
+
+Without them every surface reflects the sky (`t_Prefilter`), indoors too: metal and wet floors in a
+closed room show a sky that is not there, or nothing when the sky is black. A reflection probe is a
+cube map of one room, captured from inside it, that the surfaces in the room reflect instead.
+
+- **Placing one.** An actor of class `AReflectionProbe` (`FReflectionProbeComponent`). The actor's
+  location is the centre of an axis-aligned box, `Extent` its half-sizes: make the box the room, wall
+  to wall and floor to ceiling. The actor's rotation and scale are not used: boxes cannot be rotated.
+  The cube is captured from the centre plus `CaptureOffset` (clamped into the box); move it when the
+  centre is inside furniture. Up to 32 probes per map (`kMaxReflectionProbes`); more are ignored with
+  a warning.
+- **What a capture holds.** The level as it lasts: Static geometry (procedural and imported meshes
+  with Static mobility, most detailed level) with its lightmaps, lit by Static and Stationary lights
+  with their shadows (static casters only; the sun gets one shadow map around the box), the sky as the
+  map has it, fog. Not in it: Movable lights (the flashlight), Movable and Stationary meshes,
+  characters, particles, text. Surfaces in a capture reflect the sky, never a probe, so captures do not
+  depend on each other and one bounce of specular is all there is.
+- **When.** On the first frame that draws the world, all probes at once, and again for a probe whose
+  key changes: the hash of the map's bake (`IRenderScene::GetStaticLightingHash`), whether the
+  lightmaps are trusted, the capture position, the resolution. `FWorldRenderer::InvalidateReflectionProbes`
+  captures everything again on demand. Moving the box or changing `Intensity` needs no capture.
+- **Filtering.** Each face is drawn at the probe resolution into a scratch cube and then filtered into
+  the probe's cube of a `TextureCubeArray` (`t15`, RGBA16F, 5 levels): level *n* is the GGX lobe of
+  roughness *n*/4 around the mirror direction (`ReflectionProbeFilter.hlsl`), the same convention as
+  the sky's prefiltered map, so a surface reads `roughness * 4` in both. The two widest lobes are
+  taken from a quarter-size copy of the capture, where a lamp is not a single bright pixel.
+- **Cache.** With a trusted bake, a captured cube is written to
+  `<project>/Saved/ReflectionProbes/<key>.lprobecube` after the frame (`FRHIFrame::RunAfterFrame`:
+  a texture cannot be read back while a frame is recorded) and loaded instead of captured from then
+  on. The key is in the file name and the header; a new bake, a moved capture point or another
+  resolution is another file. Old files are never deleted: clear the folder when it grows. A map
+  without a bake, or with a stale one, is captured on every run and nothing is written.
+- **Which probe a surface reads.** Chosen per draw, on the CPU (`SelectReflectionProbes`): of the
+  probes whose box (plus its fade) touches the object's bounds, the two that count most at the centre
+  of the bounds, then by how much of the bounds they cover. The choice depends on the object alone,
+  so nothing changes as the camera moves. Their boxes travel in the draw constants
+  (`u_ProbeBoxMin/Max`, `u_ProbeCapture`).
+- **Per pixel** (`ReflectionProbes.hlsli`, twin in `RenderCore/FReflectionProbeMath.hpp`): a probe
+  counts 1 inside its box and fades to 0 over `BlendDistance` outside it. The two probes share the
+  pixel in proportion to their weights; what they leave (weights adding up to less than 1) is the
+  sky's. The cube is read with parallax correction: the reflection ray is followed to the face of the
+  box it hits, and the cube is read towards that point as seen from the capture position.
+- **What does not change.** The diffuse ambient (lightmap, or the sky's irradiance), planar
+  reflections (they go on top where a material asks for them), and a map without probes: it is drawn
+  as before, bit for bit.
+
+Map keys (`ReflectionProbe:` block of an actor; the `Transform` gives the centre):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `Extent: [x, y, z]` | `[2, 1.5, 2]` | Half-sizes of the box in metres |
+| `CaptureOffset: [x, y, z]` | `[0, 0, 0]` | Capture position relative to the centre |
+| `Intensity` | 1 | Scales what the probe reflects |
+| `BlendDistance` | 0.5 | Metres outside the box over which the probe fades out |
+
+```text
+  - Name: "Ward_Probe"
+    Class: "AReflectionProbe"
+    Transform:
+      Translation: [4.5, 1.4, -7.25]
+    ReflectionProbe:
+      Extent: [3.5, 1.4, 2.25]
+      CaptureOffset: [0, 0.2, 0]
+```
+
+Quality: the edge of a cube face is 128 / 64 / 32 pixels for High / Medium / Low
+(`FGraphicsPreset::ReflectionProbeResolution`); 32 probes at 128 take about 33 MB.
+Debug views: 41 shows what the probes give each pixel (black where none reaches), 42 what the pixel
+ends up reflecting (probes, sky and planar captures).
+
+Limits: boxes are axis-aligned, so a room at an angle is approximated; a mesh larger than a room (one
+floor under several rooms) reads only two probes and reflects the sky beyond them; a door between two
+rooms is a blend of two cubes, not a view through the door; the reflection is of the level as
+captured, so an open door, a moved crate or a character is not in it; with a black sky the fade
+outside the last box goes to black. Placing or moving a probe does not make the lightmap bake stale.
+There is nothing in the editor to edit the block; probes are captured again when their actor moves.
 
 ## The final image: the look of a map
 

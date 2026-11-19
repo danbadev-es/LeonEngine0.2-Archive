@@ -258,6 +258,10 @@ namespace Leon::TestGPU {
             ShadowMap = CreateDepth(ERHITextureDimension::Texture2DArray, 1, 1, FShadowSettings::kMaxShadowedSpotLights);
             ShadowArray = CreateDepth(ERHITextureDimension::Texture2DArray, 1, 1, 4);
             PointShadowCubes = CreateDepth(ERHITextureDimension::TextureCubeArray, 1, 1, 1);
+            ProbeCubes = CreateCubeArray(1, 1, 1, ERHIFormat::RGBA8_UNorm);
+            const uint8_t black[4] = {0, 0, 0, 255};
+            for (uint32_t face = 0; ProbeCubes && face < 6; ++face)
+                Device->UploadTexture(*ProbeCubes, 0, face, black, 4);
             BindFramebuffer(1, 1);
             bInitialized = QuadVertices && QuadIndices && White && ShadowArray && PointShadowCubes && Color;
         }
@@ -277,6 +281,7 @@ namespace Leon::TestGPU {
             ShadowMap.reset();
             ShadowArray.reset();
             PointShadowCubes.reset();
+            ProbeCubes.reset();
             FShaderLibrary::Clear();
             if (bEngineResources)
                 FRenderDriverRegistry::RegisterDriver(nullptr);
@@ -374,6 +379,7 @@ namespace Leon::TestGPU {
             Slots[kSlotLightmap] = Black;
             Slots[kSlotPlanarWall] = Black;
             Slots[kSlotPointShadow] = PointShadowCubes;
+            Slots[kSlotReflectionProbes] = ProbeCubes;
             // A planar capture must not default to white: slot 5 is also read as one.
             Slots[kSlotPlanarFloor] = Black;
         }
@@ -441,6 +447,18 @@ namespace Leon::TestGPU {
             for (uint32_t slice = 0; slice < 6; ++slice)
                 Device->UploadTexture(*texture, 0, slice, face.data(), InSize * RHIFormatBytesPerPixel(InFormat));
             return texture;
+        }
+        /** An array of cubes to be filled with Upload: slice = cube * 6 + face. */
+        FTestTexture CreateCubeArray(uint32_t InSize, uint32_t InMipLevels, uint32_t InCubes, ERHIFormat InFormat) {
+            FRHITextureDesc desc;
+            desc.Width = InSize;
+            desc.Height = InSize;
+            desc.ArraySize = InCubes;
+            desc.MipLevels = InMipLevels;
+            desc.Format = InFormat;
+            desc.Dimension = ERHITextureDimension::TextureCubeArray;
+            desc.DebugName = "TestCubeArray";
+            return Device->CreateTexture(desc);
         }
         FTestTexture CreateFloatCube(float InR, float InG, float InB, float InA = 1.0f) {
             return CreateCube(1, ERHIFormat::RGBA32_Float, std::vector<float>{InR, InG, InB, InA});
@@ -539,6 +557,9 @@ namespace Leon::TestGPU {
                 if (Slots[unit])
                     commands.SetTexture(TextureRegister(kind, unit), Slots[unit].get());
             }
+            // The surface shader declares a cube array there: the null texture (2D) does not fit.
+            if (kind == FTestShader::EKind::Surface && !Slots[kSlotReflectionProbes])
+                commands.SetTexture(kSlotReflectionProbes, ProbeCubes.get());
             if (bQuad) {
                 commands.SetVertexBuffer(QuadVertices.get());
                 commands.SetIndexBuffer(QuadIndices.get());
@@ -895,6 +916,17 @@ namespace Leon::TestGPU {
             draw.DrawFlags = glm::ivec4(InShader.Int("u_UseLightmap", 0), InShader.Int("u_LightmapUseTexCoord", 0), 1,
                                         bPlanar ? 1 : 0);
 
+            // Reflection probes, by the names "u_ProbeBoxMin0", "u_ProbeCube1"...; no cube (-1) = no probe.
+            for (int probe = 0; probe < 2; ++probe) {
+                const std::string index = std::to_string(probe);
+                draw.ProbeBoxMin[probe] = glm::vec4(InShader.Vec3("u_ProbeBoxMin" + index, glm::vec3(0.0f)),
+                                                    InShader.Float("u_ProbeIntensity" + index, 1.0f));
+                draw.ProbeBoxMax[probe] = glm::vec4(InShader.Vec3("u_ProbeBoxMax" + index, glm::vec3(0.0f)),
+                                                    static_cast<float>(InShader.Int("u_ProbeCube" + index, -1)));
+                draw.ProbeCapture[probe] = glm::vec4(InShader.Vec3("u_ProbeCapture" + index, glm::vec3(0.0f)),
+                                                     InShader.Float("u_ProbeBlend" + index, 0.5f));
+            }
+
             InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
             InCommands.SetConstants(ERHIConstantSlot::Pass, &pass, sizeof(pass));
             InCommands.SetConstants(ERHIConstantSlot::Material, &material, sizeof(material));
@@ -927,6 +959,7 @@ namespace Leon::TestGPU {
         FTestTexture ShadowMap;
         FTestTexture ShadowArray;
         FTestTexture PointShadowCubes;
+        FTestTexture ProbeCubes;
     };
 
     inline void FTestShader::Bind() {

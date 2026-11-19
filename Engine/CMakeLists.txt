@@ -277,6 +277,7 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Gameplay/Private/AAIController.cpp
     Source/Runtime/Gameplay/Private/ABlockingVolume.cpp
     Source/Runtime/Gameplay/Private/ASkyLight.cpp
+    Source/Runtime/Gameplay/Private/AReflectionProbe.cpp
     Source/Runtime/Gameplay/Private/ATriggerVolume.cpp
     Source/Runtime/Gameplay/Private/APhysicsVolume.cpp
     Source/Runtime/Gameplay/Private/ANavMeshBoundsVolume.cpp

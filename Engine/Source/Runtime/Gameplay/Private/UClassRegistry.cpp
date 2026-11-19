@@ -15,6 +15,7 @@
 #include "Gameplay/ANavMeshBoundsVolume.hpp"
 #include "Gameplay/APhysicsVolume.hpp"
 #include "Gameplay/AProjectile.hpp"
+#include "Gameplay/AReflectionProbe.hpp"
 #include "Gameplay/ASkyLight.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
 
@@ -52,6 +53,7 @@ namespace Leon {
         RegisterClass<ABlockingVolume>("ABlockingVolume");
         RegisterClass<APhysicsVolume>("APhysicsVolume");
         RegisterClass<ASkyLight>("ASkyLight");
+        RegisterClass<AReflectionProbe>("AReflectionProbe");
         RegisterClass<ATriggerVolume>("ATriggerVolume");
         RegisterClass<AProjectile>("AProjectile");
     }

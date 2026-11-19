@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 namespace Leon {
 
     class IRHICommandList;
@@ -21,6 +23,14 @@ namespace Leon {
 
         static IRHICommandList* GetCommands();
         static IRHITexture* GetOutput();
+
+        /**
+         * Work that needs the device between frames (reading a texture back to memory cannot happen
+         * while a frame is being recorded). Queue it from inside the frame; whoever owns the frame
+         * calls RunAfterFrameTasks once the device has ended it. Tasks run once, in the order queued.
+         */
+        static void RunAfterFrame(std::function<void()> InTask);
+        static void RunAfterFrameTasks();
     };
 
 } // namespace Leon

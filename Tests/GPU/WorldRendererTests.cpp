@@ -3,6 +3,7 @@
 #include "Scene/Components.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
+#include "Gameplay/AReflectionProbe.hpp"
 #include "RHI/FFrameProfiler.hpp"
 #include "RHI/FLegacyRenderDriver.hpp"
 #include "RHI/FRHIFrame.hpp"
@@ -23,6 +24,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
+#include <system_error>
 #include <vector>
 
 // The world renderer, drawing real frames of a small scene on WARP (the software Direct3D 12
@@ -58,6 +61,8 @@ namespace Leon {
             FPerspectiveCamera Camera{45.0f, static_cast<float>(kWidth) / static_cast<float>(kHeight), 0.1f, 100.0f};
             uint64_t ErrorsAtStart = 0;
             bool bReady = false;
+            /** Draws the frames instead of the world's own renderer when set. */
+            FWorldRenderer* Renderer = nullptr;
 
             FWorldRenderFixture() {
                 FD3D12RHI::Register();
@@ -147,10 +152,11 @@ namespace Leon {
                 for (uint32_t frame = 0; frame < InFrames; ++frame) {
                     IRHICommandList& commands = device->BeginFrame();
                     FRHIFrame::Begin(commands, *Target);
-                    World->GetWorldRenderer()->Render(Camera);
+                    (Renderer ? Renderer : World->GetWorldRenderer())->Render(Camera);
                     InOverlay();
                     FRHIFrame::End();
                     device->EndFrame();
+                    FRHIFrame::RunAfterFrameTasks();
                 }
                 device->WaitIdle();
                 FImage image;
@@ -213,6 +219,138 @@ namespace Leon {
                         sum += InImage.Luma(static_cast<uint32_t>(x), static_cast<uint32_t>(y));
                 }
                 return sum / 9.0f;
+            }
+        };
+
+
+        /**
+         * A closed room of six glowing walls, each its own colour, with a reflection probe in it and a
+         * mirror standing in the middle that faces the camera. On the wall behind the camera there is a
+         * small green square; where it shows up in the mirror says whether the probe is read as a box.
+         */
+        struct FProbeRoomFixture : FWorldRenderFixture {
+            /** The debug view of PBR_Lit.hlsl that shows the reflection read from the probes. */
+            static constexpr int kProbeReflectionView = 41;
+            /** The one that shows what the surface ends up reflecting: probes, sky and planar captures. */
+            static constexpr int kReflectionView = 42;
+            const glm::vec3 Center{30.0f, 1.5f, 0.0f};
+            const glm::vec3 Feature{31.0f, 2.0f, 2.95f};
+            TRef<FMaterialInstance> MirrorMaterial;
+            AActor* Probe = nullptr;
+
+            TRef<FMaterialInstance> Glow(const char* InName, const glm::vec3& InColor, float InAlbedo = 0.0f) {
+                const TRef<FMaterialInstance> material = FloorMaterial->GetParent()->CreateInstance(InName);
+                material->SetAlbedoColor(glm::vec3(InAlbedo));
+                material->SetRoughness(1.0f);
+                material->SetEmissiveColor(InColor);
+                material->SetEmissiveIntensity(1.0f);
+                return material;
+            }
+
+            void AddQuad(const char* InName, const glm::vec3& InPosition, const glm::vec3& InRotation, float InWidth,
+                         float InHeight, const TRef<FMaterialInstance>& InMaterial) {
+                AActor* wall = World->SpawnActor<AActor>(InName);
+                wall->SetActorLocation(InPosition);
+                wall->SetActorRotation(InRotation);
+                auto& mesh = wall->AddComponent<FMeshComponent>(FMeshPrimitives::CreateQuad(InWidth, InHeight));
+                mesh.MeshType = "Quad";
+                mesh.MeshWidth = InWidth;
+                mesh.MeshHeight = InHeight;
+                mesh.Mobility = EComponentMobility::Static;
+                wall->AddComponent<FMaterialComponent>(InMaterial);
+            }
+
+            /** A polished metal plate facing +Z, a metre behind InRoomCenter. Movable: it is in no capture. */
+            void AddMirror(const char* InName, const glm::vec3& InRoomCenter) {
+                AActor* mirror = World->SpawnActor<AActor>(InName);
+                mirror->SetActorLocation(InRoomCenter + glm::vec3(0.0f, 0.0f, -1.0f));
+                auto& mesh = mirror->AddComponent<FMeshComponent>(FMeshPrimitives::CreateBox(2.0f, 2.0f, 0.1f));
+                mesh.MeshType = "Box";
+                mesh.MeshWidth = 2.0f;
+                mesh.MeshHeight = 2.0f;
+                mesh.MeshDepth = 0.1f;
+                mesh.Mobility = EComponentMobility::Movable;
+                mirror->AddComponent<FMaterialComponent>(MirrorMaterial);
+            }
+
+            FProbeRoomFixture() {
+                if (!bReady)
+                    return;
+                SwitchFixtureLightsOff();
+                UsePlainPostProcess();
+                FWorldRenderer* renderer = World->GetWorldRenderer();
+                // Every surface shows what its probes give it and nothing else. (The finished image would
+                // need the environment, which takes ten seconds and more to build: reflections go through
+                // its lookup table.)
+                renderer->SetDebugMode(kProbeReflectionView);
+                renderer->SetPlanarReflectionEnabled(false);
+                renderer->SetReflectionProbeResolution(64);
+
+                // A sky that is blue in every direction: what a mirror shows where no probe reaches.
+                AActor* environment = World->SpawnActor<AActor>("Environment");
+                auto& sky = environment->AddComponent<FSkyboxComponent>();
+                sky.SkyZenithColor = sky.HorizonColor = sky.GroundColor = {0.05f, 0.1f, 1.0f};
+                sky.SunIntensity = 0.0f;
+                sky.EnvironmentIntensity = 1.0f;
+
+                // The wall behind the camera also takes light, so a lamp near it shows in the capture.
+                AddQuad("Back", Center + glm::vec3(0.0f, 0.0f, -3.0f), {0.0f, 0.0f, 0.0f}, 6.0f, 3.0f, Glow("Yellow", {1.0f, 1.0f, 0.0f}));
+                AddQuad("Front", Center + glm::vec3(0.0f, 0.0f, 3.0f), {0.0f, 180.0f, 0.0f}, 6.0f, 3.0f,
+                        Glow("Magenta", {1.0f, 0.0f, 1.0f}, 1.0f));
+                AddQuad("Left", Center + glm::vec3(-3.0f, 0.0f, 0.0f), {0.0f, 90.0f, 0.0f}, 6.0f, 3.0f, Glow("Red", {1.0f, 0.0f, 0.0f}));
+                AddQuad("Right", Center + glm::vec3(3.0f, 0.0f, 0.0f), {0.0f, -90.0f, 0.0f}, 6.0f, 3.0f, Glow("Green", {0.0f, 1.0f, 0.0f}));
+                AddQuad("RoomFloor", Center + glm::vec3(0.0f, -1.5f, 0.0f), {-90.0f, 0.0f, 0.0f}, 6.0f, 6.0f, Glow("Grey", glm::vec3(0.2f)));
+                AddQuad("Ceiling", Center + glm::vec3(0.0f, 1.5f, 0.0f), {90.0f, 0.0f, 0.0f}, 6.0f, 6.0f, Glow("White", glm::vec3(0.6f)));
+                AddQuad("Feature", Feature, {0.0f, 180.0f, 0.0f}, 0.5f, 0.5f, Glow("Feature", {0.0f, 3.0f, 0.0f}));
+
+                MirrorMaterial = FloorMaterial->GetParent()->CreateInstance("Mirror");
+                MirrorMaterial->SetAlbedoColor({1.0f, 1.0f, 1.0f});
+                MirrorMaterial->SetMetallic(1.0f);
+                MirrorMaterial->SetRoughness(0.0f);
+                AddMirror("Mirror", Center);
+
+                Probe = World->SpawnActor<AReflectionProbe>("Probe");
+                Probe->SetActorLocation(Center);
+                auto& probe = Probe->AddOrReplaceComponent<FReflectionProbeComponent>();
+                probe.Extent = {3.0f, 1.5f, 3.0f};
+                // Off centre: a lookup that ignored where the cube was captured would put things elsewhere.
+                probe.CaptureOffset = {-1.0f, 0.0f, 0.5f};
+
+                LookAtMirror(Center);
+            }
+
+            /** Every surface shows what it reflects, whether that comes from probes or from the sky. */
+            void ShowReflections() { World->GetWorldRenderer()->SetDebugMode(kReflectionView); }
+
+            void LookAtMirror(const glm::vec3& InRoomCenter) {
+                Camera.SetPosition(InRoomCenter + glm::vec3(0.0f, 0.0f, 2.0f));
+                Camera.SetRotation(0.0f, -90.0f);
+            }
+
+            /** Where a point of the world lands in the picture, in pixels. */
+            glm::vec2 PixelOf(const glm::vec3& InWorldPoint) const {
+                const glm::vec4 clip = Camera.GetViewProjectionMatrix() * glm::vec4(InWorldPoint, 1.0f);
+                return {(clip.x / clip.w * 0.5f + 0.5f) * static_cast<float>(kWidth),
+                        (0.5f - clip.y / clip.w * 0.5f) * static_cast<float>(kHeight)};
+            }
+
+            /** The pixels of the mirror that are clearly green, and where their middle is. */
+            uint32_t GreenPixels(const FImage& InImage, glm::vec2& OutCenter) const {
+                const glm::vec2 low = PixelOf(Camera.GetPosition() + glm::vec3(-0.95f, 0.95f, -2.95f));
+                const glm::vec2 high = PixelOf(Camera.GetPosition() + glm::vec3(0.95f, -0.95f, -2.95f));
+                uint32_t count = 0;
+                glm::vec2 sum(0.0f);
+                for (uint32_t y = static_cast<uint32_t>(low.y); y < static_cast<uint32_t>(high.y); ++y) {
+                    for (uint32_t x = static_cast<uint32_t>(low.x); x < static_cast<uint32_t>(high.x); ++x) {
+                        const uint8_t* pixel = InImage.At(x, y);
+                        if (pixel[1] > 80 && pixel[1] > pixel[0] * 2) {
+                            ++count;
+                            sum += glm::vec2(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f);
+                        }
+                    }
+                }
+                OutCenter = count > 0 ? sum / static_cast<float>(count) : glm::vec2(0.0f);
+                return count;
             }
         };
 
@@ -636,6 +774,205 @@ namespace Leon {
             }
             CHECK(bAnyBlue);
             CHECK(worst <= 1);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FProbeRoomFixture, "A mirror in a room with a reflection probe shows the room, each thing where it is") {
+            REQUIRE(bReady);
+            FWorldRenderer* renderer = World->GetWorldRenderer();
+            // Things a capture must not hold: a lamp that gameplay moves, right at the wall the mirror
+            // faces, and a glowing crate that is not part of the level.
+            AActor* lamp = World->SpawnActor<AActor>("Flashlight");
+            lamp->SetActorLocation(Center + glm::vec3(0.0f, 0.0f, 2.5f));
+            FPointLight point;
+            point.Color = {0.0f, 1.0f, 0.0f};
+            point.Intensity = 6.0f;
+            point.Radius = 2.0f; // reaches the wall, not the mirror
+            auto& lampLight = lamp->AddComponent<FPointLightComponent>(point);
+            lampLight.Mobility = ELightMobility::Movable;
+            AActor* crate = World->SpawnActor<AActor>("Crate");
+            crate->SetActorLocation(Center + glm::vec3(0.0f, 0.0f, 2.6f));
+            auto& crateMesh = crate->AddComponent<FMeshComponent>(FMeshPrimitives::CreateCube(0.6f));
+            crateMesh.MeshSize = 0.6f;
+            crateMesh.Mobility = EComponentMobility::Movable;
+            crate->AddComponent<FMaterialComponent>(Glow("Cyan", {0.0f, 1.0f, 1.0f}));
+
+            const FImage image = Render();
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 1);
+
+            // The middle of the mirror looks straight back at the magenta wall behind the camera: not
+            // the blue sky, not the crate in front of that wall, and without the flashlight's green.
+            const uint8_t* middle = image.At(kWidth / 2, kHeight / 2);
+            CAPTURE(static_cast<int>(middle[0]));
+            CAPTURE(static_cast<int>(middle[1]));
+            CAPTURE(static_cast<int>(middle[2]));
+            CHECK(middle[0] > 100);
+            CHECK(middle[2] > 100);
+            CHECK(middle[0] > middle[1] * 2);
+            CHECK(middle[2] > middle[1] * 2);
+
+            // The green square is seen where a real mirror would show it: on the line from the camera's
+            // mirror image to the square. A cube read without its box would put it some forty pixels away.
+            const float mirrorZ = Center.z - 0.95f;
+            const glm::vec3 imageOfCamera(Camera.GetPosition().x, Camera.GetPosition().y, 2.0f * mirrorZ - Camera.GetPosition().z);
+            const float along = (mirrorZ - imageOfCamera.z) / (Feature.z - imageOfCamera.z);
+            const glm::vec2 expected = PixelOf(imageOfCamera + (Feature - imageOfCamera) * along);
+            glm::vec2 found(0.0f);
+            const uint32_t sharpPixels = GreenPixels(image, found);
+            CAPTURE(expected.x);
+            CAPTURE(expected.y);
+            CAPTURE(found.x);
+            CAPTURE(found.y);
+            CHECK(sharpPixels > 40);
+            CHECK(glm::length(found - expected) < 4.0f);
+
+            // Nothing is captured again while nothing changes.
+            Render();
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 1);
+
+            // A rough plate reads the blurred levels of the cube: the square melts into the wall.
+            MirrorMaterial->SetRoughness(1.0f);
+            glm::vec2 unused(0.0f);
+            CHECK(GreenPixels(Render(), unused) == 0);
+            MirrorMaterial->SetRoughness(0.0f);
+
+            // A sun that belongs to the level shines down at the wall behind the camera, and the ceiling
+            // is in its way: the capture has the level's shadows, so the wall stays as it was.
+            renderer->GetShadowSettings().CascadeResolution = 512;
+            AActor* sun = World->SpawnActor<AActor>("Sun");
+            FDirectionalLight sunLight;
+            sunLight.Direction = {0.0f, -1.0f, 1.0f};
+            sunLight.Color = {1.0f, 1.0f, 1.0f};
+            sunLight.Intensity = 5.0f;
+            sun->AddComponent<FDirectionalLightComponent>(sunLight).Mobility = ELightMobility::Stationary;
+            renderer->InvalidateReflectionProbes();
+            const FImage withSun = Render();
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 2);
+            CHECK(withSun.At(kWidth / 2, kHeight / 2)[1] < middle[1] + 25);
+
+            // The lamp becomes part of the level too, with shadows of its own: now it is in the
+            // capture, and the wall behind the camera is no longer plain magenta.
+            lampLight.Mobility = ELightMobility::Stationary;
+            lampLight.bCastShadows = true;
+            renderer->InvalidateReflectionProbes();
+            const FImage withLamp = Render();
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 3);
+            CHECK(withLamp.At(kWidth / 2, kHeight / 2)[1] > middle[1] + 40);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FProbeRoomFixture, "Outside every reflection probe a surface reflects the sky, and between two it blends") {
+            REQUIRE(bReady);
+            ShowReflections();
+            // The same plate far from the room, under the open sky.
+            const glm::vec3 outside(60.0f, 1.5f, 0.0f);
+            AddMirror("OutsideMirror", outside);
+            LookAtMirror(outside);
+            const FImage open = Render();
+            const uint8_t* sky = open.At(kWidth / 2, kHeight / 2);
+            CAPTURE(static_cast<int>(sky[0]));
+            CAPTURE(static_cast<int>(sky[2]));
+            CHECK(sky[2] > 60);
+            CHECK(sky[2] > sky[0] * 2);
+
+            // Half a fade away from the room's box the probe and the sky share the reflection.
+            const glm::vec3 fringe = Center + glm::vec3(0.0f, 0.0f, 3.0f + 0.25f + 0.95f);
+            AddMirror("FringeMirror", fringe + glm::vec3(0.0f, 0.0f, 0.05f));
+            Camera.SetPosition(fringe + glm::vec3(0.0f, 0.0f, 3.0f));
+            const FImage fringeImage = Render();
+            const uint8_t* shared = fringeImage.At(kWidth / 2, kHeight / 2);
+            CAPTURE(static_cast<int>(shared[0]));
+            CAPTURE(static_cast<int>(shared[2]));
+            // Red comes only from the room, and there is less of it than inside.
+            LookAtMirror(Center);
+            const FImage insideImage = Render();
+            const uint8_t* inside = insideImage.At(kWidth / 2, kHeight / 2);
+            CAPTURE(static_cast<int>(inside[0]));
+            CHECK(shared[0] > sky[0] + 20);
+            CHECK(shared[0] < inside[0] - 20);
+            CHECK(inside[0] > inside[1] * 2);
+
+            // With probes off the plate in the room reflects the sky too, as before probes existed.
+            World->GetWorldRenderer()->SetReflectionProbesEnabled(false);
+            const FImage withoutProbes = Render();
+            const uint8_t* plain = withoutProbes.At(kWidth / 2, kHeight / 2);
+            CHECK(plain[2] > plain[0] * 2);
+            CHECK(NewValidationErrors() == 0);
+        }
+
+        TEST_CASE_FIXTURE(FProbeRoomFixture, "The capture of a reflection probe is kept on disk and used by the next run") {
+            REQUIRE(bReady);
+            namespace fs = std::filesystem;
+            const fs::path cache = fs::path("build") / "ReflectionProbeCacheTest";
+            std::error_code error;
+            fs::remove_all(cache, error);
+            const auto filesIn = [&cache]() {
+                std::error_code ignored;
+                size_t count = 0;
+                if (fs::exists(cache, ignored)) {
+                    for (const auto& entry : fs::directory_iterator(cache, ignored))
+                        count += entry.path().extension() == ".lprobecube" ? 1 : 0;
+                }
+                return count;
+            };
+
+            // Without a bake nothing identifies the level: captures are made but not kept.
+            FWorldRenderer* renderer = World->GetWorldRenderer();
+            renderer->SetReflectionProbeCacheDirectory(cache.string());
+            Render();
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 1);
+            CHECK(filesIn() == 0);
+
+            // A baked level has a hash; its captures go to disk under it.
+            auto& settings = World->FindActorByName("Environment")->AddComponent<FWorldSettingsComponent>();
+            settings.bStaticLighting = true;
+            settings.LightmapBakeHash = 0x1234ABCDull;
+            const FImage captured = Render();
+            CHECK(renderer->GetReflectionProbeCaptureCount() == 2);
+            CHECK(renderer->GetReflectionProbeCacheLoadCount() == 0);
+            CHECK(filesIn() == 1);
+
+            // "The next run": another renderer for the same world finds the file and captures nothing.
+            {
+                FWorldRenderer second(World.get());
+                second.SetImageBasedLightingEnabled(false);
+                second.SetDebugMode(kProbeReflectionView);
+                second.SetPlanarReflectionEnabled(false);
+                second.SetReflectionProbeResolution(64);
+                second.SetReflectionProbeCacheDirectory(cache.string());
+                second.OnViewportResize(kWidth, kHeight);
+                second.GetPostProcessSettings() = renderer->GetPostProcessSettings();
+                Renderer = &second;
+                const FImage loaded = Render();
+                CHECK(second.GetReflectionProbeCaptureCount() == 0);
+                CHECK(second.GetReflectionProbeCacheLoadCount() == 1);
+                // And what it loaded is what was captured: the mirror shows the same thing.
+                uint32_t different = 0;
+                for (uint32_t y = 0; y < kHeight; ++y) {
+                    for (uint32_t x = 0; x < kWidth; ++x) {
+                        for (uint32_t channel = 0; channel < 3; ++channel)
+                            different += std::abs(captured.At(x, y)[channel] - loaded.At(x, y)[channel]) > 3 ? 1 : 0;
+                    }
+                }
+                CHECK(different == 0);
+
+                // A probe that moves is another capture; the bake hash changing is another one again.
+                Probe->GetComponent<FReflectionProbeComponent>().CaptureOffset = {0.0f, 0.0f, 0.0f};
+                Render();
+                CHECK(second.GetReflectionProbeCaptureCount() == 1);
+                CHECK(filesIn() == 2);
+                settings.LightmapBakeHash = 0x5678ull;
+                Render();
+                CHECK(second.GetReflectionProbeCaptureCount() == 2);
+                CHECK(filesIn() == 3);
+                // A bake that is not trusted identifies nothing: captured, not kept.
+                World->SetLightmapsTrusted(false);
+                Render();
+                CHECK(second.GetReflectionProbeCaptureCount() == 3);
+                CHECK(filesIn() == 3);
+                Renderer = nullptr;
+            }
+            fs::remove_all(cache, error);
             CHECK(NewValidationErrors() == 0);
         }
 

@@ -260,6 +260,25 @@ namespace Leon {
     };
 
     /**
+     * A local reflection probe (AReflectionProbe, a ReflectionProbe: block in a map): a cube map of
+     * the static scene, captured from inside a room and read by the surfaces inside the box. The box
+     * is centred on the actor and axis-aligned; the actor's rotation and scale are not used.
+     */
+    struct FReflectionProbeComponent {
+        /** Half the size of the box, in metres: the room. */
+        glm::vec3 Extent{2.0f, 1.5f, 2.0f};
+        /** Where the cube is captured from, relative to the centre of the box. Keep it clear of furniture. */
+        glm::vec3 CaptureOffset{0.0f};
+        /** Scales what the probe reflects. */
+        float Intensity = 1.0f;
+        /** Metres outside the box over which the probe fades into its neighbour or the sky. */
+        float BlendDistance = 0.5f;
+
+        FReflectionProbeComponent() = default;
+        FReflectionProbeComponent(const FReflectionProbeComponent&) = default;
+    };
+
+    /**
      * @brief Unreal Engine aligned Camera component.
      */
     struct FCameraComponent {

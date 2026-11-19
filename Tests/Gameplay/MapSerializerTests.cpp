@@ -4,6 +4,7 @@
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/APlayerStart.hpp"
+#include "Gameplay/AReflectionProbe.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 
@@ -569,6 +570,60 @@ Actors:
             dst = UWorld::Create("LightsDst3");
             REQUIRE(FMapSerializer(dst).DeserializeText(spotOff));
             CHECK(spotCasts(dst));
+        }
+
+        TEST_CASE("a reflection probe keeps its class, its place and its block") {
+            auto src = UWorld::Create("Probed");
+            auto* probe = src->SpawnActor<AReflectionProbe>("Ward_Probe");
+            REQUIRE(probe != nullptr);
+            // The class brings the component, with its defaults.
+            REQUIRE(probe->HasComponent<FReflectionProbeComponent>());
+            probe->SetActorLocation({4.5f, 1.4f, -7.25f});
+            auto& settings = probe->GetComponent<FReflectionProbeComponent>();
+            settings.Extent = {3.5f, 1.4f, 2.25f};
+            settings.CaptureOffset = {0.5f, 0.25f, -0.75f};
+            settings.Intensity = 0.875f;
+            settings.BlendDistance = 0.375f;
+            src->SpawnActor<AActor>("Prop");
+
+            std::string text;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            CHECK(text.find("Class: \"AReflectionProbe\"") != std::string::npos);
+            CHECK(text.find("ReflectionProbe:") != std::string::npos);
+            CHECK(text.find("Extent: [3.5, 1.4, 2.25]") != std::string::npos);
+            // Only the probe has the block.
+            CHECK(text.find("ReflectionProbe:") == text.rfind("ReflectionProbe:"));
+
+            auto dst = UWorld::Create("ProbedDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(text));
+            AActor* restored = dst->FindActorByName("Ward_Probe");
+            REQUIRE(restored != nullptr);
+            CHECK(restored->GetClass() == "AReflectionProbe");
+            CHECK(dynamic_cast<AReflectionProbe*>(restored) != nullptr);
+            CHECK(restored->GetActorLocation() == glm::vec3(4.5f, 1.4f, -7.25f));
+            REQUIRE(restored->HasComponent<FReflectionProbeComponent>());
+            const auto& loaded = restored->GetComponent<FReflectionProbeComponent>();
+            CHECK(loaded.Extent == glm::vec3(3.5f, 1.4f, 2.25f));
+            CHECK(loaded.CaptureOffset == glm::vec3(0.5f, 0.25f, -0.75f));
+            CHECK(loaded.Intensity == 0.875f);
+            CHECK(loaded.BlendDistance == 0.375f);
+            CHECK_FALSE(dst->FindActorByName("Prop")->HasComponent<FReflectionProbeComponent>());
+
+            // A block written by hand with only the box: the rest keeps its defaults.
+            const std::string minimal = "Map: \"Minimal\"\nVersion: \"2.2\"\n\nActors:\n"
+                                        "  - Name: \"Probe\"\n    Class: \"AReflectionProbe\"\n"
+                                        "    Transform:\n      Translation: [1, 2, 3]\n"
+                                        "    ReflectionProbe:\n      Extent: [2, 1.4, 3]\n";
+            auto hand = UWorld::Create("ProbedByHand");
+            REQUIRE(FMapSerializer(hand).DeserializeText(minimal));
+            AActor* written = hand->FindActorByName("Probe");
+            REQUIRE(written != nullptr);
+            REQUIRE(written->HasComponent<FReflectionProbeComponent>());
+            CHECK(written->GetActorLocation() == glm::vec3(1.0f, 2.0f, 3.0f));
+            CHECK(written->GetComponent<FReflectionProbeComponent>().Extent == glm::vec3(2.0f, 1.4f, 3.0f));
+            CHECK(written->GetComponent<FReflectionProbeComponent>().CaptureOffset == glm::vec3(0.0f));
+            CHECK(written->GetComponent<FReflectionProbeComponent>().Intensity == 1.0f);
+            CHECK(written->GetComponent<FReflectionProbeComponent>().BlendDistance == 0.5f);
         }
 
         TEST_CASE("the post-process block is persisted for maps that have one, and only for them") {
