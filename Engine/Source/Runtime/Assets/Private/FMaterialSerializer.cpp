@@ -221,27 +221,38 @@ namespace Leon {
             } else if (key == "UVOffset") {
                 glm::vec3 v = MaterialUtils::ParseVec3(value, glm::vec3(0.0f, 0.0f, 0.0f));
                 OutMaterial.SetUVOffset(glm::vec2(v.x, v.y));
+            // The path is kept beside the texture: without a renderer (the baker, the tools) there is
+            // no texture object, and the path is all that says which image the material uses.
             } else if (key == "AlbedoMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetAlbedoMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(0, path);
             } else if (key == "NormalMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetNormalMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(1, path);
             } else if (key == "MetallicMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetMetallicMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(2, path);
             } else if (key == "RoughnessMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetRoughnessMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(4, path);
             } else if (key == "AOMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetAOMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(3, path);
             } else if (key == "ORMMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetORMMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(2, path);
+                OutMaterial.SetTexturePath(3, path);
+                OutMaterial.SetTexturePath(4, path);
             } else if (key == "EmissiveMap") {
                 std::string path = MaterialUtils::CleanValue(value);
                 OutMaterial.SetEmissiveMap(UAssetManager::GetTexture2D(path));
+                OutMaterial.SetTexturePath(5, path);
             } else if (key == "UsePlanarReflection") {
                 OutMaterial.SetUsePlanarReflection(MaterialUtils::ParseBool(value, false));
             }

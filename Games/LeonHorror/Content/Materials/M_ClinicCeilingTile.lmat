@@ -1,0 +1,19 @@
+# LeonEngine2 Material Asset File (.lmat)
+# Written by Games/LeonHorror/Art (leonart). Edit the script, not this file.
+Material:
+  Type: "PBR_Lit"
+  AlbedoColor: [1, 1, 1]
+  Metallic: 1
+  Roughness: 1
+  AO: 1
+  NormalScale: 1
+  OcclusionStrength: 1
+  AlphaMode: "Opaque"
+  AlphaCutoff: 0.5
+  DoubleSided: false
+  UVTiling: [1, 1]
+  UVOffset: [0, 0]
+  UsePlanarReflection: false
+  AlbedoMap: "/Game/Textures/T_ClinicCeilingTile_Color.ltex"
+  NormalMap: "/Game/Textures/T_ClinicCeilingTile_Normal.ltex"
+  ORMMap: "/Game/Textures/T_ClinicCeilingTile_ORM.ltex"

@@ -61,8 +61,13 @@ namespace Leon {
             if (InVirtualOrAbsolutePath.empty())
                 return false;
 
-            fs::path resolved = InVirtualOrAbsolutePath;
-            if (!resolved.is_absolute()) {
+            // A material names its textures as "/Game/Textures/...": that is not a place on disk until
+            // the asset manager says which. Left as it was, the texture was never found and every
+            // textured surface bounced plain white.
+            fs::path resolved = UAssetManager::ResolveVirtualPath(InVirtualOrAbsolutePath);
+            if (!fs::exists(resolved))
+                resolved = InVirtualOrAbsolutePath;
+            if (!resolved.is_absolute() && !fs::exists(resolved)) {
                 fs::path underContent = fs::path(UAssetManager::GetContentRoot()) / InVirtualOrAbsolutePath;
                 if (fs::exists(underContent))
                     resolved = underContent;
@@ -120,6 +125,18 @@ namespace Leon {
             if (InMatInst->GetParent()) {
                 const std::string& texPath = InMatInst->GetParent()->GetTexturePath(0);
                 LoadBakeAlbedoTexture(texPath, sample.AlbedoMap);
+
+                // With a metalness map the number in the material only scales it: a material written
+                // as "Metallic: 1" with a map that is mostly black is not a metal, and treating it as
+                // one made it bounce no light at all.
+                const std::string& metallicPath = InMatInst->GetParent()->GetTexturePath(2);
+                FBakeAlbedoTexture masks;
+                if (!metallicPath.empty() && LoadBakeAlbedoTexture(metallicPath, masks))
+                    sample.Metallic *= InMatInst->GetParent()->IsPackedORM() ? masks.Average.b : masks.Average.r;
+                const std::string& emissivePath = InMatInst->GetParent()->GetTexturePath(5);
+                FBakeAlbedoTexture glow;
+                if (!emissivePath.empty() && LoadBakeAlbedoTexture(emissivePath, glow))
+                    sample.Emissive *= glow.Average;
             }
             return sample;
         }
