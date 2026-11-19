@@ -34,6 +34,7 @@ namespace Leon {
                                          ELeonHorrorAnimProfile InProfile = ELeonHorrorAnimProfile::Player);
 
         void NativeInitializeAnimation() override;
+        void NativeUpdateAnimation(float InDeltaSeconds) override;
 
         /** Returns false when the clip for this action is not available. */
         bool PlayAction(ELeonHorrorAnimAction InAction);

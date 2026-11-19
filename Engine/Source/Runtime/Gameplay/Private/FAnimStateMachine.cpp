@@ -85,7 +85,10 @@ namespace Leon {
     }
 
     void FAnimStateMachine::Update(float InDeltaSeconds, const UAnimInstance& InInstance) {
-        StateTime += InDeltaSeconds;
+        float rate = 1.0f;
+        if (const FAnimState* state = FindState(CurrentState); state && !state->RateParam.empty())
+            rate = glm::clamp(InInstance.GetFloat(state->RateParam, 1.0f), 0.0f, 4.0f);
+        StateTime += InDeltaSeconds * rate;
         if (TransitionAlpha < 1.0f && TransitionBlendTime > 1e-4f) {
             TransitionAlpha = glm::clamp(TransitionAlpha + InDeltaSeconds / TransitionBlendTime, 0.0f, 1.0f);
             if (TransitionAlpha >= 1.0f)

@@ -79,6 +79,16 @@ namespace Leon {
         return blend;
     }
 
+    void ULeonHorrorAnimInstance::NativeUpdateAnimation(float InDeltaSeconds) {
+        // An enemy has one walk, authored for its walking speed. Chasing, it covers more ground a
+        // second with the same stride, so the stride has to come faster or the feet slide.
+        float rate = 1.0f;
+        if (Profile == ELeonHorrorAnimProfile::Enemy && EnemyClips.WalkSpeedCm > 1.0f)
+            rate = glm::clamp(GetFloat("Speed") / EnemyClips.WalkSpeedCm, 1.0f, 3.0f);
+        SetFloat("LocomotionRate", rate);
+        UAnimInstance::NativeUpdateAnimation(InDeltaSeconds);
+    }
+
     void ULeonHorrorAnimInstance::NativeInitializeAnimation() {
         if (!Skeleton || GraphSkeleton.get() == Skeleton.get())
             return;
@@ -102,6 +112,7 @@ namespace Leon {
         locomotion.Type = EAnimNodeType::BlendSpace;
         locomotion.BlendSpace = Locomotion;
         locomotion.bLoop = true;
+        locomotion.RateParam = "LocomotionRate";
         StateMachine.AddState(locomotion);
 
         FAnimState death;

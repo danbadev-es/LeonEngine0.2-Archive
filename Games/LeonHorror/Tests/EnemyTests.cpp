@@ -68,6 +68,37 @@ namespace Leon {
             CHECK(f.World->GetAIControllers().size() == 1);
         }
 
+        TEST_CASE("an enemy walks its clip at the pace it moves: the stride comes faster in a chase") {
+            FEnemyFixture f(10.0f);
+            auto* anim = f.Enemy->GetHorrorAnim();
+            REQUIRE(anim);
+            const float walk = anim->GetEnemyClips().WalkSpeedCm;
+            REQUIRE(walk > 1.0f);
+
+            // At walking pace, and slower, the clip plays as it was authored.
+            anim->SetFloat("Speed", walk * 0.5f);
+            anim->NativeUpdateAnimation(0.0f);
+            CHECK(anim->GetFloat("LocomotionRate") == doctest::Approx(1.0f));
+            anim->SetFloat("Speed", walk);
+            float before = anim->GetStateMachine().GetStateTime();
+            anim->NativeUpdateAnimation(0.5f);
+            CHECK(anim->GetStateMachine().GetStateTime() - before == doctest::Approx(0.5f));
+
+            // Twice as fast over the ground: twice the strides a second.
+            anim->SetFloat("Speed", walk * 2.0f);
+            before = anim->GetStateMachine().GetStateTime();
+            anim->NativeUpdateAnimation(0.5f);
+            CHECK(anim->GetFloat("LocomotionRate") == doctest::Approx(2.0f));
+            CHECK(anim->GetStateMachine().GetStateTime() - before == doctest::Approx(1.0f));
+
+            // The player's clips are picked by speed instead; they are never hurried.
+            auto* playerAnim = f.Player->GetHorrorAnim();
+            REQUIRE(playerAnim);
+            playerAnim->SetFloat("Speed", 5000.0f);
+            playerAnim->NativeUpdateAnimation(0.0f);
+            CHECK(playerAnim->GetFloat("LocomotionRate") == doctest::Approx(1.0f));
+        }
+
         TEST_CASE("the kinds of enemy differ in what matters, and every one of them can be built") {
             namespace fs = std::filesystem;
             const FLeonHorrorEnemyArchetype husk = LeonHorrorArchetypes::FindEnemy("Husk");

@@ -20,6 +20,12 @@ namespace Leon {
         TRef<UAnimSequence> Sequence;
         TRef<UBlendSpace> BlendSpace;
         bool bLoop = true;
+        /**
+         * Name of a float parameter of the instance that scales how fast this state plays (1 when
+         * empty or unset; held between 0 and 4). A walk played faster as its owner moves faster keeps
+         * the feet on the ground.
+         */
+        std::string RateParam;
     };
 
     /**
