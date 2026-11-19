@@ -42,6 +42,11 @@ namespace Leon {
         bEnabled = GetPropertyBool("Enabled", bEnabled);
     }
 
+    void ALeonHorrorAmbientSound::RestartMusic() {
+        if (bMusic)
+            Refresh();
+    }
+
     void ALeonHorrorAmbientSound::SetSound(const std::string& InPath, float InVolume, float InRadius) {
         Sound = InPath;
         Volume = InVolume;

@@ -59,6 +59,8 @@ namespace Leon {
         /** Seconds of stagger left after the last hit. */
         float GetStaggerRemaining() const { return StaggerRemaining; }
         void TickStagger(float DeltaSeconds);
+        /** A step is heard for every stride walked. */
+        void TickFootsteps();
 
         /** GUID of the spawner that created it; identifies it in a save. Empty when spawned from code. */
         const std::string& GetSpawnerGuid() const { return SpawnerGuid; }
@@ -91,6 +93,9 @@ namespace Leon {
         std::string MeshPath = "/Game/SkeletalMeshes/YBot.lskeletalmesh";
         uint32_t VoiceCounter = 0;
         float StaggerRemaining = 0.0f;
+        glm::vec3 LastStepLocation{0.0f};
+        float StepDistance = 0.0f;
+        bool bStepStarted = false;
         bool bDead = false;
     };
 

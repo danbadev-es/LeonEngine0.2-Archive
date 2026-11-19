@@ -119,6 +119,7 @@ namespace Leon {
         void UpdateBodyFacing(float DeltaSeconds);
         void UpdateFlashlight();
         void UpdateHeldItems();
+        void UpdateSounds(float DeltaSeconds);
         void HandleDeath(const FDamageInfo& InInfo);
 
         TRef<UHealthComponent> Health;
@@ -129,6 +130,12 @@ namespace Leon {
         TWeakObjectPtr<ALeonHorrorFlashlight> Flashlight;
         TWeakObjectPtr<ALeonHorrorHeldItem> HeldLight;
         TWeakObjectPtr<ALeonHorrorHeldItem> HeldWeapon;
+        // What the player is heard doing: strides, a heart when badly hurt, breath when spent.
+        glm::vec3 LastStepLocation{0.0f};
+        float StepDistance = 0.0f;
+        float HeartbeatTimer = 0.0f;
+        bool bStepStarted = false;
+        bool bWasExhausted = false;
         FLeonHorrorInputSampler Sampler;
         std::optional<FLeonHorrorInputState> InjectedInput;
 

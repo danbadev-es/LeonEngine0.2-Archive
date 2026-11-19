@@ -3,6 +3,8 @@
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorEnemy.hpp"
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
+#include "LeonHorror/ALeonHorrorPower.hpp"
+#include "LeonHorror/FLeonHorrorSound.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorCombatComponent.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
@@ -48,7 +50,46 @@ namespace Leon {
         }
         ElapsedPlaySeconds += DeltaSeconds;
         TickFlicker();
+        TickMusic(DeltaSeconds);
         TickSmokeRun();
+    }
+
+    void ALeonHorrorGameMode::TickMusic(float DeltaSeconds) {
+        if (!World)
+            return;
+        bool bHunted = false;
+        const ALeonHorrorCharacter* player = GetPlayerCharacter();
+        if (player && !player->IsDead() && !bSliceCompleted) {
+            for (const auto& actor : World->GetAllActors()) {
+                const auto* enemy = dynamic_cast<const ALeonHorrorEnemy*>(actor.get());
+                const auto* brain = enemy && !enemy->IsDead() ? dynamic_cast<const ALeonHorrorEnemyController*>(enemy->GetController()) : nullptr;
+                if (brain && (brain->GetState() == ELeonHorrorEnemyState::Chase || brain->GetState() == ELeonHorrorEnemyState::Attack)) {
+                    bHunted = true;
+                    break;
+                }
+            }
+        }
+        if (bHunted) {
+            CalmSeconds = 0.0f;
+            if (!bChaseMusic) {
+                bChaseMusic = true;
+                LeonHorrorSound::Play("STG_Enemy_Spotted", 0.9f);
+                LeonHorrorSound::Music("MUS_Chase", 0.7f);
+            }
+            return;
+        }
+        if (!bChaseMusic)
+            return;
+        // Not at once: an enemy that loses sight for a moment is still a chase.
+        CalmSeconds += DeltaSeconds;
+        if (CalmSeconds < 5.0f)
+            return;
+        bChaseMusic = false;
+        UGameplayStatics::StopMusic();
+        for (const auto& actor : World->GetAllActors()) {
+            if (auto* ambient = dynamic_cast<ALeonHorrorAmbientSound*>(actor.get()))
+                ambient->RestartMusic();
+        }
     }
 
     ALeonHorrorCharacter* ALeonHorrorGameMode::GetPlayerCharacter() const {
@@ -135,6 +176,9 @@ namespace Leon {
             return false;
         if (health->GetHealth() >= health->GetMaxHealth())
             return false; // do not waste one at full health
+        const bool bHadOne = inventory->HasItem(LeonHorrorItems::Medkit);
+        if (bHadOne)
+            LeonHorrorSound::Play("SFX_Medkit", 0.8f);
         if (!inventory->RemoveItem(LeonHorrorItems::Medkit))
             return false;
         health->Heal(MedkitHealAmount);
@@ -307,6 +351,7 @@ namespace Leon {
 
     void ALeonHorrorGameMode::NotifySliceCompleted() {
         bSliceCompleted = true;
+        LeonHorrorSound::Play("STG_Completed", 0.9f);
         RefreshPause();
         LE_CORE_INFO("LeonHorror: slice completed.");
     }

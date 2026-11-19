@@ -109,6 +109,8 @@ namespace Leon {
 
         void NotifySliceCompleted();
         bool IsSliceCompleted() const { return bSliceCompleted; }
+        /** Something is after the player and the chase track is on. */
+        bool IsChaseMusicPlaying() const { return bChaseMusic; }
 
         // --- Screens. The world is paused while a note, the inventory, the pause menu or the end
         //     screen is up; death keeps running so the fall plays out. ---
@@ -127,10 +129,14 @@ namespace Leon {
 
     private:
         void TickSmokeRun();
+        void TickMusic(float DeltaSeconds);
 
         float ElapsedPlaySeconds = 0.0f;
         bool bSmokeRunFinished = false;
         bool bSmokeRunEquipped = false;
+        /** The chase track is playing; it gives way to the level's own music once nothing hunts for a while. */
+        bool bChaseMusic = false;
+        float CalmSeconds = 0.0f;
         bool bPlayerDied = false;
 
         std::set<std::string> CollectedPickups;

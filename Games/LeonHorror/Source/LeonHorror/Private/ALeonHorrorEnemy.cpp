@@ -3,6 +3,7 @@
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 #include "LeonHorror/FLeonHorrorArchetypes.hpp"
+#include "LeonHorror/FLeonHorrorSound.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 
 #include "AI/UAIPerceptionComponent.hpp"
@@ -118,6 +119,22 @@ namespace Leon {
     void ALeonHorrorEnemy::TickStagger(float DeltaSeconds) {
         if (StaggerRemaining > 0.0f)
             StaggerRemaining = std::max(0.0f, StaggerRemaining - DeltaSeconds);
+    }
+
+    void ALeonHorrorEnemy::TickFootsteps() {
+        const glm::vec3 location = GetActorLocation();
+        const float moved = glm::length(Planar(location - LastStepLocation));
+        LastStepLocation = location;
+        // The first tick, and anything that is not walking (a spawn, a ragdoll flung away), is not a stride.
+        if (!bStepStarted || bDead || moved > 0.5f) {
+            bStepStarted = true;
+            return;
+        }
+        StepDistance += moved;
+        if (StepDistance < 0.85f)
+            return;
+        StepDistance = 0.0f;
+        LeonHorrorSound::PlayAt(LeonHorrorSound::Variation("SFX_EnemyStep", 4), location, 0.55f, 14.0f);
     }
 
     void ALeonHorrorEnemy::FaceDirection(const glm::vec3& InDirection) {
@@ -340,6 +357,7 @@ namespace Leon {
             AttackCooldownRemaining = std::max(0.0f, AttackCooldownRemaining - DeltaSeconds);
 
         enemy->TickStagger(DeltaSeconds);
+        enemy->TickFootsteps();
         if (enemy->GetStaggerRemaining() > 0.0f) {
             // A hit interrupts whatever it was doing, including a lunge that had not landed yet.
             State = ELeonHorrorEnemyState::Staggered;

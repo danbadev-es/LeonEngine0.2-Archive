@@ -34,6 +34,9 @@ namespace Leon {
 
         void SetSound(const std::string& InPath, float InVolume = 1.0f, float InRadius = 10.0f);
         const std::string& GetSound() const { return Sound; }
+        bool IsMusic() const { return bMusic; }
+        /** Starts the track again if this is the level's music (something else has been playing over it). */
+        void RestartMusic();
         /** Starts or stops it; a sound that is off costs nothing. */
         void SetEnabled(bool bInEnabled);
         bool IsEnabled() const { return bEnabled; }

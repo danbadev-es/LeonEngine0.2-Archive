@@ -1,5 +1,7 @@
 #include "LeonHorror/ULeonHorrorCombatComponent.hpp"
 
+#include "LeonHorror/FLeonHorrorSound.hpp"
+
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
@@ -95,6 +97,7 @@ namespace Leon {
         if (Equipped == ELeonHorrorWeapon::Pipe) {
             SwingRemaining = Tuning.MeleeWindup;
             Cooldown = Tuning.MeleeCooldown;
+            LeonHorrorSound::Play("SFX_Pipe_Swing", 0.7f);
             if (auto* anim = player->GetHorrorAnim())
                 anim->PlayAction(ELeonHorrorAnimAction::MeleeSwing);
             return true;
@@ -106,8 +109,7 @@ namespace Leon {
             if (LoadedRounds <= 0) {
                 ++DryFires;
                 Cooldown = 0.25f;
-                if (CanPresent())
-                    UGameplayStatics::PlaySound2D("/Game/Audio/SFX_EmptyClick", 0.8f);
+                LeonHorrorSound::Play("SFX_Pistol_Empty", 0.8f);
                 return false;
             }
             FirePistol();
@@ -156,8 +158,8 @@ namespace Leon {
         if (auto* anim = player->GetHorrorAnim())
             anim->PlayAction(ELeonHorrorAnimAction::PistolFire);
 
+        LeonHorrorSound::Play("SFX_Pistol_Fire", 0.9f);
         if (CanPresent()) {
-            UGameplayStatics::PlaySound2D("/Game/Audio/SFX_RifleFire", 0.9f);
             FParticleEmitterSettings tracer;
             tracer.Kind = EParticleKind::Beam;
             tracer.Lifetime = 0.05f;
@@ -222,8 +224,16 @@ namespace Leon {
         }
 
         UAIPerceptionComponent::ReportNoiseEvent(*world, origin, Tuning.MeleeNoiseRadius, player);
-        if (CanPresent() && LastHitActor)
-            UGameplayStatics::PlaySoundAtLocation("/Game/Audio/SFX_HitConfirm", origin + forward, 0.9f, 20.0f);
+        if (LastHitActor) {
+            LeonHorrorSound::PlayAt("SFX_Pipe_Hit_Flesh", LastHitActor->GetActorLocation(), 0.9f, 20.0f);
+        } else {
+            // Nothing alive in the arc: the pipe rings off whatever solid thing is in front, if anything is.
+            FHitResult wall;
+            const glm::vec3 eye = player->GetPawnViewLocation();
+            if (world->LineTraceSingleByChannel(eye, eye + forward * (Tuning.MeleeRange * 0.75f), ECollisionChannel::WorldStatic,
+                                                player, wall))
+                LeonHorrorSound::PlayAt("SFX_Pipe_Hit_Wall", wall.ImpactPoint, 0.8f, 20.0f);
+        }
     }
 
     bool ULeonHorrorCombatComponent::StartReload() {
@@ -232,8 +242,7 @@ namespace Leon {
         if (LoadedRounds >= Tuning.PistolClipSize || GetSpareRounds() <= 0)
             return false;
         ReloadRemaining = Tuning.PistolReloadSeconds;
-        if (CanPresent())
-            UGameplayStatics::PlaySound2D("/Game/Audio/SFX_RifleReload", 0.8f);
+        LeonHorrorSound::Play("SFX_Pistol_Reload", 0.8f);
         return true;
     }
 

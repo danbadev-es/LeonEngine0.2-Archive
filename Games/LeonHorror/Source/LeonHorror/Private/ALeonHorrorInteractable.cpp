@@ -2,6 +2,7 @@
 
 #include "LeonHorror/ALeonHorrorCharacter.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
+#include "LeonHorror/FLeonHorrorSound.hpp"
 #include "LeonHorror/ULeonHorrorInventoryComponent.hpp"
 
 #include "AI/UNavigationSystem.hpp"
@@ -90,6 +91,9 @@ namespace Leon {
         if (!inventory || ItemId.empty())
             return false;
         inventory->AddItem(ItemId, ItemCount);
+        const bool bKey = ItemId.rfind("Key.", 0) == 0;
+        const bool bAmmo = ItemId.rfind("Ammo.", 0) == 0;
+        LeonHorrorSound::Play(bKey ? "SFX_Pickup_Key" : bAmmo ? "SFX_Pickup_Ammo" : "SFX_Pickup_Item", 0.8f);
         if (auto* gameMode = GameModeOf(*this))
             gameMode->NotifyPickupCollected(*this);
         Destroy(); // items do not respawn
@@ -372,6 +376,7 @@ namespace Leon {
         if (!gameMode)
             return false;
         gameMode->ShowNote(*this);
+        LeonHorrorSound::Play("SFX_Paper", 0.8f);
         return true;
     }
 
@@ -424,7 +429,10 @@ namespace Leon {
     bool ALeonHorrorSavePoint::Interact(APawn& InInstigator) {
         auto* gameMode = GameModeOf(*this);
         auto* player = Cast<ALeonHorrorCharacter>(&InInstigator);
-        return gameMode && player && gameMode->RequestSave(*player);
+        if (!gameMode || !player || !gameMode->RequestSave(*player))
+            return false;
+        LeonHorrorSound::Play("SFX_Save", 0.8f);
+        return true;
     }
 
     // ---------------------------------------------------------------------------------------------

@@ -6,6 +6,7 @@
 
 #include "LeonHorror/ALeonHorrorFlashlight.hpp"
 #include "LeonHorror/ALeonHorrorHeldItem.hpp"
+#include "LeonHorror/FLeonHorrorSound.hpp"
 #include "LeonHorror/ALeonHorrorGameMode.hpp"
 #include "LeonHorror/ALeonHorrorInteractable.hpp"
 #include "LeonHorror/ULeonHorrorAnimInstance.hpp"
@@ -92,6 +93,10 @@ namespace Leon {
 
         if (Health) {
             Health->OnDeath.Add([this](const FDamageInfo& InInfo) { HandleDeath(InInfo); });
+            Health->OnDamage.Add([this](const FDamageInfo&) {
+                if (!bDead)
+                    LeonHorrorSound::Play(LeonHorrorSound::Variation("SFX_Player_Hurt", 3), 0.9f);
+            });
         }
 
         if (World && !Flashlight.IsValid()) {
@@ -160,8 +165,10 @@ namespace Leon {
         }
 
         if (InState.bFlashlightPressed) {
-            if (ALeonHorrorFlashlight* light = Flashlight.Get())
+            if (ALeonHorrorFlashlight* light = Flashlight.Get()) {
                 light->Toggle();
+                LeonHorrorSound::Play(light->IsOn() ? "SFX_Flashlight_On" : "SFX_Flashlight_Off", 0.7f);
+            }
         }
 
         WishDirection = glm::vec3(0.0f);
@@ -245,6 +252,7 @@ namespace Leon {
         UpdateCameraRig(DeltaSeconds);
         UpdateFlashlight();
         UpdateHeldItems();
+        UpdateSounds(DeltaSeconds);
         Focused = bDead ? nullptr : FindInteractable();
         if (Anim)
             Anim->SetAiming(bAiming && !bDead);
@@ -290,6 +298,45 @@ namespace Leon {
         if (!light)
             return;
         light->UpdateFromView(GetPawnViewLocation(), GetControlLookDirection());
+    }
+
+    void ALeonHorrorCharacter::UpdateSounds(float DeltaSeconds) {
+        const glm::vec3 location = GetActorLocation();
+        glm::vec3 step = location - LastStepLocation;
+        step.y = 0.0f;
+        const float moved = glm::length(step);
+        LastStepLocation = location;
+        if (bDead)
+            return;
+
+        // A stride at a time; being placed somewhere (a spawn, a loaded save) is not walking.
+        if (bStepStarted && moved < 0.5f) {
+            StepDistance += moved;
+            const float stride = bSprinting ? 1.1f : 0.8f;
+            if (StepDistance >= stride && World) {
+                StepDistance = 0.0f;
+                const glm::vec3 feet = location - glm::vec3(0.0f, GetCapsuleHalfHeight(), 0.0f);
+                const std::string surface = LeonHorrorSound::StepSurface(*World, feet, this);
+                LeonHorrorSound::PlayAt(LeonHorrorSound::Variation(surface, 6), feet, bSprinting ? 0.6f : 0.38f, 12.0f);
+            }
+        }
+        bStepStarted = true;
+
+        if (bExhausted && !bWasExhausted)
+            LeonHorrorSound::Play("SFX_Breath_Tired", 0.7f);
+        bWasExhausted = bExhausted;
+
+        // Under a third of a life the heart is heard, faster the less there is left.
+        const float fraction = Health && Health->GetMaxHealth() > 0.0f ? Health->GetHealth() / Health->GetMaxHealth() : 1.0f;
+        if (fraction < 0.34f) {
+            HeartbeatTimer -= DeltaSeconds;
+            if (HeartbeatTimer <= 0.0f) {
+                HeartbeatTimer = 0.65f + fraction * 1.2f;
+                LeonHorrorSound::Play("SFX_Heartbeat", 0.75f);
+            }
+        } else {
+            HeartbeatTimer = 0.0f;
+        }
     }
 
     void ALeonHorrorCharacter::UpdateHeldItems() {
@@ -394,6 +441,8 @@ namespace Leon {
         bDead = true;
         bSprinting = false;
         bAiming = false;
+        LeonHorrorSound::Play("SFX_Player_Death", 0.9f);
+        LeonHorrorSound::Play("STG_Death", 0.8f);
         if (auto movement = GetCharacterMovement()) {
             movement->StopMovementImmediately();
             movement->SetMovementMode(EMovementMode::None);
