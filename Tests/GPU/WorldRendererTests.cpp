@@ -461,6 +461,59 @@ namespace Leon {
             CHECK(NewValidationErrors() == 0);
         }
 
+        TEST_CASE_FIXTURE(FWorldRenderFixture, "The post-process settings of the map are applied, and a neutral map changes nothing") {
+            REQUIRE(bReady);
+            FWorldRenderer* renderer = World->GetWorldRenderer();
+            const FImage plain = Render();
+
+            // A map that has the block but says nothing in it: the same picture, bit for bit.
+            AActor* environment = World->SpawnActor<AActor>("Environment");
+            auto& mapPost = environment->AddComponent<FPostProcessComponent>();
+            const FImage neutral = Render();
+            CHECK(neutral.Pixels == plain.Pixels);
+
+            // The red box in the middle of the picture, in black and white.
+            mapPost.Look.Saturation = 0.0f;
+            const FImage grey = Render();
+            const uint8_t* box = grey.At(kWidth / 2, kHeight / 2);
+            CHECK(std::abs(static_cast<int>(box[0]) - static_cast<int>(box[1])) <= 2);
+            CHECK(std::abs(static_cast<int>(box[1]) - static_cast<int>(box[2])) <= 2);
+            CHECK(plain.At(kWidth / 2, kHeight / 2)[0] > plain.At(kWidth / 2, kHeight / 2)[1] * 2);
+            mapPost.Look.Saturation = 1.0f;
+
+            // Its exposure replaces the one of the sky, and the tools see the value in use.
+            mapPost.bOverrideExposure = true;
+            mapPost.Exposure = 0.25f;
+            const FImage dim = Render();
+            CHECK(dim.Luma(kWidth / 2, kHeight - 20) < plain.Luma(kWidth / 2, kHeight - 20) * 0.8f);
+            CHECK(renderer->GetPostProcessSettings().Exposure == 0.25f);
+            mapPost.bOverrideExposure = false;
+
+            // Vignette and grain reach the final image: dark corners, and a still pattern that repeats.
+            mapPost.Look.VignetteIntensity = 1.0f;
+            mapPost.Look.VignetteRadius = 0.2f;
+            mapPost.Look.VignetteSoftness = 0.3f;
+            const FImage vignetted = Render();
+            CHECK(vignetted.Luma(2, kHeight - 3) < 0.02f);
+            CHECK(plain.Luma(2, kHeight - 3) > 0.1f);
+            CHECK(vignetted.Luma(kWidth / 2, kHeight / 2) == plain.Luma(kWidth / 2, kHeight / 2));
+            mapPost.Look.VignetteIntensity = 0.0f;
+
+            mapPost.Look.FilmGrainIntensity = 0.2f;
+            mapPost.Look.bFilmGrainAnimated = false;
+            const FImage grain = Render();
+            CHECK(grain.Pixels != plain.Pixels);
+            CHECK(Render().Pixels == grain.Pixels);
+            mapPost.Look.bFilmGrainAnimated = true;
+            CHECK(Render().Pixels != Render().Pixels);
+
+            // The settings of the renderer are not written over by the map, and come back with it gone.
+            CHECK(renderer->GetPostProcessSettings().Look.FilmGrainIntensity == 0.0f);
+            environment->RemoveComponent<FPostProcessComponent>();
+            CHECK(Render().Pixels == plain.Pixels);
+            CHECK(NewValidationErrors() == 0);
+        }
+
         TEST_CASE_FIXTURE(FWorldRenderFixture, "Each post-process effect can be switched off") {
             REQUIRE(bReady);
             FPostProcessSettings& post = World->GetWorldRenderer()->GetPostProcessSettings();

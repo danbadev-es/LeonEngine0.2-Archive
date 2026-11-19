@@ -1,5 +1,6 @@
 #include "Renderer/FPostProcessRHI.hpp"
 
+#include "RenderCore/FPostProcessConstants.hpp"
 #include "RenderCore/FShaderConstants.hpp"
 #include "RenderCore/FShaderLibrary.hpp"
 
@@ -214,10 +215,10 @@ namespace Leon {
         }
 
         // --- Tone mapping: HDR to display colours, luma in alpha for the next pass ---
+        // The look of the map goes on here too (chromatic aberration, grading, vignette), except the
+        // film grain: anti-aliasing would take grain for edges and smear it, so it is added after.
         {
-            FToneMappingConstants constants;
-            constants.ToneParams = glm::vec4(InInputs.Exposure, InSettings.BloomIntensity, InSettings.Gamma, 0.0f);
-            constants.ToneFlags = glm::ivec4(InSettings.ToneMapper, bBloom ? 1 : 0, InSettings.DebugMode, 0);
+            const FToneMappingConstants constants = MakeToneMappingConstants(InSettings, InInputs.Exposure, bBloom);
             setInput(0, scene);
             setInput(1, bBloom ? BloomUp[0].get() : nullptr);
             draw(*ToneMapped, GetPipeline(*device, "ToneMapping.hlsl", "PSMain", ERHIFormat::RGBA8_UNorm), &constants,
@@ -225,11 +226,11 @@ namespace Leon {
             setInput(1, nullptr);
         }
 
-        // --- Anti-aliasing, straight into the output ---
+        // --- Anti-aliasing and film grain, straight into the output ---
         {
             const bool bFXAA = InSettings.bEnabled && InSettings.bFXAAEnabled && InSettings.DebugMode != 4;
-            FFXAAConstants constants;
-            constants.FXAAParams = glm::vec4(TexelSizeOf(*ToneMapped), bFXAA ? 1.0f : 0.0f, 0.0f);
+            const FFXAAConstants constants = MakeFXAAConstants(InSettings, TexelSizeOf(*ToneMapped), bFXAA, FrameIndex);
+            ++FrameIndex;
             setInput(0, ToneMapped.get());
             draw(output, GetPipeline(*device, "FXAA.hlsl", "PSMain", output.GetDesc().Format), &constants,
                  sizeof(constants), "FXAA");

@@ -571,6 +571,110 @@ Actors:
             CHECK(spotCasts(dst));
         }
 
+        TEST_CASE("the post-process block is persisted for maps that have one, and only for them") {
+            const auto findPost = [](const TRef<UWorld>& InWorld) -> const FPostProcessComponent* {
+                for (const auto& actor : InWorld->GetAllActors()) {
+                    if (actor && actor->HasComponent<FPostProcessComponent>())
+                        return &actor->GetComponent<FPostProcessComponent>();
+                }
+                return nullptr;
+            };
+
+            auto src = UWorld::Create("Graded");
+            AActor* env = src->SpawnActor<AActor>("Environment");
+            env->AddComponent<FSkyboxComponent>();
+            src->SpawnActor<AActor>("Prop");
+
+            // No component, no block; and a map without the block loads without the component.
+            std::string plain;
+            REQUIRE(FMapSerializer(src).SerializeText(plain));
+            CHECK(plain.find("PostProcess") == std::string::npos);
+            auto plainDst = UWorld::Create("GradedPlain");
+            REQUIRE(FMapSerializer(plainDst).DeserializeText(plain));
+            CHECK(findPost(plainDst) == nullptr);
+
+            auto& post = env->AddComponent<FPostProcessComponent>();
+            post.ToneMapper = 3;
+            post.BloomIntensity = 0.125f;
+            post.BloomThreshold = 1.75f;
+            post.Look.VignetteIntensity = 0.375f;
+            post.Look.VignetteRadius = 0.25f;
+            post.Look.VignetteSoftness = 0.625f;
+            post.Look.FilmGrainIntensity = 0.0625f;
+            post.Look.bFilmGrainAnimated = false;
+            post.Look.FilmGrainSeed = 42;
+            post.Look.Lift = {0.01f, 0.02f, 0.03f};
+            post.Look.Gamma = {0.9f, 1.0f, 1.1f};
+            post.Look.Gain = {1.05f, 1.0f, 0.95f};
+            post.Look.Contrast = 1.125f;
+            post.Look.Saturation = 0.75f;
+            post.Look.ChromaticAberration = 0.004f;
+
+            std::string text;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            CHECK(text.find("PostProcess:") != std::string::npos);
+            CHECK(text.find("ToneMapper: Uncharted2") != std::string::npos);
+            // The exposure of the sky applies until the map overrides it.
+            CHECK(text.find("Exposure: ") == text.rfind("Exposure: "));
+            auto dst = UWorld::Create("GradedDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(text));
+            const FPostProcessComponent* restored = findPost(dst);
+            REQUIRE(restored);
+            CHECK(restored->ToneMapper == 3);
+            CHECK_FALSE(restored->bOverrideExposure);
+            CHECK(restored->BloomIntensity == 0.125f);
+            CHECK(restored->BloomThreshold == 1.75f);
+            CHECK(restored->Look.VignetteIntensity == 0.375f);
+            CHECK(restored->Look.VignetteRadius == 0.25f);
+            CHECK(restored->Look.VignetteSoftness == 0.625f);
+            CHECK(restored->Look.FilmGrainIntensity == 0.0625f);
+            CHECK_FALSE(restored->Look.bFilmGrainAnimated);
+            CHECK(restored->Look.FilmGrainSeed == 42);
+            CHECK(restored->Look.Lift == glm::vec3(0.01f, 0.02f, 0.03f));
+            CHECK(restored->Look.Gamma == glm::vec3(0.9f, 1.0f, 1.1f));
+            CHECK(restored->Look.Gain == glm::vec3(1.05f, 1.0f, 0.95f));
+            CHECK(restored->Look.Contrast == 1.125f);
+            CHECK(restored->Look.Saturation == 0.75f);
+            CHECK(restored->Look.ChromaticAberration == 0.004f);
+            // The sky next to it and the actors after it are read as before.
+            CHECK(dst->FindActorByName("Prop") != nullptr);
+            size_t skies = 0;
+            for (const auto& actor : dst->GetAllActors())
+                skies += actor && actor->HasComponent<FSkyboxComponent>() ? 1 : 0;
+            CHECK(skies == 1);
+            CHECK(CountNamed(*dst, "Environment") == 0); // it lives in the Environment block, not among the actors
+
+            post.bOverrideExposure = true;
+            post.Exposure = 0.625f;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            dst = UWorld::Create("GradedDst2");
+            REQUIRE(FMapSerializer(dst).DeserializeText(text));
+            restored = findPost(dst);
+            REQUIRE(restored);
+            CHECK(restored->bOverrideExposure);
+            CHECK(restored->Exposure == 0.625f);
+
+            // A hand-written block with one key: everything else stays neutral, with or without a sky.
+            const std::string handWritten = "Map:\n  Name: \"Hand\"\n\nEnvironment:\n  PostProcess:\n    Saturation: 0.5\n\nActors:\n";
+            dst = UWorld::Create("GradedDst3");
+            REQUIRE(FMapSerializer(dst).DeserializeText(handWritten));
+            restored = findPost(dst);
+            REQUIRE(restored);
+            CHECK(restored->Look.Saturation == 0.5f);
+            CHECK(restored->ToneMapper == 0);
+            CHECK(restored->BloomIntensity == FPostProcessSettings().BloomIntensity);
+            CHECK(restored->BloomThreshold == FPostProcessSettings().BloomThreshold);
+            CHECK(restored->Look.VignetteIntensity == 0.0f);
+            CHECK(restored->Look.Gain == glm::vec3(1.0f));
+        }
+
+        TEST_CASE("a malformed post-process value refuses the file") {
+            auto world = MakeOpenWorld();
+            const std::string text = "Map:\n  Name: \"Bad\"\n\nEnvironment:\n  PostProcess:\n    Contrast: high\n\nActors:\n";
+            CHECK_FALSE(FMapSerializer(world).DeserializeText(text));
+            CheckWorldUntouched(world);
+        }
+
         TEST_CASE("saving to disk is atomic and keeps a backup of the previous file") {
             namespace fs = std::filesystem;
             const std::string path = "build/atomic_save_test.lmap";

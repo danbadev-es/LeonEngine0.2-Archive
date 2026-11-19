@@ -15,6 +15,7 @@
 #include "RHI/IRHIDevice.hpp"
 #include "RHI/IRenderDriver.hpp"
 #include "RHID3D12/FD3D12RHI.hpp"
+#include "RenderCore/FPostProcessConstants.hpp"
 #include "RenderCore/FShaderConstants.hpp"
 #include "RenderCore/FShaderLibrary.hpp"
 
@@ -747,18 +748,21 @@ namespace Leon::TestGPU {
                 break;
             }
             case FTestShader::EKind::ToneMapping: {
-                FToneMappingConstants tone;
-                tone.ToneParams = glm::vec4(InShader.Float("u_Exposure", 1.0f), InShader.Float("u_BloomIntensity", 0.05f),
-                                            InShader.Float("u_Gamma", 2.2f), 0.0f);
-                tone.ToneFlags = glm::ivec4(InShader.Int("u_ToneMapper", 0), InShader.Int("u_UseBloom", 1),
-                                            InShader.Int("u_DebugMode", 0), 0);
+                // Packed by the function the renderer uses, from settings filled by name.
+                FPostProcessSettings settings = LookSettings(InShader);
+                settings.BloomIntensity = InShader.Float("u_BloomIntensity", 0.05f);
+                settings.Gamma = InShader.Float("u_Gamma", 2.2f);
+                settings.ToneMapper = InShader.Int("u_ToneMapper", 0);
+                const FToneMappingConstants tone = MakeToneMappingConstants(settings, InShader.Float("u_Exposure", 1.0f),
+                                                                            InShader.Int("u_UseBloom", 1) == 1);
                 InCommands.SetConstants(ERHIConstantSlot::Pass, &tone, sizeof(tone));
                 break;
             }
             case FTestShader::EKind::FXAA: {
-                FFXAAConstants fxaa;
-                fxaa.FXAAParams = glm::vec4(InShader.Vec2("u_InverseScreenSize", glm::vec2(1.0f)),
-                                            static_cast<float>(InShader.Int("u_FXAAEnabled", 1)), 0.0f);
+                const FFXAAConstants fxaa =
+                    MakeFXAAConstants(LookSettings(InShader), InShader.Vec2("u_InverseScreenSize", glm::vec2(1.0f)),
+                                      InShader.Int("u_FXAAEnabled", 1) == 1,
+                                      static_cast<uint32_t>(InShader.Int("u_FrameIndex", 0)));
                 InCommands.SetConstants(ERHIConstantSlot::Pass, &fxaa, sizeof(fxaa));
                 break;
             }
@@ -780,6 +784,26 @@ namespace Leon::TestGPU {
             case FTestShader::EKind::Unknown:
                 break;
             }
+        }
+
+        /** The look of the final image as a test set it by name; neutral where it set nothing. */
+        static FPostProcessSettings LookSettings(const FTestShader& InShader) {
+            FPostProcessSettings settings;
+            settings.DebugMode = InShader.Int("u_DebugMode", 0);
+            FPostProcessLook& look = settings.Look;
+            look.VignetteIntensity = InShader.Float("u_VignetteIntensity", look.VignetteIntensity);
+            look.VignetteRadius = InShader.Float("u_VignetteRadius", look.VignetteRadius);
+            look.VignetteSoftness = InShader.Float("u_VignetteSoftness", look.VignetteSoftness);
+            look.FilmGrainIntensity = InShader.Float("u_FilmGrainIntensity", look.FilmGrainIntensity);
+            look.bFilmGrainAnimated = InShader.Int("u_FilmGrainAnimated", 1) == 1;
+            look.FilmGrainSeed = static_cast<uint32_t>(InShader.Int("u_FilmGrainSeed", 0));
+            look.Lift = InShader.Vec3("u_Lift", look.Lift);
+            look.Gamma = InShader.Vec3("u_GradeGamma", look.Gamma);
+            look.Gain = InShader.Vec3("u_Gain", look.Gain);
+            look.Contrast = InShader.Float("u_Contrast", look.Contrast);
+            look.Saturation = InShader.Float("u_Saturation", look.Saturation);
+            look.ChromaticAberration = InShader.Float("u_ChromaticAberration", look.ChromaticAberration);
+            return settings;
         }
 
         void SetSurfaceConstants(IRHICommandList& InCommands, const FTestShader& InShader) {

@@ -1,12 +1,14 @@
 // FXAA 3.11 (quality preset): smooths jagged edges in the finished image.
 // Expects perceptual luma in the alpha channel, which the tone mapping pass writes.
+// The last pass of the image, so film grain is added here, on top of the smoothed result.
 
 #include "Common.hlsli"
 #include "Fullscreen.hlsli"
 
 // Mirrors FFXAAConstants in FPostProcessRHI.cpp.
 cbuffer PassConstants : register(b1) {
-    float4 u_FXAAParams; // xy = 1 / size of the image, z = 1 when enabled (0 copies the image)
+    float4 u_FXAAParams;  // xy = 1 / size of the image, z = 1 when enabled (0 copies the image)
+    float4 u_GrainParams; // x = film grain intensity (0 = off), y = seed (a whole number)
 };
 
 Texture2D<float4> t_Image : register(t0);
@@ -30,7 +32,23 @@ float LumaOffset(float2 InUV, int InX, int InY) {
     return t_Image.SampleLevel(s_LinearClamp, InUV + float2(float(InX), float(InY)) * u_FXAAParams.xy, 0.0).a;
 }
 
-float4 PSMain(FFullscreenOutput InPixel) : SV_Target {
+uint HashBits(uint InValue) {
+    uint value = InValue;
+    value ^= value >> 16;
+    value *= 0x7feb352du;
+    value ^= value >> 15;
+    value *= 0x846ca68bu;
+    value ^= value >> 16;
+    return value;
+}
+
+/** The same for a pixel and a seed on every machine, uniform in -0.5..0.5 with mean zero. */
+float GrainNoise(uint2 InPixel, uint InSeed) {
+    const uint bits = HashBits(InPixel.x + HashBits(InPixel.y + HashBits(InSeed)));
+    return (float(bits >> 8) + 0.5) / 16777216.0 - 0.5;
+}
+
+float4 AntiAlias(FFullscreenOutput InPixel) {
     const float2 uv = InPixel.TexCoord;
     const float2 inverseSize = u_FXAAParams.xy;
     const float4 center = t_Image.SampleLevel(s_LinearClamp, uv, 0.0);
@@ -138,4 +156,14 @@ float4 PSMain(FFullscreenOutput InPixel) : SV_Target {
     else
         finalUV.x += finalOffset * stepLength;
     return float4(t_Image.SampleLevel(s_LinearClamp, finalUV, 0.0).rgb, 1.0);
+}
+
+float4 PSMain(FFullscreenOutput InPixel) : SV_Target {
+    float4 color = AntiAlias(InPixel);
+    if (u_GrainParams.x > 0.0) {
+        // One value for the three channels: grain is a change of brightness, not of colour.
+        const float grain = GrainNoise(uint2(InPixel.Position.xy), uint(u_GrainParams.y));
+        color.rgb = saturate(color.rgb + grain * u_GrainParams.x);
+    }
+    return color;
 }

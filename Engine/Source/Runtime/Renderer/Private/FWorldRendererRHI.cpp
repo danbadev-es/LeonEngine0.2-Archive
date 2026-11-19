@@ -1408,12 +1408,27 @@ namespace Leon {
         post.SceneDepth = state.SceneDepth.get();
         post.Output = &InTarget;
         post.Projection = ClipDepthZeroToOne() * InCamera.GetProjectionMatrix();
-        post.Exposure = lighting.Exposure;
+        // What the map says about its own image goes over the settings of the renderer for this frame
+        // only: the settings themselves stay what the project and the tools made them.
+        FPostProcessSettings frameSettings = PostProcessSettings;
+        float exposure = lighting.Exposure;
+        const auto mapPostView = registry.view<FPostProcessComponent>();
+        if (mapPostView.begin() != mapPostView.end()) {
+            const FPostProcessComponent& mapPost = registry.get<FPostProcessComponent>(*mapPostView.begin());
+            frameSettings.ToneMapper = mapPost.ToneMapper;
+            frameSettings.BloomIntensity = mapPost.BloomIntensity;
+            frameSettings.BloomThreshold = mapPost.BloomThreshold;
+            frameSettings.Look = mapPost.Look;
+            if (mapPost.bOverrideExposure)
+                exposure = mapPost.Exposure;
+        }
+        post.Exposure = exposure;
+        frameSettings.Exposure = exposure;
         stageTimer.emplace(&FFrameProfiler::Working().PostProcessMs);
         gpuStage.emplace(InCommands, EGPUTimerSlot::PostProcess);
-        // Exposure is a property of the sky; the stored settings follow it so tools show the value in use.
-        PostProcessSettings.Exposure = lighting.Exposure;
-        state.PostProcess.Render(InCommands, post, PostProcessSettings);
+        // Exposure comes from the sky or the map; the stored settings follow it so tools show the value in use.
+        PostProcessSettings.Exposure = exposure;
+        state.PostProcess.Render(InCommands, post, frameSettings);
         stageTimer.reset();
         gpuStage.reset();
 

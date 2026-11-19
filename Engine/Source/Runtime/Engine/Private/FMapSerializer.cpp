@@ -137,6 +137,7 @@ namespace Leon {
         ss << "Environment:\n";
         const FWorldSettingsComponent* worldSettings = nullptr;
         const FSkyboxComponent* skyboxComp = nullptr;
+        const FPostProcessComponent* postProcess = nullptr;
         for (const auto& actorRef : World->GetAllActors()) {
             if (!actorRef)
                 continue;
@@ -144,6 +145,8 @@ namespace Leon {
                 worldSettings = &actorRef->GetComponent<FWorldSettingsComponent>();
             if (!skyboxComp && actorRef->HasComponent<FSkyboxComponent>())
                 skyboxComp = &actorRef->GetComponent<FSkyboxComponent>();
+            if (!postProcess && actorRef->HasComponent<FPostProcessComponent>())
+                postProcess = &actorRef->GetComponent<FPostProcessComponent>();
         }
         if (worldSettings) {
             WriteWorldSettings(ss, *worldSettings);
@@ -197,6 +200,42 @@ namespace Leon {
             Indent(ss, 2);
             ss << "Enabled: false\n";
         }
+        // Only maps that author their post-processing have the block; the others keep the renderer's own.
+        if (postProcess) {
+            const FPostProcessComponent& post = *postProcess;
+            const FPostProcessLook& look = post.Look;
+            const auto writeColor = [&ss](const char* InKey, const glm::vec3& InColor) {
+                Indent(ss, 2);
+                ss << InKey << ": [" << InColor.r << ", " << InColor.g << ", " << InColor.b << "]\n";
+            };
+            const auto writeNumber = [&ss](const char* InKey, float InValue) {
+                Indent(ss, 2);
+                ss << InKey << ": " << InValue << "\n";
+            };
+            Indent(ss, 1);
+            ss << "PostProcess:\n";
+            Indent(ss, 2);
+            ss << "ToneMapper: " << ToneMapperName(post.ToneMapper) << "\n";
+            // Without the key the exposure of the sky applies.
+            if (post.bOverrideExposure)
+                writeNumber("Exposure", post.Exposure);
+            writeNumber("BloomIntensity", post.BloomIntensity);
+            writeNumber("BloomThreshold", post.BloomThreshold);
+            writeNumber("VignetteIntensity", look.VignetteIntensity);
+            writeNumber("VignetteRadius", look.VignetteRadius);
+            writeNumber("VignetteSoftness", look.VignetteSoftness);
+            writeNumber("FilmGrainIntensity", look.FilmGrainIntensity);
+            Indent(ss, 2);
+            ss << "FilmGrainAnimated: " << (look.bFilmGrainAnimated ? "true" : "false") << "\n";
+            Indent(ss, 2);
+            ss << "FilmGrainSeed: " << look.FilmGrainSeed << "\n";
+            writeColor("Lift", look.Lift);
+            writeColor("Gamma", look.Gamma);
+            writeColor("Gain", look.Gain);
+            writeNumber("Contrast", look.Contrast);
+            writeNumber("Saturation", look.Saturation);
+            writeNumber("ChromaticAberration", look.ChromaticAberration);
+        }
 
         // 2. Actors Collection
         ss << "\nActors:\n";
@@ -206,7 +245,8 @@ namespace Leon {
                 continue;
             const AActor& entity = *actorRef;
 
-            if (entity.HasComponent<FSkyboxComponent>() || entity.HasComponent<FWorldSettingsComponent>()) {
+            if (entity.HasComponent<FSkyboxComponent>() || entity.HasComponent<FWorldSettingsComponent>() ||
+                entity.HasComponent<FPostProcessComponent>()) {
                 continue;
             }
             if (IsRuntimeFrameworkActor(entity)) {

@@ -165,7 +165,17 @@ namespace Leon {
             return StripQuotes(InValue, bEscapedStrings);
         };
 
-        enum class EParserSection { None, Map, OutlinerFolders, Environment, WorldSettings, Skybox, Actors, InActor };
+        enum class EParserSection {
+            None,
+            Map,
+            OutlinerFolders,
+            Environment,
+            WorldSettings,
+            Skybox,
+            PostProcess,
+            Actors,
+            InActor
+        };
         enum class EActorComponentSection {
             None,
             Transform,
@@ -190,6 +200,8 @@ namespace Leon {
         bool bHasSkybox = false;
         FWorldSettingsComponent worldSettings;
         bool bHasWorldSettings = false;
+        FPostProcessComponent postProcess;
+        bool bHasPostProcess = false;
         bool bLegacyBakeOnSkybox = false;
 
         std::vector<FActorDeserializationData> actors;
@@ -262,7 +274,59 @@ namespace Leon {
 
             // Parse Environment block
             if (currentSection == EParserSection::Environment || currentSection == EParserSection::Skybox ||
-                currentSection == EParserSection::WorldSettings) {
+                currentSection == EParserSection::WorldSettings || currentSection == EParserSection::PostProcess) {
+                if (trimmed == "PostProcess:") {
+                    currentSection = EParserSection::PostProcess;
+                    bHasPostProcess = true;
+                    continue;
+                }
+                if (currentSection == EParserSection::PostProcess && trimmed != "WorldSettings:" && trimmed != "Skybox:") {
+                    const size_t colon = trimmed.find(':');
+                    if (colon != std::string::npos) {
+                        const std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
+                        const std::string val = unquote(trimmed.substr(colon + 1));
+                        FPostProcessLook& look = postProcess.Look;
+                        const auto readColor = [&val](glm::vec3& OutColor) {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                OutColor = {v[0], v[1], v[2]};
+                        };
+                        if (key == "ToneMapper")
+                            postProcess.ToneMapper = ParseToneMapper(val);
+                        else if (key == "Exposure") {
+                            postProcess.Exposure = std::stof(val);
+                            postProcess.bOverrideExposure = true;
+                        } else if (key == "BloomIntensity")
+                            postProcess.BloomIntensity = std::stof(val);
+                        else if (key == "BloomThreshold")
+                            postProcess.BloomThreshold = std::stof(val);
+                        else if (key == "VignetteIntensity")
+                            look.VignetteIntensity = std::stof(val);
+                        else if (key == "VignetteRadius")
+                            look.VignetteRadius = std::stof(val);
+                        else if (key == "VignetteSoftness")
+                            look.VignetteSoftness = std::stof(val);
+                        else if (key == "FilmGrainIntensity")
+                            look.FilmGrainIntensity = std::stof(val);
+                        else if (key == "FilmGrainAnimated")
+                            look.bFilmGrainAnimated = (val == "true");
+                        else if (key == "FilmGrainSeed")
+                            look.FilmGrainSeed = static_cast<uint32_t>(std::stoul(val));
+                        else if (key == "Lift")
+                            readColor(look.Lift);
+                        else if (key == "Gamma")
+                            readColor(look.Gamma);
+                        else if (key == "Gain")
+                            readColor(look.Gain);
+                        else if (key == "Contrast")
+                            look.Contrast = std::stof(val);
+                        else if (key == "Saturation")
+                            look.Saturation = std::stof(val);
+                        else if (key == "ChromaticAberration")
+                            look.ChromaticAberration = std::stof(val);
+                    }
+                    continue;
+                }
                 if (trimmed == "WorldSettings:") {
                     currentSection = EParserSection::WorldSettings;
                     bHasWorldSettings = true;
@@ -777,12 +841,14 @@ namespace Leon {
         if (bLegacyBakeOnSkybox && !bHasWorldSettings)
             bHasWorldSettings = true;
 
-        if (bHasSkybox || bHasWorldSettings) {
+        if (bHasSkybox || bHasWorldSettings || bHasPostProcess) {
             AActor* envEntity = World->SpawnActor("Environment Skybox");
             if (bHasSkybox)
                 envEntity->AddComponent<FSkyboxComponent>(skybox);
             if (bHasWorldSettings)
                 envEntity->AddComponent<FWorldSettingsComponent>(worldSettings);
+            if (bHasPostProcess)
+                envEntity->AddComponent<FPostProcessComponent>(postProcess);
         }
 
         // Spawn actors

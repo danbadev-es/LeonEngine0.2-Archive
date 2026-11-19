@@ -25,8 +25,9 @@ namespace Leon {
     };
 
     /**
-     * Turns the HDR scene into the final image on the RHI: ambient occlusion, bloom, tone mapping and
-     * anti-aliasing, in that order. Owns the intermediate targets and recreates them when the output
+     * Turns the HDR scene into the final image on the RHI: ambient occlusion, bloom, tone mapping (with
+     * the look of the map: chromatic aberration, colour grading, vignette), anti-aliasing and film
+     * grain, in that order. Owns the intermediate targets and recreates them when the output
      * changes size.
      */
     class FPostProcessRHI {
@@ -63,6 +64,8 @@ namespace Leon {
         uint64_t ShaderGeneration = 0;
         glm::vec4 OcclusionKernel[16]{};
         bool bKernelBuilt = false;
+        /** Frames drawn so far: what animated film grain is seeded with. */
+        uint32_t FrameIndex = 0;
     };
 
 } // namespace Leon

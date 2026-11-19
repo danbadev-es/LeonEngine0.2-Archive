@@ -39,7 +39,7 @@ lights             the point and spot lights that get the shader's slots, by imp
 shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
 scene pass (HDR)   opaque → skinned outlines → sky → blended (back to front) → queued world-space batches
-post-processing    ambient occlusion → bloom → tone mapping → FXAA, into the output
+post-processing    ambient occlusion → bloom → tone mapping and the look of the map → FXAA → film grain, into the output
 ```
 
 2D drawing (`FUIRenderer`, `FDebugOverlay`, the editor's ImGui) goes on top of the output afterwards,
@@ -160,6 +160,44 @@ long corridor can lose to weaker ones around the camera; a light dropped from th
 at once rather than fading out; a spot light's shadow is lost where the occluder is close to the surface
 it shadows and both are several metres from the light (the map stores perspective depth from a near
 plane of 0.1 m, which leaves little precision out there, and the bias is larger than what is left).
+
+## The final image: the look of a map
+
+A map can say how its image is finished. The settings are an `FPostProcessComponent` on the Environment
+actor (`PostProcess:` in the map, next to `Skybox:`); the world renderer lays them over its own
+`FPostProcessSettings` for the frame, without changing those. A map without the block is drawn as
+before it existed: every part of the look is neutral by default and a neutral part is skipped by the
+shader, so the image is the same bit for bit. The look is not applied to the post-process debug views
+nor when post-processing is off.
+
+Where each part happens, and why there:
+
+- **Chromatic aberration, colour grading, vignette**: in the tone mapping pass (`ToneMapping.hlsl`).
+  Aberration reads red and blue of the HDR scene a little further from / nearer to the centre; grading
+  and the vignette work on the encoded colour, before the luma that anti-aliasing reads is written.
+- **Film grain**: at the end of the FXAA pass (`FXAA.hlsl`), after the anti-aliased colour is resolved.
+  Before it, FXAA would take grain for edges and smear it. The pass runs (as a copy) with FXAA off too.
+
+Map keys, all optional (`PostProcess:` under `Environment:`):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `ToneMapper` | `ACES` | `ACES`, `Reinhard`, `Clamp` or `Uncharted2` |
+| `Exposure` | not set | Replaces `Skybox.Exposure` when present |
+| `BloomIntensity`, `BloomThreshold` | 0.05, 1 | As in `FPostProcessSettings` |
+| `VignetteIntensity` | 0 (off) | How much the corners darken, 0..1 |
+| `VignetteRadius`, `VignetteSoftness` | 0.5, 0.5 | Where it starts and how far it takes to reach full strength; 0 = centre, 1 = corners |
+| `FilmGrainIntensity` | 0 (off) | Amplitude in display values; the noise is uniform, the same on the three channels, mean zero |
+| `FilmGrainAnimated`, `FilmGrainSeed` | `true`, 0 | Animated: the pattern is seeded with seed + frame number. Not animated: with the seed alone |
+| `Lift`, `Gamma`, `Gain` | `[0,0,0]`, `[1,1,1]`, `[1,1,1]` | `c = (Gain * (c + Lift * (1 - c))) ^ (1 / Gamma)`: lift moves black, gain moves white, gamma the middle |
+| `Contrast` | 1 | `c = (c - 0.5) * Contrast + 0.5`, after lift/gamma/gain |
+| `Saturation` | 1 | Mix between the pixel's grey (Rec. 709 weights) and its colour, after contrast; 0 = black and white |
+| `ChromaticAberration` | 0 (off) | Red is read at `uv + (uv - 0.5) * value`, blue at `uv - (uv - 0.5) * value`: zero in the centre |
+
+Limits: the project switches (`[/Script/Engine.RendererSettings]`: SSAO, bloom, FXAA) and the gamma stay
+with the project, not the map; grading is three numbers per control, not a lookup table; the grain is
+per pixel of the output, so it is finer at higher resolutions; aberration shifts the scene, not the
+bloom added to it. Nothing in the editor edits the block yet.
 
 ## Checking a change
 

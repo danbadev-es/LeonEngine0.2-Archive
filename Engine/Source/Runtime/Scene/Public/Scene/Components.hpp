@@ -10,6 +10,7 @@
 #include "Assets/FMaterial.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
+#include "RenderCore/FPostProcessSettings.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/FLODSettings.hpp"
 #include "Assets/USkeletalMesh.hpp"
@@ -67,6 +68,25 @@ namespace Leon {
 
         FWorldSettingsComponent() = default;
         FWorldSettingsComponent(const FWorldSettingsComponent&) = default;
+    };
+
+    /**
+     * Post-processing authored for one map (its PostProcess: block). Lives on the Environment actor,
+     * next to the sky and the world settings. A map without it is drawn with the renderer's own
+     * settings and the exposure of the sky.
+     */
+    struct FPostProcessComponent {
+        /** 0 = ACES, 1 = Reinhard, 2 = clamp, 3 = Uncharted 2 (see ToneMapperName). */
+        int ToneMapper = 0;
+        /** False: the exposure of the sky is used. */
+        bool bOverrideExposure = false;
+        float Exposure = 1.0f;
+        float BloomIntensity = 0.05f;
+        float BloomThreshold = 1.0f;
+        FPostProcessLook Look;
+
+        FPostProcessComponent() = default;
+        FPostProcessComponent(const FPostProcessComponent&) = default;
     };
 
     struct FTagComponent {

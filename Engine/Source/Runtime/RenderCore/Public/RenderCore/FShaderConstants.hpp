@@ -188,10 +188,15 @@ namespace Leon {
     struct FToneMappingConstants { // ToneMapping.hlsl
         glm::vec4 ToneParams{0.0f};
         glm::ivec4 ToneFlags{0};
+        glm::vec4 Vignette{0.0f};
+        glm::vec4 GradeLift{0.0f, 0.0f, 0.0f, 1.0f};
+        glm::vec4 GradeGamma{1.0f};
+        glm::vec4 GradeGain{1.0f};
     };
 
     struct FFXAAConstants { // FXAA.hlsl
         glm::vec4 FXAAParams{0.0f};
+        glm::vec4 GrainParams{0.0f};
     };
 
     struct FCanvasConstants { // Canvas.hlsl
