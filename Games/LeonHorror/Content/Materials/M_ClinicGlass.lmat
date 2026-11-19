@@ -1,0 +1,13 @@
+# LeonEngine2 Material Asset File (.lmat)
+# Written by Games/LeonHorror/Art (leonart). Edit the script, not this file.
+Material:
+  Type: "PBR_Lit"
+  AlbedoColor: [0.72, 0.78, 0.76]
+  Metallic: 0
+  Roughness: 0.08
+  AO: 1
+  EmissiveColor: [0, 0, 0]
+  EmissiveIntensity: 0
+  AlphaMode: "Blend"
+  Opacity: 0.28
+  DoubleSided: false

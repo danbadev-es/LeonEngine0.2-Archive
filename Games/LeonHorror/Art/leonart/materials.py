@@ -287,6 +287,14 @@ def clinic_rubber(t):
 FLAT = {
     # The diffuser of a ceiling light: it is the light people see, so it glows.
     "ClinicLightDiffuser": {"color": (0.90, 0.90, 0.86), "roughness": 0.6, "emissive": (1.0, 0.95, 0.84), "emissive_intensity": 6.0},
+    # Window and cabinet glass: nearly clear, with the dust that makes it visible.
+    "ClinicGlass": {"color": (0.72, 0.78, 0.76), "roughness": 0.08, "opacity": 0.28},
+    # A switched-off screen, an X-ray film, the dark inside of an open hatch.
+    "ClinicScreenOff": {"color": (0.012, 0.014, 0.016), "roughness": 0.12},
+    # The face of a light box or an operating lamp: a cold white glow.
+    "ClinicLightbox": {"color": (0.85, 0.88, 0.90), "roughness": 0.5, "emissive": (0.80, 0.90, 1.0), "emissive_intensity": 3.0},
+    "ClinicRedPaint": {"color": (0.42, 0.03, 0.025), "roughness": 0.35},
+    "ClinicBrass": {"color": (0.72, 0.56, 0.26), "roughness": 0.35, "metallic": 1.0},
 }
 
 

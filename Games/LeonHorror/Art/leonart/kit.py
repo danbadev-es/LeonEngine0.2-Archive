@@ -163,6 +163,8 @@ def light_panel(m):
 
 shell.register(PIECES)
 
+from . import props  # noqa: E402,F401  (registers the furniture)
+
 
 def run(args):
     names = args["only"] or sorted(PIECES)
@@ -202,5 +204,7 @@ def run(args):
     large = [obj for obj in others if longest(obj) > 3.0]
     small = [obj for obj in others if longest(obj) <= 3.0]
     for label, group in (("Large", large), ("Small", small)):
-        if group:
-            print("SHEET", sheet.render(group, os.path.join(args["out"], "Sheets", "Meshes_%s.png" % label)))
+        # Seven to a picture: more and each one is too small to judge.
+        for page, start in enumerate(range(0, len(group), 7)):
+            name = "Meshes_%s_%d.png" % (label, page + 1)
+            print("SHEET", sheet.render(group[start:start + 7], os.path.join(args["out"], "Sheets", name)))

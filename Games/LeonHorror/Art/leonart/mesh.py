@@ -18,9 +18,11 @@ import json
 import math
 import os
 
+import contextlib
+
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 from . import materials as material_library
 
@@ -30,6 +32,25 @@ class Mesh:
         self.name = name
         self.bm = bmesh.new()
         self.materials = []  # names, in slot order
+        self.matrix = Matrix.Identity(4)  # applied to everything added; see at()
+
+    @contextlib.contextmanager
+    def at(self, location=(0.0, 0.0, 0.0), rot_x=0.0, rot_y=0.0, rot_z=0.0):
+        """
+        Everything added inside the `with` is placed at `location` and turned by the given angles
+        (degrees; Z first, then Y, then X, about the location). Nests.
+        """
+        previous = self.matrix
+        turn = (Matrix.Rotation(math.radians(rot_z), 4, "Z") @ Matrix.Rotation(math.radians(rot_y), 4, "Y")
+                @ Matrix.Rotation(math.radians(rot_x), 4, "X"))
+        self.matrix = previous @ Matrix.Translation(Vector(location)) @ turn
+        try:
+            yield self
+        finally:
+            self.matrix = previous
+
+    def vert(self, point):
+        return self.bm.verts.new(self.matrix @ Vector(point))
 
     # ------------------------------------------------------------------ pieces
     def slot(self, material):
@@ -39,7 +60,7 @@ class Mesh:
 
     def quad(self, corners, material):
         """Four points, counter-clockwise seen from the side the face looks at."""
-        face = self.bm.faces.new([self.bm.verts.new(Vector(corner)) for corner in corners])
+        face = self.bm.faces.new([self.vert(corner) for corner in corners])
         face.material_index = self.slot(material)
         return face
 
@@ -86,8 +107,8 @@ class Mesh:
         other = axis.cross(side)
         ring = [side * math.cos(2 * math.pi * i / segments) * radius + other * math.sin(2 * math.pi * i / segments) * radius
                 for i in range(segments)]
-        low = [self.bm.verts.new(base + offset) for offset in ring]
-        high = [self.bm.verts.new(base + axis * length + offset) for offset in ring]
+        low = [self.vert(base + offset) for offset in ring]
+        high = [self.vert(base + axis * length + offset) for offset in ring]
         index = self.slot(material)
         for i in range(segments):
             j = (i + 1) % segments
@@ -97,6 +118,64 @@ class Mesh:
         if caps:
             self.bm.faces.new(list(reversed(low))).material_index = index
             self.bm.faces.new(high).material_index = index
+
+    def lathe(self, profile, material, segments=20, axis_origin=(0.0, 0.0, 0.0), closed_top=True, closed_bottom=True):
+        """
+        Turns a profile about the vertical axis through axis_origin. profile: [(radius, height), ...]
+        from the bottom up. Bottles, bowls, lamp shades, tanks.
+        """
+        ox, oy, oz = axis_origin
+        index = self.slot(material)
+        rings = []
+        for radius, height in profile:
+            rings.append([self.vert((ox + math.cos(2 * math.pi * i / segments) * radius,
+                                     oy + math.sin(2 * math.pi * i / segments) * radius, oz + height)) for i in range(segments)])
+        for lower, upper in zip(rings, rings[1:]):
+            for i in range(segments):
+                j = (i + 1) % segments
+                face = self.bm.faces.new([lower[i], lower[j], upper[j], upper[i]])
+                face.material_index = index
+                face.smooth = True
+        if closed_bottom and profile[0][0] > 1.0e-5:
+            self.bm.faces.new(list(reversed(rings[0]))).material_index = index
+        if closed_top and profile[-1][0] > 1.0e-5:
+            self.bm.faces.new(rings[-1]).material_index = index
+
+    def tube(self, points, radius, material, segments=10, caps=True):
+        """A round tube through the given points, mitred at the bends: bed frames, pipes, rails."""
+        points = [Vector(point) for point in points]
+        index = self.slot(material)
+        rings = []
+        previous_side = None
+        for i, point in enumerate(points):
+            before = (point - points[i - 1]).normalized() if i > 0 else None
+            after = (points[i + 1] - point).normalized() if i < len(points) - 1 else None
+            direction = ((before or after) + (after or before)).normalized()
+            side = direction.orthogonal().normalized() if previous_side is None else (previous_side - direction * previous_side.dot(direction)).normalized()
+            previous_side = side
+            other = direction.cross(side)
+            # At a bend the ring is stretched so the tube keeps its width on both legs.
+            stretch = 1.0
+            if before is not None and after is not None:
+                stretch = 1.0 / max(math.cos(before.angle(after) * 0.5), 0.3)
+            ring = []
+            for k in range(segments):
+                angle = 2 * math.pi * k / segments
+                offset = side * math.cos(angle) * radius + other * math.sin(angle) * radius
+                if stretch != 1.0:
+                    bend_axis = (after - before).normalized() if (after - before).length > 1.0e-6 else side
+                    offset += bend_axis * offset.dot(bend_axis) * (stretch - 1.0)
+                ring.append(self.vert(point + offset))
+            rings.append(ring)
+        for lower, upper in zip(rings, rings[1:]):
+            for k in range(segments):
+                j = (k + 1) % segments
+                face = self.bm.faces.new([lower[k], lower[j], upper[j], upper[k]])
+                face.material_index = index
+                face.smooth = True
+        if caps:
+            self.bm.faces.new(list(reversed(rings[0]))).material_index = index
+            self.bm.faces.new(rings[-1]).material_index = index
 
     # ------------------------------------------------------------------ result
     def finish(self, bevel=0.0, bevel_segments=2, smooth_angle=40.0):
