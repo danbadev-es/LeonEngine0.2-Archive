@@ -18,9 +18,11 @@ int main(int argc, char** argv) {
         //                        the last weapon named is the one in the hand.
         // --validate-at=X,Z       : in a smoke run, stand the player there (metres, engine axes) instead of
         //                           at the PlayerStart. Moving the start in the map would make its bake stale.
+        // --validate-report=PATH  : when the smoke run ends, write the frame timings of the run there.
         float validateSeconds = -1.0f;
         std::vector<std::string> validateItems;
         bool bValidateAt = false;
+        std::string validateReport;
         float validateX = 0.0f;
         float validateZ = 0.0f;
         for (int i = 1; i < InArgs.Count; ++i) {
@@ -34,6 +36,8 @@ int main(int argc, char** argv) {
                     validateZ = std::strtof(rest + 1, nullptr);
                     bValidateAt = true;
                 }
+            } else if (arg.rfind("--validate-report=", 0) == 0) {
+                validateReport = arg.substr(18);
             } else if (arg.rfind("--validate-give=", 0) == 0) {
                 std::string item;
                 for (const char c : arg.substr(16) + ",") {
@@ -52,6 +56,7 @@ int main(int argc, char** argv) {
             instance->SetValidateItems(validateItems);
             if (bValidateAt)
                 instance->SetValidatePlace(validateX, validateZ);
+            instance->SetValidateReport(validateReport);
             return instance;
         };
     };

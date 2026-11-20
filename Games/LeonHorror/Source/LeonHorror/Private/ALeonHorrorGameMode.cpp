@@ -19,6 +19,7 @@
 #include "Gameplay/APlayerController.hpp"
 #include "Gameplay/UCharacterMovementComponent.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <filesystem>
 
@@ -47,6 +48,9 @@ namespace Leon {
                 World->RebuildNavigation();
             // Everything starts without power; a save then switches back on what was on.
             InitialisePower();
+            // Decoded now, not on the frame a sound is first heard.
+            if (const int sounds = LeonHorrorSound::PreloadAll(); sounds > 0)
+                LE_CORE_INFO("LeonHorror: {0} sounds ready", sounds);
             ApplyPendingSaveFromInstance();
         }
         ElapsedPlaySeconds += DeltaSeconds;
@@ -388,6 +392,14 @@ namespace Leon {
             return;
         bSmokeRunFinished = true;
         LE_CORE_INFO("LeonHorror: smoke run finished after {0} s, closing.", ElapsedPlaySeconds);
+        if (const std::string& report = instance->GetValidateReport(); !report.empty()) {
+            // The first seconds load, compile and capture: they are left out.
+            const FFrameCaptureSummary summary = FFrameStatsCollector::Compute(5.0f);
+            if (FFrameStatsCollector::WriteReport(report, summary))
+                LE_CORE_INFO("LeonHorror: frame timings written to '{0}'", report);
+            else
+                LE_CORE_ERROR("LeonHorror: could not write the frame timings to '{0}'", report);
+        }
         FApplication::Get().Close();
     }
 

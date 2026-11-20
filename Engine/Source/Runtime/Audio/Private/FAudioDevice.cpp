@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
+#include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -24,6 +27,18 @@ namespace Leon {
         ma_engine* GEngine = nullptr;
         std::mutex GVoiceMutex;
         std::unordered_map<uint32_t, FActiveVoice> GVoices;
+        /**
+         * One decoded copy of each short file, never played itself: every voice of that file is a
+         * copy of it and shares its samples. Opening the file for every voice decoded the whole of it
+         * on the game thread each time (tens of milliseconds for a long one).
+         */
+        std::unordered_map<std::string, std::unique_ptr<ma_sound>> GDecoded;
+
+        bool IsLong(const std::string& InPath) {
+            std::error_code ec;
+            const uintmax_t size = std::filesystem::file_size(InPath, ec);
+            return !ec && size > FAudioDevice::kStreamAboveBytes;
+        }
 
         float DistanceAttenuation(float InDistance, float InRadius) {
             if (InRadius <= 1.0f)
@@ -53,6 +68,13 @@ namespace Leon {
 
         GEngine = new ma_engine();
         ma_engine_config config = ma_engine_config_init();
+        // No output, but files are loaded, decoded and mixed as with a sound card: for tests.
+        const char* noDeviceEnv = std::getenv("LEON_AUDIO_NODEVICE");
+        if (noDeviceEnv && noDeviceEnv[0] == '1') {
+            config.noDevice = MA_TRUE;
+            config.channels = 2;
+            config.sampleRate = 48000;
+        }
         ma_result result = ma_engine_init(&config, GEngine);
         if (result != MA_SUCCESS) {
             delete GEngine;
@@ -81,6 +103,10 @@ namespace Leon {
                 }
             }
             GVoices.clear();
+            // After the voices: they share these copies' samples.
+            for (auto& [path, sound] : GDecoded)
+                ma_sound_uninit(sound.get());
+            GDecoded.clear();
         }
         if (GEngine) {
             ma_engine_uninit(GEngine);
@@ -171,7 +197,31 @@ namespace Leon {
         voice.Id = id;
         voice.bValid = false;
 
-        ma_result result = ma_sound_init_from_file(GEngine, path.c_str(), 0, nullptr, nullptr, &voice.Sound);
+        ma_result result = MA_ERROR;
+        if (IsLong(path)) {
+            // Music and long ambiences are read from disk as they play.
+            result = ma_sound_init_from_file(GEngine, path.c_str(), MA_SOUND_FLAG_STREAM, nullptr, nullptr, &voice.Sound);
+            if (result == MA_SUCCESS)
+                ++Stats.Streamed;
+        } else {
+            ma_sound* decoded = nullptr;
+            if (auto it = GDecoded.find(path); it != GDecoded.end()) {
+                decoded = it->second.get();
+            } else {
+                auto sound = std::make_unique<ma_sound>();
+                if (ma_sound_init_from_file(GEngine, path.c_str(), MA_SOUND_FLAG_DECODE, nullptr, nullptr, sound.get()) ==
+                    MA_SUCCESS) {
+                    decoded = sound.get();
+                    GDecoded.emplace(path, std::move(sound));
+                    ++Stats.Decoded;
+                }
+            }
+            if (decoded) {
+                result = ma_sound_init_copy(GEngine, decoded, 0, nullptr, &voice.Sound);
+                if (result == MA_SUCCESS)
+                    ++Stats.Copies;
+            }
+        }
         if (result != MA_SUCCESS) {
             GVoices.erase(id);
             LE_CORE_WARN("FAudioDevice: failed to play '{0}' ({1})", path, static_cast<int>(result));
@@ -197,6 +247,25 @@ namespace Leon {
 
         voice.bValid = true;
         return id;
+    }
+
+    bool FAudioDevice::Preload(const TRef<USoundWave>& InSound) {
+        if (!bInitialized || bNullDevice || !GEngine || !InSound || !InSound->IsValid())
+            return false;
+        const std::string& path = InSound->GetAssetPath();
+        if (path.empty())
+            return false;
+        if (IsLong(path))
+            return std::filesystem::exists(path);
+        std::lock_guard<std::mutex> lock(GVoiceMutex);
+        if (GDecoded.count(path) > 0)
+            return true;
+        auto sound = std::make_unique<ma_sound>();
+        if (ma_sound_init_from_file(GEngine, path.c_str(), MA_SOUND_FLAG_DECODE, nullptr, nullptr, sound.get()) != MA_SUCCESS)
+            return false;
+        GDecoded.emplace(path, std::move(sound));
+        ++Stats.Decoded;
+        return true;
     }
 
     void FAudioDevice::StopVoice(uint32_t InVoiceId) {

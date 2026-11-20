@@ -45,6 +45,24 @@ namespace Leon {
                           float InAttenuationRadius, bool bLoop = false);
         void StopVoice(uint32_t InVoiceId);
 
+        /**
+         * Decodes a short sound now, so that playing it later costs nothing: worth doing for the
+         * sounds a level will need, before play starts. Long sounds are streamed and need no
+         * preloading. Returns false on the null device or when the file cannot be read.
+         */
+        bool Preload(const TRef<USoundWave>& InSound);
+
+        /** What the device has done with files, for tests and the profiler. */
+        struct FStats {
+            uint32_t Decoded = 0;  ///< short files decoded, each once
+            uint32_t Streamed = 0; ///< voices of long files, read from disk as they play
+            uint32_t Copies = 0;   ///< voices of short files, sharing a decoded copy
+        };
+        const FStats& GetStats() const { return Stats; }
+
+        /** Files larger than this are streamed rather than decoded whole. */
+        static constexpr uintmax_t kStreamAboveBytes = 1024 * 1024;
+
     private:
         FAudioDevice() = default;
         bool bInitialized = false;
@@ -55,6 +73,7 @@ namespace Leon {
         glm::vec3 ListenerUp{0.0f, 1.0f, 0.0f};
         uint32_t NextVoiceId = 1;
         uint32_t MusicVoiceId = 0;
+        FStats Stats;
     };
 
 } // namespace Leon

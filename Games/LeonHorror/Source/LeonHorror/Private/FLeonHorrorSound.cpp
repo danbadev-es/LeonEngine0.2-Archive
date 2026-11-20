@@ -1,6 +1,9 @@
 #include "LeonHorror/FLeonHorrorSound.hpp"
 
 #include "Assets/UStaticMesh.hpp"
+#include "Audio/FAudioDevice.hpp"
+#include "Audio/USoundWave.hpp"
+#include "Core/FProjectPaths.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/UGameplayStatics.hpp"
@@ -9,6 +12,7 @@
 #include "Scene/Components.hpp"
 
 #include <cstdio>
+#include <filesystem>
 #include <map>
 
 namespace Leon::LeonHorrorSound {
@@ -79,6 +83,24 @@ namespace Leon::LeonHorrorSound {
             }
         }
         return "SFX_Step_Vinyl";
+    }
+
+    int PreloadAll() {
+        FAudioDevice& device = FAudioDevice::Get();
+        if (!device.IsInitialized() || device.IsNullDevice())
+            return 0;
+        std::error_code ec;
+        const std::filesystem::path folder = std::filesystem::path(FProjectPaths::ProjectContentDir()) / "Audio";
+        int ready = 0;
+        for (const auto& entry : std::filesystem::directory_iterator(folder, ec)) {
+            if (!entry.is_regular_file() || entry.path().extension() != ".wav")
+                continue;
+            if (entry.file_size(ec) > FAudioDevice::kStreamAboveBytes)
+                continue; // streamed when played
+            if (device.Preload(USoundWave::Load(PathOf(entry.path().stem().string()))))
+                ++ready;
+        }
+        return ready;
     }
 
     int CountPlayed(const std::string& InPrefix) {

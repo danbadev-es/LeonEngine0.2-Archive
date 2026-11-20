@@ -31,6 +31,12 @@ namespace Leon {
         /** The step cue for the floor under a point: "SFX_Step_Tile" on tiles and concrete, "SFX_Step_Vinyl" otherwise. */
         std::string StepSurface(UWorld& InWorld, const glm::vec3& InFeet, AActor* InIgnore);
 
+        /**
+         * Decodes every short sound of Content/Audio now, so none is decoded the first time it is
+         * heard, in the middle of play. Returns how many were made ready (0 without a sound card).
+         */
+        int PreloadAll();
+
         /** How many cues whose name starts with InPrefix have been asked for since the last ResetCounts. */
         int CountPlayed(const std::string& InPrefix);
         void ResetCounts();

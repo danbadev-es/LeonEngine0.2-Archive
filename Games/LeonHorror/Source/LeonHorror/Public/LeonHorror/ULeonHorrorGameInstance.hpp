@@ -26,6 +26,9 @@ namespace Leon {
         /** Where the player of a smoke run is stood (--validate-at), if anywhere but the PlayerStart. */
         void SetValidatePlace(float InX, float InZ) { ValidatePlace = std::make_pair(InX, InZ); }
         const std::optional<std::pair<float, float>>& GetValidatePlace() const { return ValidatePlace; }
+        /** Where the frame timings of a smoke run are written when it ends (--validate-report); empty: nowhere. */
+        void SetValidateReport(const std::string& InPath) { ValidateReport = InPath; }
+        const std::string& GetValidateReport() const { return ValidateReport; }
 
         /** A save waiting to be applied once the map it travels to has begun play. */
         void SetPendingSave(const FLeonHorrorSaveGame& InSave) { PendingSave = InSave; }
@@ -39,6 +42,7 @@ namespace Leon {
         std::optional<FLeonHorrorSaveGame> PendingSave;
         std::vector<std::string> ValidateItems;
         std::optional<std::pair<float, float>> ValidatePlace;
+        std::string ValidateReport;
         float ValidateSeconds = -1.0f;
     };
 
