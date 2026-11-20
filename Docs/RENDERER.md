@@ -49,6 +49,12 @@ each batch in its own small pass.
 Everything a pass needs is created or uploaded before the pass begins: creating a buffer or a texture
 uploads data, which must not happen inside a render pass.
 
+What `collect` resolves for a draw is looked up once a frame and remembered for the rest of it: the
+pipeline of each mesh buffer, material and render state (the lasting cache is keyed by a string of the
+vertex layout, too slow to build for every draw of every shadow map), and each lightmap
+(`UAssetManager::GetLightmap` resolves the path on disk before it looks in its cache). Done per mesh,
+those two took more than half of the CPU time of a frame of LeonHorror's clinic.
+
 ## Conventions
 
 - World space is right-handed, +Y up, metres. A camera with yaw −90° looks down −Z.

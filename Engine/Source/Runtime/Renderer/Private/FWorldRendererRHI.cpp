@@ -58,6 +58,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 namespace Leon {
@@ -689,6 +691,12 @@ namespace Leon {
         // The probes draws choose from; the position in the list is the cube of the probe array.
         std::vector<FReflectionProbeBox> probeBoxes;
 
+        // The pipelines already looked up this frame, by mesh buffers, material and the options that
+        // change the pipeline: building the key of the lasting caches below (a string of the vertex
+        // layout) for every draw took a good part of the frame's CPU time.
+        std::map<std::tuple<const FVertexArray*, const FMaterialInstance*, uint32_t>, IRHIPipeline*> frameSurfacePipelines;
+        std::map<std::pair<const FVertexArray*, uint32_t>, IRHIPipeline*> frameShadowPipelines;
+
         // bInTransparent: blended, without writing depth. bInDecal: a blended surface lying on another one.
         const auto surfacePipeline = [&](const FVertexArray& InVertexArray, const FMaterialInstance& InMaterial,
                                          const glm::mat4& InModel, bool bInTransparent, bool bInSkinned,
@@ -703,6 +711,13 @@ namespace Leon {
             // A mirrored view reverses the winding of everything it shows.
             if (bCollectMirrored && cull != ECullMode::None)
                 cull = cull == ECullMode::Back ? ECullMode::Front : ECullMode::Back;
+
+            const uint32_t options = (bInTransparent ? 1u : 0u) | (bInSkinned ? 2u : 0u) | (bInInstanced ? 4u : 0u) |
+                                     (bInDecal ? 8u : 0u) | (static_cast<uint32_t>(cull) << 4);
+            const auto memo = frameSurfacePipelines.find({&InVertexArray, &InMaterial, options});
+            if (memo != frameSurfacePipelines.end())
+                return memo->second;
+            IRHIPipeline*& remembered = frameSurfacePipelines[{&InVertexArray, &InMaterial, options}];
 
             FRHIGraphicsPipelineDesc desc;
             desc.VertexLayout = GetRHIVertexLayout(InVertexArray);
@@ -730,8 +745,10 @@ namespace Leon {
                    std::to_string(static_cast<int>(desc.Blend.DstColor));
 
             const auto found = state.SurfacePipelines.find(key);
-            if (found != state.SurfacePipelines.end())
-                return found->second.get();
+            if (found != state.SurfacePipelines.end()) {
+                remembered = found->second.get();
+                return remembered;
+            }
             desc.VertexShader = vertexShader;
             desc.PixelShader = surfacePS.get();
             desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
@@ -739,7 +756,8 @@ namespace Leon {
             desc.DebugName = bInSkinned ? "SkinnedSurface" : (bInInstanced ? "InstancedSurface" : "Surface");
             TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
             state.SurfacePipelines[key] = pipeline;
-            return pipeline.get();
+            remembered = pipeline.get();
+            return remembered;
         };
 
         // bInBias: push depth away from the light to hide self-shadowing. bInLinearDepth: point-light cubes.
@@ -749,6 +767,12 @@ namespace Leon {
             IRHIShader* pixelShader = bInLinearDepth ? shadowLinearPS.get() : shadowPS.get();
             if (!vertexShader || !pixelShader)
                 return nullptr;
+            const uint32_t options = (bInSkinned ? 1u : 0u) | (bInBias ? 2u : 0u) | (bInLinearDepth ? 4u : 0u) |
+                                     (static_cast<uint32_t>(InCull) << 3);
+            const auto memo = frameShadowPipelines.find({&InVertexArray, options});
+            if (memo != frameShadowPipelines.end())
+                return memo->second;
+            IRHIPipeline*& remembered = frameShadowPipelines[{&InVertexArray, options}];
             FRHIGraphicsPipelineDesc desc;
             desc.VertexLayout = GetRHIVertexLayout(InVertexArray);
             std::string key = std::to_string(desc.VertexLayout.Stride);
@@ -757,8 +781,10 @@ namespace Leon {
             key += std::string(bInSkinned ? "|skinned" : "") + "|c" + std::to_string(static_cast<int>(InCull)) +
                    (bInBias ? "b" : "") + (bInLinearDepth ? "l" : "");
             const auto found = state.ShadowPipelines.find(key);
-            if (found != state.ShadowPipelines.end())
-                return found->second.get();
+            if (found != state.ShadowPipelines.end()) {
+                remembered = found->second.get();
+                return remembered;
+            }
             desc.VertexShader = vertexShader;
             desc.PixelShader = pixelShader;
             desc.Raster.Cull = InCull;
@@ -772,7 +798,8 @@ namespace Leon {
             desc.DebugName = "ShadowDepth";
             TRef<IRHIPipeline> pipeline = device->CreateGraphicsPipeline(desc);
             state.ShadowPipelines[key] = pipeline;
-            return pipeline.get();
+            remembered = pipeline.get();
+            return remembered;
         };
 
         // --- What to draw ---
@@ -926,13 +953,21 @@ namespace Leon {
         }
 
 
+        // Once per lightmap and frame: UAssetManager::GetLightmap resolves the path on disk before it
+        // looks in its cache, which done for every mesh of a level cost milliseconds a frame.
+        std::map<std::string, IRHITexture*> frameLightmaps;
         const auto lightmapFor = [&](EComponentMobility InMobility, int32_t InIndex,
                                      const std::string& InAssetPath) -> IRHITexture* {
             if (!bLightmapsTrusted || InMobility != EComponentMobility::Static || InIndex < 0 || InAssetPath.empty())
                 return nullptr;
+            const auto found = frameLightmaps.find(InAssetPath);
+            if (found != frameLightmaps.end())
+                return found->second;
             const TRef<FLightmapAsset> lightmap = UAssetManager::GetLightmap(InAssetPath);
             const TRef<FTexture2D> texture = lightmap ? lightmap->GetOrCreateGPUTexture() : nullptr;
-            return texture ? GetRHITexture(*texture) : nullptr;
+            IRHITexture* rhiTexture = texture ? GetRHITexture(*texture) : nullptr;
+            frameLightmaps.emplace(InAssetPath, rhiTexture);
+            return rhiTexture;
         };
 
         const auto submit = [&](const FVertexArray& InVertexArray, const FMaterialInstance* InMaterial,
