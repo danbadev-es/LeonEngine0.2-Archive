@@ -55,6 +55,14 @@ Environment:
     Contrast: 1.06
     Saturation: 0.88
     ChromaticAberration: 0.002
+  VolumetricFog:
+    Enabled: true
+    Density: 0.08
+    Scattering: 2
+    Anisotropy: 0.1
+    AmbientColor: [1, 1, 1]
+    AmbientIntensity: 0
+    MaxDistance: 20
 
 Actors:
   - Name: "NavBounds"

@@ -51,6 +51,8 @@ class Level:
         self.fog = {"color": (0.02, 0.022, 0.025), "density": 0.03, "start": 3.0, "max_opacity": 0.85}
         # The look of the final image (Docs/RENDERER.md, "The final image"). Empty: the engine's neutral one.
         self.post_process: dict[str, str] = {}
+        # Light seen in the air (Docs/RENDERER.md, volumetric fog). Empty: none.
+        self.volumetric_fog: dict[str, str] = {}
 
     # ------------------------------------------------------------------ plumbing
     def guid(self, name: str) -> str:
@@ -203,6 +205,8 @@ Environment:
     FogBaseHeight: 0
     FogMaxOpacity: {num(self.fog["max_opacity"])}
 """
+        if self.volumetric_fog:
+            header += "  VolumetricFog:" + chr(10) + "".join(f"    {key}: {value}" + chr(10) for key, value in self.volumetric_fog.items())
         if self.post_process:
             header += "  PostProcess:" + chr(10) + "".join(f"    {key}: {value}" + chr(10) for key, value in self.post_process.items())
         header += chr(10) + "Actors:" + chr(10)

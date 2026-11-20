@@ -572,6 +572,10 @@ class Clinic:
         lv = self.lv
         lv.exposure = 1.05
         lv.fog = {"color": (0.018, 0.022, 0.024), "density": 0.035, "start": 3.5, "max_opacity": 0.8}
+        # The light of the flashlight and of the lamps that cast shadows is seen in the air, cut by what
+        # stands in it. With the distance fog above, this only adds the light. Little anisotropy: the
+        # camera is mostly behind the flashlight, and air that throws light forward would hide its beam.
+        lv.volumetric_fog = {"Enabled": "true", "Density": "0.08", "Scattering": "2", "Anisotropy": "0.1", "MaxDistance": "20"}
         lv.post_process = {
             "ToneMapper": "ACES",
             "VignetteIntensity": "0.38", "VignetteRadius": "0.5", "VignetteSoftness": "0.65",
