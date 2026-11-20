@@ -491,6 +491,70 @@ class Clinic:
                   "Feeds: service corridor, theatre, cold room and its door lock.\\n"
                   "Do NOT bridge it with wire again. - J.", yaw=5.0)
 
+    # ------------------------------------------------------------------ decals
+    # The size in metres of each decal's quad (its material's tile size in Art/leonart/materials_decals.py).
+    DECAL_SIZE = {"BloodPool": 1.4, "BloodSmear": 2.0, "Grime": 2.0, "Damp": 1.6, "Scratches": 1.2}
+
+    def floor_decal(self, room: str, kind: str, dx: float, dy: float, yaw: float = 0.0) -> None:
+        """A decal lying on the floor, its middle at (dx, dy) in the room. It must stay inside the room."""
+        size = self.DECAL_SIZE[kind]
+        r = self.rooms[room]
+        middle = r.at(dx, dy)
+        corner = rotate((size * 0.5, size * 0.5), yaw)
+        for x, y in ((middle[0] + c[0], middle[1] + c[1]) for c in
+                     (rotate((sx * size * 0.5, sy * size * 0.5), yaw) for sx in (-1, 1) for sy in (-1, 1))):
+            assert r.x0 + T <= x <= r.x1 - T and r.y0 + T <= y <= r.y1 - T, f"floor decal {kind} in {room} leaves the room"
+        origin = (middle[0] - corner[0], middle[1] - corner[1], 0.0)
+        # Movable: not baked, not in the reflection captures, lit like the surface under it.
+        self.lv.movable_mesh(self.name(f"Decal_{kind}_{room}"), f"SM_Decal_{kind}_Floor", from_blender(origin), yaw, collision=False)
+
+    def wall_decal(self, room: str, kind: str, side: str, along: float, height: float) -> None:
+        """A decal on the inner face of a wall, its middle `along` metres from the wall's west or south end, `height` up."""
+        size = self.DECAL_SIZE[kind]
+        r = self.rooms[room]
+        yaw = BACK_ON[side]
+        middle = r.wall(side, along, height)
+        half = rotate((size * 0.5, 0.0), yaw)
+        assert height - size * 0.5 >= -1.0e-6 and height + size * 0.5 <= H + 1.0e-6, f"wall decal {kind} in {room} leaves the wall"
+        low, high = (r.x0, r.x1) if side in ("north", "south") else (r.y0, r.y1)
+        assert low + T <= low + along - size * 0.5 and low + along + size * 0.5 <= high - T, f"wall decal {kind} in {room} turns a corner"
+        origin = (middle[0] - half[0], middle[1] - half[1], height - size * 0.5)
+        self.lv.movable_mesh(self.name(f"Decal_{kind}_{room}"), f"SM_Decal_{kind}_Wall", from_blender(origin), yaw, collision=False)
+
+    def decals(self) -> None:
+        """What happened here, told on the floors and walls."""
+        # The way in: trodden dirt, and damp coming through the north wall.
+        self.floor_decal("Reception", "Grime", 2.0, 1.4, 10.0)
+        self.wall_decal("Reception", "Damp", "north", 4.6, 1.9)
+        self.wall_decal("Waiting", "Grime", "south", 2.0, 1.0)
+        # The corridor: something was dragged north along it, and something clawed at the wall by the consulting rooms.
+        self.floor_decal("Corridor", "Grime", 1.2, 3.2, 90.0)
+        self.floor_decal("Corridor", "BloodSmear", 1.2, 10.8, 90.0)
+        self.floor_decal("Corridor", "BloodSmear", 1.15, 14.6, 92.0)
+        self.wall_decal("Corridor", "Scratches", "west", 9.0, 1.25)
+        self.wall_decal("Corridor", "Damp", "east", 6.0, 1.95)
+        # Consulting room 2: where the patient waits.
+        self.floor_decal("Consult2", "BloodPool", 4.1, 2.3, 25.0)
+        self.wall_decal("Consult2", "Scratches", "north", 4.4, 1.1)
+        # The ward: the far bed, and the floor between the beds.
+        self.floor_decal("Ward", "BloodPool", 3.4, 5.8, -40.0)
+        self.floor_decal("Ward", "Grime", 3.0, 2.6, 0.0)
+        self.wall_decal("Ward", "Damp", "north", 1.8, 1.9)
+        # Wet rooms.
+        self.floor_decal("Toilets", "Damp", 3.3, 1.25, 0.0)
+        self.wall_decal("Toilets", "Grime", "south", 3.0, 1.0)
+        self.floor_decal("Storage", "Damp", 3.2, 2.0, 30.0)
+        # The service corridor and the rooms off it: the worst of it.
+        self.floor_decal("Service", "BloodSmear", 9.6, 1.2, 0.0)
+        self.wall_decal("Service", "Grime", "south", 3.0, 1.0)
+        self.wall_decal("Service", "Scratches", "north", 9.9, 1.3)
+        self.floor_decal("Theatre", "BloodPool", 3.0, 3.0, 70.0)
+        self.wall_decal("Theatre", "Scratches", "east", 3.6, 1.2)
+        self.floor_decal("Morgue", "BloodSmear", 2.0, 3.3, -90.0)
+        self.wall_decal("Morgue", "Damp", "west", 3.6, 1.9)
+        self.floor_decal("Plant", "Damp", 2.2, 2.0, 0.0)
+        self.floor_decal("Bay", "Grime", 2.2, 2.0, 15.0)
+
     def bay(self) -> None:
         r = self.rooms["Bay"]
         self.prop("SM_Prop_Gurney", r.at(1.3, 3.4), 85.0)
@@ -541,6 +605,7 @@ class Clinic:
         self.morgue()
         self.plant()
         self.bay()
+        self.decals()
         return lv
 
 

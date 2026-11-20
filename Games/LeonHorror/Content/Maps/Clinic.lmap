@@ -6649,3 +6649,378 @@ Actors:
       Translation: [17.6, 1.4, -26]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
+  - Name: "Decal_Grime_Reception_01"
+    Class: "AActor"
+    GUID: "809f9c5b673e7ad537a4bba037375b35"
+    Transform:
+      Translation: [1.18884, 0, -0.241544]
+      Rotation: [0, 10, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Reception_01"
+    Class: "AActor"
+    GUID: "9ae77b162492d14c4295fe07d1fbcd81"
+    Transform:
+      Translation: [3.8, 1.1, -5.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Grime_Waiting_01"
+    Class: "AActor"
+    GUID: "8414c91db26432531f972b7b79a3971c"
+    Transform:
+      Translation: [11.4, 0, -0.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Grime_Corridor_01"
+    Class: "AActor"
+    GUID: "21ee675241bdab0afb489ec532de572f"
+    Transform:
+      Translation: [8.2, 0, -8.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodSmear_Corridor_01"
+    Class: "AActor"
+    GUID: "9ca6885c6556c441ecc0c0351b2bc480"
+    Transform:
+      Translation: [8.2, 0, -15.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodSmear_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodSmear_Corridor_02"
+    Class: "AActor"
+    GUID: "16228349a7383ce1b8bb1f7bfc70d985"
+    Transform:
+      Translation: [8.18429, 0, -19.6355]
+      Rotation: [0, 92, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodSmear_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Scratches_Corridor_01"
+    Class: "AActor"
+    GUID: "95e15f72a3a844cbd605c2d955107cb6"
+    Transform:
+      Translation: [6.075, 0.65, -14.4]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Scratches_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Corridor_01"
+    Class: "AActor"
+    GUID: "7075a7a9b5430393eb24a3293103fad0"
+    Transform:
+      Translation: [8.325, 1.15, -12.8]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodPool_Consult2_01"
+    Class: "AActor"
+    GUID: "9c4e114b7f0cf20658e9ab064a17676a"
+    Transform:
+      Translation: [3.76142, 0, -11.8698]
+      Rotation: [0, 25, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodPool_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Scratches_Consult2_01"
+    Class: "AActor"
+    GUID: "8b6583287d7c5032b7a4d837ddc5f1d9"
+    Transform:
+      Translation: [3.8, 0.5, -14.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Scratches_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodPool_Ward_01"
+    Class: "AActor"
+    GUID: "1d395234213025b58d09606eed9ebfb5"
+    Transform:
+      Translation: [10.8138, 0, -11.7137]
+      Rotation: [0, -40, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodPool_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Grime_Ward_01"
+    Class: "AActor"
+    GUID: "56c9b78dfde3c9d7fa90f4f060749998"
+    Transform:
+      Translation: [10.4, 0, -7.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Ward_01"
+    Class: "AActor"
+    GUID: "5276751c40ebfc41178c893d44c2d750"
+    Transform:
+      Translation: [9.4, 1.1, -12.925]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Toilets_01"
+    Class: "AActor"
+    GUID: "a79091dff6db8d9ee8feda14998dc2f1"
+    Transform:
+      Translation: [10.9, 0, -17.95]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Grime_Toilets_01"
+    Class: "AActor"
+    GUID: "80852f1fe47737809dbf7f2d6f6c1358"
+    Transform:
+      Translation: [12.4, 0, -17.575]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Storage_01"
+    Class: "AActor"
+    GUID: "a741a9cb01f7ae095585be011f21bd7b"
+    Transform:
+      Translation: [11.3072, 0, -20.9072]
+      Rotation: [0, 30, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodSmear_Service_01"
+    Class: "AActor"
+    GUID: "683637bb33c12b0e945d64437de05579"
+    Transform:
+      Translation: [8.6, 0, -24.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodSmear_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Grime_Service_01"
+    Class: "AActor"
+    GUID: "368da4e862efed71558c5f0ddd6bc846"
+    Transform:
+      Translation: [4, 0, -24.075]
+      Rotation: [0, 180, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Scratches_Service_01"
+    Class: "AActor"
+    GUID: "aa678b0861af97cdfa3cbe7b5316d113"
+    Transform:
+      Translation: [9.3, 0.7, -26.325]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Scratches_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodPool_Theatre_01"
+    Class: "AActor"
+    GUID: "067bddd19b76a2b115b7ac5acc5d170f"
+    Transform:
+      Translation: [3.41837, 0, -28.5028]
+      Rotation: [0, 70, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodPool_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Scratches_Theatre_01"
+    Class: "AActor"
+    GUID: "6a617ceb89b6e81ab47398c2f37407f0"
+    Transform:
+      Translation: [5.925, 0.6, -30.6]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Scratches_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_BloodSmear_Morgue_01"
+    Class: "AActor"
+    GUID: "b3af20ab6f98558a0f35e0a5f9b7ceb6"
+    Transform:
+      Translation: [7, 0, -30.7]
+      Rotation: [0, -90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_BloodSmear_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Morgue_01"
+    Class: "AActor"
+    GUID: "73c4e3bc35584f5ce52488f6e6e703a2"
+    Transform:
+      Translation: [6.075, 1.1, -29.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Wall.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Damp_Plant_01"
+    Class: "AActor"
+    GUID: "67f4c0d3c94352cb3acf0a18a9390259"
+    Transform:
+      Translation: [11.4, 0, -27.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Damp_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64
+  - Name: "Decal_Grime_Bay_01"
+    Class: "AActor"
+    GUID: "9ef562a020d2a2c0d5bf67a4b1ef6821"
+    Transform:
+      Translation: [15.8929, 0, -24.7753]
+      Rotation: [0, 15, 0]
+      Scale: [1, 1, 1]
+    StaticMesh:
+      Asset: "/Game/Meshes/SM_Decal_Grime_Floor.lmesh"
+      CastShadows: true
+      ReceiveShadows: true
+      VisibleInReflection: true
+      Collision: false
+      Mobility: Movable
+      LightmapResolution: 64

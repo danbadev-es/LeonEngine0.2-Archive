@@ -29,8 +29,14 @@ def border(size, width=0.06):
     return noise.smoothstep(0.0, width, edge)
 
 
+# Where two decals overlap, the higher lies on top: dirt under damp under scratches under blood.
+PRIORITY = {"DecalGrime": 0, "DecalDamp": 1, "DecalScratches": 2, "DecalBloodSmear": 3, "DecalBloodPool": 4}
+
+
 def finish(t, color, alpha, roughness, height=None):
     n = t.size
+    t.material["AlphaMode"] = '"Decal"'
+    t.material["SortPriority"] = str(PRIORITY.get(t.name, 0))
     t.color = np.clip(color, 0.0, 1.0).astype(np.float32)
     t.alpha = np.clip(alpha * border(n), 0.0, 1.0).astype(np.float32)
     t.roughness = np.clip(roughness, 0.03, 1.0).astype(np.float32)
