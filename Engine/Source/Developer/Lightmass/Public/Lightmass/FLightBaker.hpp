@@ -80,6 +80,12 @@ namespace Leon {
         uint64_t Seed = 0x4C454F4E4C4D4153ull;
         /** Worker threads; 0 uses every core. The result does not depend on it. */
         uint32_t NumThreads = 0;
+        /**
+         * Passes of the filter that smooths the indirect light (0: none). Each pass reaches twice as far
+         * as the one before (1, 2, 4... texels), and none crosses into another chart or onto a surface
+         * that faces another way. Direct light, with its shadows, is never filtered.
+         */
+        uint32_t IndirectFilterPasses = 3;
     };
 
     /** Where the light probes of a level go and how carefully each is measured. */

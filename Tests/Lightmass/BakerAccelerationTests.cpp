@@ -192,6 +192,94 @@ namespace Leon {
             CHECK(underBlocker < inTheOpen * 0.5f);
         }
 
+        TEST_CASE("the indirect light is smoothed within a chart, keeps its level, and does not leak into another chart") {
+            // A floor under a low ceiling, lit only by a lamp shining up at a patch of the ceiling: the
+            // floor sees the light only by its bounce, which a few rays a texel catch unevenly.
+            FLightBakerScene scene;
+            auto quad = [&](float InY, float InNormalY, uint32_t InChart, float InU0) {
+                const uint32_t base = static_cast<uint32_t>(scene.Vertices.size());
+                const float corners[4][2] = {{-4.0f, -4.0f}, {4.0f, -4.0f}, {4.0f, 4.0f}, {-4.0f, 4.0f}};
+                for (const auto& c : corners) {
+                    FBakeVertex vertex;
+                    vertex.Position = {c[0], InY, c[1]};
+                    vertex.Normal = {0.0f, InNormalY, 0.0f};
+                    vertex.LightmapUV = {InU0 + (c[0] + 4.0f) / 16.0f, (c[1] + 4.0f) / 8.0f};
+                    scene.Vertices.push_back(vertex);
+                }
+                if (InNormalY > 0.0f) {
+                    scene.Triangles.push_back({base, base + 2, base + 1, InChart, true});
+                    scene.Triangles.push_back({base, base + 3, base + 2, InChart, true});
+                } else {
+                    scene.Triangles.push_back({base, base + 1, base + 2, InChart, true});
+                    scene.Triangles.push_back({base, base + 2, base + 3, InChart, true});
+                }
+            };
+            quad(0.0f, 1.0f, 0, 0.0f);   // the floor: left half of the atlas
+            quad(2.5f, -1.0f, 1, 0.5f);  // the ceiling: right half
+            for (uint32_t i = 0; i < 2; ++i) {
+                FLightmapChart chart;
+                chart.Resolution = 32;
+                chart.Scale = {1.0f, 1.0f};
+                chart.Bias = {0.0f, 0.0f};
+                scene.Charts.push_back(chart);
+            }
+            scene.AtlasWidth = 64;
+            scene.AtlasHeight = 32;
+            FBakeSpotLight lamp;
+            lamp.Light.Position = {0.0f, 0.3f, 0.0f};
+            lamp.Light.Direction = {0.0f, 1.0f, 0.0f};
+            lamp.Light.Color = {1.0f, 1.0f, 1.0f};
+            lamp.Light.Intensity = 40.0f;
+            lamp.Light.Radius = 10.0f;
+            lamp.Light.CutOff = 20.0f;
+            lamp.Light.OuterCutOff = 30.0f;
+            scene.SpotLights.push_back(lamp);
+
+            FLightBakerSettings settings;
+            settings.SamplesPerTexel = 8;
+            settings.NumIndirectBounces = 1;
+            settings.bAmbientOcclusion = false;
+            std::vector<float> raw, smooth;
+            settings.IndirectFilterPasses = 0;
+            FLightBaker::Bake(scene, settings, raw);
+            settings.IndirectFilterPasses = 3;
+            FLightBaker::Bake(scene, settings, smooth);
+            REQUIRE(raw.size() == 64u * 32u * 4u);
+
+            // Over the floor (texels well inside its chart): how much a texel differs from the next,
+            // and the mean.
+            auto measure = [&](const std::vector<float>& InPixels, float& OutMean, float& OutRoughness) {
+                double sum = 0.0, diff = 0.0;
+                int count = 0;
+                for (int y = 4; y < 28; ++y) {
+                    for (int x = 4; x < 27; ++x) {
+                        const float a = InPixels[(static_cast<size_t>(y) * 64 + x) * 4];
+                        const float b = InPixels[(static_cast<size_t>(y) * 64 + x + 1) * 4];
+                        sum += a;
+                        diff += std::abs(a - b);
+                        ++count;
+                    }
+                }
+                OutMean = static_cast<float>(sum / count);
+                OutRoughness = static_cast<float>(diff / count);
+            };
+            float rawMean = 0.0f, rawRough = 0.0f, smoothMean = 0.0f, smoothRough = 0.0f;
+            measure(raw, rawMean, rawRough);
+            measure(smooth, smoothMean, smoothRough);
+            MESSAGE("floor mean " << rawMean << " -> " << smoothMean << ", texel to texel " << rawRough << " -> " << smoothRough);
+            REQUIRE(rawMean > 0.01f);         // the floor is lit by the bounce
+            CHECK(smoothRough < rawRough * 0.4f);
+            CHECK(smoothMean == doctest::Approx(rawMean).epsilon(0.1));
+
+            // The ceiling is lit directly where the lamp points; the floor's chart beside it in the
+            // atlas must not have bled into it, nor it into the floor: the floor texels next to the
+            // seam are no brighter than the floor's own mean allows.
+            for (int y = 4; y < 28; ++y) {
+                const float floorAtSeam = smooth[(static_cast<size_t>(y) * 64 + 31) * 4];
+                CHECK(floorAtSeam < smoothMean * 3.0f + 0.05f);
+            }
+        }
+
         TEST_CASE("light on the far side of a thin surface does not come through it") {
             // The blocker is lit from above and seen from below. Its lit face used to be what the
             // floor under it received, as if the sheet glowed: brighter in its shadow than outside.

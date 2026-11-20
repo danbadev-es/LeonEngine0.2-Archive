@@ -500,6 +500,8 @@ namespace Leon {
         const uint32_t samples = std::max(1u, InSettings.SamplesPerTexel);
         std::vector<glm::vec3> direct(static_cast<size_t>(W) * H, glm::vec3(0.0f));
         std::vector<glm::vec3> indirect(static_cast<size_t>(W) * H, glm::vec3(0.0f));
+        // Ambient occlusion of each texel, applied to the indirect light once that has been filtered.
+        std::vector<float> indirectVisibility(static_cast<size_t>(W) * H, 1.0f);
 
         BuildAcceleration(InScene);
 
@@ -609,7 +611,7 @@ namespace Leon {
                     float vis = 1.0f - std::clamp(InSettings.AOIntensity * (occluded / static_cast<float>(aoSamples)),
                                                   0.0f, 1.0f);
                     direct[idx] *= vis;
-                    indirect[idx] *= vis;
+                    indirectVisibility[idx] = vis;
                 }
             }
         };
@@ -628,6 +630,66 @@ namespace Leon {
         worker();
         for (std::thread& thread : threads)
             thread.join();
+
+        // The indirect light of a texel is the average of a few dozen rays. Where little of what they
+        // can see is lit (a dark room off a bright corridor), neighbouring texels differ wildly and the
+        // wall comes out blotched. An a-trous filter evens it out: each pass averages a texel with its
+        // neighbours step texels away (B3 spline weights), the step doubling every pass, and leaves out
+        // any neighbour in another chart or on a surface facing another way, so light does not run
+        // round corners or between unrelated pieces of the atlas.
+        if (InSettings.IndirectFilterPasses > 0) {
+            static constexpr float kSpline[5] = {1.0f / 16.0f, 1.0f / 4.0f, 3.0f / 8.0f, 1.0f / 4.0f, 1.0f / 16.0f};
+            std::vector<glm::vec3> smoothed(indirect.size());
+            for (uint32_t pass = 0; pass < InSettings.IndirectFilterPasses; ++pass) {
+                const int step = 1 << std::min(pass, 6u);
+                std::atomic<uint32_t> nextFilterRow{0};
+                const auto filterRows = [&]() {
+                    for (uint32_t y = nextFilterRow.fetch_add(1); y < H; y = nextFilterRow.fetch_add(1)) {
+                        for (uint32_t x = 0; x < W; ++x) {
+                            const size_t idx = static_cast<size_t>(y) * W + x;
+                            if (coverage[idx] <= 0.0f) {
+                                smoothed[idx] = indirect[idx];
+                                continue;
+                            }
+                            glm::vec3 sum(0.0f);
+                            float weightSum = 0.0f;
+                            for (int dy = -2; dy <= 2; ++dy) {
+                                const int ny = static_cast<int>(y) + dy * step;
+                                if (ny < 0 || ny >= static_cast<int>(H))
+                                    continue;
+                                for (int dx = -2; dx <= 2; ++dx) {
+                                    const int nx = static_cast<int>(x) + dx * step;
+                                    if (nx < 0 || nx >= static_cast<int>(W))
+                                        continue;
+                                    const size_t nidx = static_cast<size_t>(ny) * W + static_cast<size_t>(nx);
+                                    if (coverage[nidx] <= 0.0f || chartOf[nidx] != chartOf[idx])
+                                        continue;
+                                    const float facing = glm::dot(normals[idx], normals[nidx]);
+                                    if (facing < 0.8f)
+                                        continue;
+                                    const float f2 = facing * facing;
+                                    const float f4 = f2 * f2;
+                                    const float weight = kSpline[dx + 2] * kSpline[dy + 2] * f4 * f4;
+                                    sum += indirect[nidx] * weight;
+                                    weightSum += weight;
+                                }
+                            }
+                            smoothed[idx] = weightSum > 0.0f ? sum / weightSum : indirect[idx];
+                        }
+                    }
+                };
+                std::vector<std::thread> filterThreads;
+                filterThreads.reserve(threadCount - 1);
+                for (uint32_t i = 1; i < threadCount; ++i)
+                    filterThreads.emplace_back(filterRows);
+                filterRows();
+                for (std::thread& thread : filterThreads)
+                    thread.join();
+                indirect.swap(smoothed);
+            }
+        }
+        for (size_t idx = 0; idx < indirect.size(); ++idx)
+            indirect[idx] *= indirectVisibility[idx];
 
         // Texels outside the charts take the light of their neighbours, a few texels deep: bilinear
         // filtering reads past the edge of a chart, and would otherwise fetch black.
