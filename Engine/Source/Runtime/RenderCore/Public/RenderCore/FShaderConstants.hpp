@@ -244,4 +244,9 @@ namespace Leon {
         glm::ivec4 CanvasFlags{0};
     };
 
+    struct FSpriteParticleConstants { // SpriteParticles.hlsl: MaterialConstants (b2)
+        /** x = near, y = far of the camera's projection: the depth buffer's depth back to metres. */
+        glm::vec4 DepthParams{0.1f, 1000.0f, 0.0f, 0.0f};
+    };
+
 } // namespace Leon

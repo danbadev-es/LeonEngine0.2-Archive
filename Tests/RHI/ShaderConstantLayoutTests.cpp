@@ -141,6 +141,13 @@ namespace Leon {
             CheckShader({"ReflectionProbeFilter.hlsl", "PSShrink", ERHIShaderStage::Pixel, {}, filter});
         }
 
+        TEST_CASE("sprite particles") {
+            const std::vector<FExpectedBuffer> sprites = {kFrame, kLitPass,
+                                                          {"MaterialConstants", sizeof(FSpriteParticleConstants)}};
+            CheckShader({"SpriteParticles.hlsl", "VSMain", ERHIShaderStage::Vertex, {}, sprites});
+            CheckShader({"SpriteParticles.hlsl", "PSMain", ERHIShaderStage::Pixel, {}, sprites});
+        }
+
         TEST_CASE("2D drawing") {
             const std::vector<FExpectedBuffer> canvas = {kFrame, {"PassConstants", sizeof(FCanvasConstants)}};
             CheckShader({"Canvas.hlsl", "VSMain", ERHIShaderStage::Vertex, {}, canvas});

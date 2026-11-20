@@ -172,6 +172,7 @@ leon_add_module(Renderer
     Source/Runtime/Renderer/Private/FDebugOverlay.cpp
     Source/Runtime/Renderer/Private/FDebugRenderer.cpp
     Source/Runtime/Renderer/Private/FParticleRenderer.cpp
+    Source/Runtime/Renderer/Private/FSpriteParticleBatch.cpp
     Source/Runtime/Renderer/Private/FTextRenderer.cpp
     DEPENDS Core Platform RHI RenderCore Assets Scene
     PRIVATE_LIBRARIES stb_image

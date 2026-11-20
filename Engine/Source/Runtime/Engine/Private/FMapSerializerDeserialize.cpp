@@ -19,6 +19,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
 #include "Scene/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
 #include <cmath>
 #include <algorithm>
 #include "RHI/IRenderDriver.hpp"
@@ -128,6 +129,9 @@ namespace Leon {
         bool bHasPortal = false;
         FPortalComponent Portal;
 
+        bool bHasParticleEmitter = false;
+        FSpriteEmitterComponent ParticleEmitter;
+
         bool bHasBoxCollision = false;
         FBoxCollisionComponent BoxCollision;
         bool bTriggerEnabled = true;
@@ -201,6 +205,7 @@ namespace Leon {
             ReflectionProbe,
             VisibilityZone,
             Portal,
+            ParticleEmitter,
             BoxCollision,
             Properties
         };
@@ -563,6 +568,10 @@ namespace Leon {
                     currentCompSection = EActorComponentSection::ReflectionProbe;
                     currentActor.bHasReflectionProbe = true;
                     continue;
+                } else if (trimmed == "ParticleEmitter:") {
+                    currentCompSection = EActorComponentSection::ParticleEmitter;
+                    currentActor.bHasParticleEmitter = true;
+                    continue;
                 } else if (trimmed == "VisibilityZone:") {
                     currentCompSection = EActorComponentSection::VisibilityZone;
                     currentActor.bHasVisibilityZone = true;
@@ -840,6 +849,69 @@ namespace Leon {
                         else if (key == "BlendDistance")
                             currentActor.ReflectionProbe.BlendDistance = std::stof(val);
                         break;
+
+                    case EActorComponentSection::ParticleEmitter: {
+                        FSpriteEmitterSettings& emitter = currentActor.ParticleEmitter.Settings;
+                        const auto vec3 = [&](glm::vec3& OutValue) {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                OutValue = {v[0], v[1], v[2]};
+                        };
+                        const auto vec4 = [&](glm::vec4& OutValue) {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 4)
+                                OutValue = {v[0], v[1], v[2], v[3]};
+                        };
+                        if (key == "Enabled")
+                            emitter.bEnabled = (val == "true");
+                        else if (key == "Texture")
+                            emitter.Texture = val;
+                        else if (key == "Shape")
+                            emitter.Shape = val == "Speck" ? ESpriteShape::Speck : ESpriteShape::Puff;
+                        else if (key == "ColorStart")
+                            vec4(emitter.ColorStart);
+                        else if (key == "ColorEnd")
+                            vec4(emitter.ColorEnd);
+                        else if (key == "FadeIn")
+                            emitter.FadeIn = std::stof(val);
+                        else if (key == "FadeOut")
+                            emitter.FadeOut = std::stof(val);
+                        else if (key == "SizeStart")
+                            emitter.SizeStart = std::stof(val);
+                        else if (key == "SizeEnd")
+                            emitter.SizeEnd = std::stof(val);
+                        else if (key == "SpawnRate")
+                            emitter.SpawnRate = std::stof(val);
+                        else if (key == "Burst")
+                            emitter.Burst = std::stoi(val);
+                        else if (key == "Lifetime")
+                            emitter.Lifetime = std::stof(val);
+                        else if (key == "LifetimeSpread")
+                            emitter.LifetimeSpread = std::stof(val);
+                        else if (key == "Velocity")
+                            vec3(emitter.Velocity);
+                        else if (key == "VelocitySpread")
+                            vec3(emitter.VelocitySpread);
+                        else if (key == "Drag")
+                            emitter.Drag = std::stof(val);
+                        else if (key == "Gravity")
+                            vec3(emitter.Gravity);
+                        else if (key == "SpawnShape")
+                            emitter.SpawnShape = val == "Sphere" ? ESpriteSpawnShape::Sphere : ESpriteSpawnShape::Box;
+                        else if (key == "SpawnExtent")
+                            vec3(emitter.SpawnExtent);
+                        else if (key == "MaxParticles")
+                            emitter.MaxParticles = std::stoi(val);
+                        else if (key == "Lit")
+                            emitter.bLit = (val == "true");
+                        else if (key == "LightFraction")
+                            emitter.LightFraction = std::stof(val);
+                        else if (key == "DepthFade")
+                            emitter.DepthFade = std::stof(val);
+                        else if (key == "RandomRotation")
+                            emitter.bRandomRotation = (val == "true");
+                        break;
+                    }
 
                     case EActorComponentSection::VisibilityZone:
                         if (key == "Extent") {
@@ -1192,6 +1264,8 @@ namespace Leon {
                 entity->AddOrReplaceComponent<FVisibilityZoneComponent>(actorData.VisibilityZone);
             if (actorData.bHasPortal)
                 entity->AddOrReplaceComponent<FPortalComponent>(actorData.Portal);
+            if (actorData.bHasParticleEmitter)
+                entity->AddOrReplaceComponent<FSpriteEmitterComponent>(actorData.ParticleEmitter);
 
             // Authored properties last, then the hook: the actor is complete when it runs.
             for (const auto& [key, value] : actorData.Properties) {

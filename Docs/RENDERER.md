@@ -20,7 +20,8 @@ the shaders were ported line by line; their API names, file names and frame mech
 | World renderer: settings and view state | `Renderer/FWorldRenderer.{hpp,cpp}` |
 | World renderer: the frame | `Renderer/Private/FWorldRendererRHI.cpp` |
 | Post-processing | `Renderer/Private/FPostProcessRHI.{hpp,cpp}` |
-| HUD, overlays, world text, debug lines, particles | `Renderer/FImmediateDrawRHI.{hpp,cpp}` |
+| HUD, overlays, world text, debug lines, additive particles | `Renderer/FImmediateDrawRHI.{hpp,cpp}` |
+| Sprite particles: simulation, sorting | `Engine/FParticleSimulation` (`TickSpriteEmitter`), `Renderer/FSpriteParticleBatch` |
 | Editor interface (Dear ImGui) | `Engine/Source/Editor/Source/Private/UI/FImGuiRHI.{hpp,cpp}` |
 | Mesh buffers and textures behind asset classes | `RHI/FLegacyRenderDriver.{hpp,cpp}` |
 
@@ -41,6 +42,7 @@ probe captures     only while a reflection probe has no cube yet: two views of t
 shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
 scene pass (HDR)   opaque → decals → skinned outlines → sky → blended (back to front) → queued world-space batches
+sprite particles   blended over the scene, the farthest first, reading its depth buffer
 post-processing    ambient occlusion → volumetric fog → bloom → tone mapping and the look of the map → FXAA → film grain, into the output
 ```
 
@@ -102,7 +104,8 @@ per-frame memory.
 | `Skybox.hlsl` | Sky: HDR panorama or procedural gradient |
 | `SSAO.hlsl`, `VolumetricFog.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl`, `FXAA.hlsl` | Post-processing, one entry point per step |
 | `Downsample.hlsl` | Mip chains of render targets (`GenerateMips`) |
-| `Canvas.hlsl`, `DebugLine.hlsl`, `WorldText.hlsl` | HUD and overlays, debug lines and particles, text in the world |
+| `Canvas.hlsl`, `DebugLine.hlsl`, `WorldText.hlsl` | HUD and overlays, debug lines and additive particles, text in the world |
+| `SpriteParticles.hlsl` | Sprite particles: lit per vertex, fogged, faded where they meet the scene |
 | `ImGui.hlsl` | The editor's interface |
 
 Shaders are compiled from source when first used (`-HV 2021`, warnings as errors) and kept for the run.
@@ -530,6 +533,146 @@ marched to the wall behind it; the march is fixed-step per light, so a beam that
 stretch of a view ray far from its lamp is sampled sparsely and its edges can shimmer as the camera
 moves (there is no temporal filter); the composite does not reach the reflection captures, so a
 mirror shows the room without fog. Nothing in the editor edits the block.
+
+## Sprite particles: dust, steam, smoke
+
+Dust turning in a lamp's beam, steam off a pipe, smoke: clouds of camera-facing sprites blended over
+the scene (`ParticleEmitter:` block on any actor, `FSpriteEmitterComponent` in
+`Scene/FParticleTypes.hpp`). The older particles (`UParticleComponent`: muzzle flashes, sparks, tracers)
+are additive and unchanged.
+
+- **Simulation.** `TickSpriteEmitter` (`Engine/FParticleSimulation`), from `UWorld::Tick` while the
+  world plays: on its first tick an emitter seeds its random numbers from its entity and releases its
+  burst; then it spawns at its rate inside its volume (a box along the actor's axes, or a ball around
+  it), moves its particles (gravity, then drag as `exp(-Drag × dt)`, then velocity, in world space) and
+  drops those whose life is over. A tick is at most a quarter of a second; an emitter holds at most
+  `MaxParticles` (lowering it drops the oldest), at most 1024; anything that is not a finite number is
+  dropped. The particles are not saved.
+- **Order.** `FSpriteParticleBatch` sorts the emitters by the distance of the middle of their cloud,
+  the farthest first, and each emitter's particles by their depth along the camera's axis, the
+  farthest first, on the CPU every frame. Two clouds that pass through each other are not sorted
+  particle against particle: one is drawn over the other.
+- **Drawn.** In a pass of their own after the scene pass, onto the HDR scene, blended `src × a + dst ×
+  (1 - a)`, one draw call per emitter (six vertices a particle; up to 8192 particles a frame). The
+  pass has no depth target: the shader reads the scene's depth buffer instead, and a sprite fades in
+  from nothing at the surface behind it to its full alpha `DepthFade` metres in front of it, and is
+  not drawn behind it (so a puff crossing the floor or a wall shows no hard line). The texture is the
+  emitter's `Texture` (its alpha the shape, its colour a tint), or else a soft round puff or a small
+  sharp speck drawn by the engine (`Shape`). Sprites are fogged with the map's distance fog as surfaces
+  are.
+- **Lit.** A lit sprite sends back what a white surface of its colour facing each light would:
+  `colour × (ambient + LightFraction × lamps) / pi`, per vertex. The ambient light is the light probes'
+  at the middle of the emitter's cloud, averaged over every direction (the probes' constant term),
+  or, in a map without trusted probes, the sky's as the surfaces take it. The lamps are the point and
+  spot lights lit this frame, with the surface shader's falloff and cone, but without their shadow
+  maps. An unlit sprite's colour is the light it gives off (HDR: above 1 glows, and blooms).
+- **Not in it.** Shadows (sprites cast none and receive none), the reflection captures, ambient
+  occlusion (applied later, it darkens a sprite by the surface behind it), the volumetric fog's air
+  (laid over later by the depth of the surface behind it), sorting against blended surfaces (glass is
+  drawn before every sprite), zones (sprites in unseen rooms are still drawn).
+
+Map keys (`ParticleEmitter:` on an actor; the `Transform` places the volume):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `Enabled` | `true` | Off: the emitter holds nothing |
+| `Texture` | none | A texture asset. Written only when set |
+| `Shape` | `Puff` | `Puff` or `Speck`: the sprite drawn without a texture |
+| `ColorStart`, `ColorEnd` | `[1, 1, 1, 1]` both | Colour and alpha at birth and at death, mixed linearly between |
+| `FadeIn`, `FadeOut` | 0.15, 0.35 | Fractions of the life over which the alpha rises from 0 and falls back to it |
+| `SizeStart`, `SizeEnd` | 0.1, 0.1 | Width of a sprite in metres at birth and at death |
+| `SpawnRate` | 10 | Particles a second |
+| `Burst` | 0 | Particles at once when the emitter starts (a dust cloud already there when the map opens) |
+| `Lifetime`, `LifetimeSpread` | 3, 0.25 | Seconds, give or take that fraction |
+| `Velocity`, `VelocitySpread` | `[0, 0, 0]` both | Metres a second at birth, in world space, plus up to the spread either way on each axis |
+| `Drag` | 0 | Fraction of its velocity a particle loses a second (exponential) |
+| `Gravity` | `[0, 0, 0]` | Acceleration in m/s²; up for steam and smoke |
+| `SpawnShape`, `SpawnExtent` | `Box`, `[0.5, 0.5, 0.5]` | `Box`: half-sizes along the actor's axes; `Sphere`: radius `SpawnExtent.x` |
+| `MaxParticles` | 128 | At most 1024 |
+| `Lit`, `LightFraction` | `true`, 1 | Lit by probes and lamps; how much of the lamps' light it takes |
+| `DepthFade` | 0.25 | Metres over which a sprite fades out nearing the surface behind it |
+| `RandomRotation` | `true` | Each sprite turned by a random angle |
+
+Dust in the beam of the clinic's operating lamp (a spot light at `[3, 1.8, -29.4]` pointing down,
+40 degrees): a cloud of specks in the top of the cone, lit by the lamp where the beam is and hardly at
+all outside it.
+
+```text
+  - Name: "Dust_Theatre_Lamp"
+    Class: "AActor"
+    Transform:
+      Translation: [3, 1.2, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ParticleEmitter:
+      Enabled: true
+      Shape: Speck
+      ColorStart: [0.9, 0.85, 0.75, 0.7]
+      ColorEnd: [0.9, 0.85, 0.75, 0.7]
+      FadeIn: 0.25
+      FadeOut: 0.35
+      SizeStart: 0.012
+      SizeEnd: 0.012
+      SpawnRate: 12
+      Burst: 80
+      Lifetime: 9
+      LifetimeSpread: 0.3
+      Velocity: [0, -0.01, 0]
+      VelocitySpread: [0.025, 0.02, 0.025]
+      Drag: 0.5
+      Gravity: [0, -0.003, 0]
+      SpawnShape: Sphere
+      SpawnExtent: [0.6, 0, 0]
+      MaxParticles: 150
+      Lit: true
+      LightFraction: 1
+      DepthFade: 0.05
+      RandomRotation: true
+```
+
+Steam rising from a pipe or a basin, thinning out as it climbs:
+
+```text
+  - Name: "Steam_Sink"
+    Class: "AActor"
+    Transform:
+      Translation: [1.2, 0.95, -18.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ParticleEmitter:
+      Enabled: true
+      Shape: Puff
+      ColorStart: [0.85, 0.88, 0.9, 0.3]
+      ColorEnd: [0.8, 0.82, 0.85, 0]
+      FadeIn: 0.15
+      FadeOut: 0.4
+      SizeStart: 0.15
+      SizeEnd: 0.6
+      SpawnRate: 6
+      Burst: 0
+      Lifetime: 3.5
+      LifetimeSpread: 0.25
+      Velocity: [0, 0.3, 0]
+      VelocitySpread: [0.05, 0.08, 0.05]
+      Drag: 0.6
+      Gravity: [0, 0.08, 0]
+      SpawnShape: Box
+      SpawnExtent: [0.06, 0.02, 0.06]
+      MaxParticles: 40
+      Lit: true
+      LightFraction: 0.6
+      DepthFade: 0.3
+      RandomRotation: true
+```
+
+Cost: the simulation and the sorting are linear in the particles (plus the sort), on the CPU; the GPU cost
+is the screen area the sprites cover (steam close to the camera covers a lot, with blending). The
+frame profiler counts them (`FFrameTiming::SpriteParticleCount`; CPU time in `ParticlesMs`).
+
+Tests: `Tests/Renderer/SpriteParticleTests.cpp` (spawning, lifetime, gravity and drag, the spawn
+volume, the curves over life, nonsense in, the drawing order) and `Tests/Shader/SpriteParticleTests.cpp`
+(back-to-front blending, the round puff, the depth fade, light from the probes and from point and spot
+lamps, alpha over life, fog, nothing non-finite); `Tools/run_shader_mutations.py SPRITE`.
 
 ## The final image: the look of a map
 

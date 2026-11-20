@@ -108,6 +108,8 @@ namespace Leon {
         int32_t CulledActors = 0;
         int32_t ReplicatedActors = 0;
         int32_t ParticleCount = 0;
+        /** Sprite particles drawn (blended, FSpriteEmitterComponent). */
+        int32_t SpriteParticleCount = 0;
         int32_t ActorCount = 0;
         int32_t TickActors = 0;
         int32_t TickComponents = 0;

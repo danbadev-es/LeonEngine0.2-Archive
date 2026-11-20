@@ -290,8 +290,15 @@ namespace Leon {
             }
         }
 
-        if (bBegunPlay && !bPaused)
+        if (bBegunPlay && !bPaused) {
             TickTransientParticles(deltaSeconds);
+            FFrameProfiler::FScope particles(&FFrameProfiler::Working().ParticlesMs);
+            for (auto entity : Registry.view<FTransformComponent, FSpriteEmitterComponent>()) {
+                TickSpriteEmitter(Registry.get<FSpriteEmitterComponent>(entity),
+                                  GetEntityWorldMatrix(entity, Registry.get<FTransformComponent>(entity)), deltaSeconds,
+                                  static_cast<uint32_t>(entity) + 1u);
+            }
+        }
 
         if (PhysicsScene && !bPaused) {
             FFrameProfiler::FScope physics(&FFrameProfiler::Working().PhysicsMs);

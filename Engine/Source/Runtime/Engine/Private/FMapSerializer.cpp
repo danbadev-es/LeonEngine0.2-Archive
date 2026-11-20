@@ -19,6 +19,7 @@
 #include "Assets/UAssetManager.hpp"
 #include "RenderCore/FMeshPrimitives.hpp"
 #include "Scene/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
 #include "RHI/IRenderDriver.hpp"
 
 #include <algorithm>
@@ -584,6 +585,71 @@ namespace Leon {
                     Indent(ss, 3);
                     ss << "Doors: " << WriteStringArray(portal.Doors) << "\n";
                 }
+            }
+
+            // Sprite particle emitter
+            if (entity.HasComponent<FSpriteEmitterComponent>()) {
+                const FSpriteEmitterSettings& emitter = entity.GetComponent<FSpriteEmitterComponent>().Settings;
+                const auto vec3 = [](const glm::vec3& InValue) {
+                    return "[" + FormatMapFloat(InValue.x) + ", " + FormatMapFloat(InValue.y) + ", " +
+                           FormatMapFloat(InValue.z) + "]";
+                };
+                const auto vec4 = [](const glm::vec4& InValue) {
+                    return "[" + FormatMapFloat(InValue.x) + ", " + FormatMapFloat(InValue.y) + ", " +
+                           FormatMapFloat(InValue.z) + ", " + FormatMapFloat(InValue.w) + "]";
+                };
+                Indent(ss, 2);
+                ss << "ParticleEmitter:\n";
+                Indent(ss, 3);
+                ss << "Enabled: " << (emitter.bEnabled ? "true" : "false") << "\n";
+                if (!emitter.Texture.empty()) {
+                    Indent(ss, 3);
+                    ss << "Texture: " << QuoteMapString(emitter.Texture) << "\n";
+                }
+                Indent(ss, 3);
+                ss << "Shape: " << (emitter.Shape == ESpriteShape::Speck ? "Speck" : "Puff") << "\n";
+                Indent(ss, 3);
+                ss << "ColorStart: " << vec4(emitter.ColorStart) << "\n";
+                Indent(ss, 3);
+                ss << "ColorEnd: " << vec4(emitter.ColorEnd) << "\n";
+                Indent(ss, 3);
+                ss << "FadeIn: " << emitter.FadeIn << "\n";
+                Indent(ss, 3);
+                ss << "FadeOut: " << emitter.FadeOut << "\n";
+                Indent(ss, 3);
+                ss << "SizeStart: " << emitter.SizeStart << "\n";
+                Indent(ss, 3);
+                ss << "SizeEnd: " << emitter.SizeEnd << "\n";
+                Indent(ss, 3);
+                ss << "SpawnRate: " << emitter.SpawnRate << "\n";
+                Indent(ss, 3);
+                ss << "Burst: " << emitter.Burst << "\n";
+                Indent(ss, 3);
+                ss << "Lifetime: " << emitter.Lifetime << "\n";
+                Indent(ss, 3);
+                ss << "LifetimeSpread: " << emitter.LifetimeSpread << "\n";
+                Indent(ss, 3);
+                ss << "Velocity: " << vec3(emitter.Velocity) << "\n";
+                Indent(ss, 3);
+                ss << "VelocitySpread: " << vec3(emitter.VelocitySpread) << "\n";
+                Indent(ss, 3);
+                ss << "Drag: " << emitter.Drag << "\n";
+                Indent(ss, 3);
+                ss << "Gravity: " << vec3(emitter.Gravity) << "\n";
+                Indent(ss, 3);
+                ss << "SpawnShape: " << (emitter.SpawnShape == ESpriteSpawnShape::Sphere ? "Sphere" : "Box") << "\n";
+                Indent(ss, 3);
+                ss << "SpawnExtent: " << vec3(emitter.SpawnExtent) << "\n";
+                Indent(ss, 3);
+                ss << "MaxParticles: " << emitter.MaxParticles << "\n";
+                Indent(ss, 3);
+                ss << "Lit: " << (emitter.bLit ? "true" : "false") << "\n";
+                Indent(ss, 3);
+                ss << "LightFraction: " << emitter.LightFraction << "\n";
+                Indent(ss, 3);
+                ss << "DepthFade: " << emitter.DepthFade << "\n";
+                Indent(ss, 3);
+                ss << "RandomRotation: " << (emitter.bRandomRotation ? "true" : "false") << "\n";
             }
 
             // Text Component

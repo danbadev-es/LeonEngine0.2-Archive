@@ -36,6 +36,7 @@ FXAA = "FXAA.hlsl"
 SSAO = "SSAO.hlsl"
 SKY = "Skybox.hlsl"
 FOG = "VolumetricFog.hlsl"
+SPRITE = "SpriteParticles.hlsl"
 
 
 def M(mutation_id, file, name, target, replacement):
@@ -323,6 +324,46 @@ MUTATIONS = [
     M("FOG_BLUR_DEPTH", FOG, "Blur: smears across depth edges",
       "const float weight = kKernel[abs(i)] * DepthWeight(centerDepth, ViewDepth(LoadDepth(uv)));",
       "const float weight = kKernel[abs(i)];"),
+    # --- Sprite particles (SpriteParticles.hlsl) ---
+    M("SPRITE_TEXTURE_ALPHA", SPRITE, "Sprite: the texture's alpha (its shape) ignored",
+      "const float alpha = saturate(InPixel.Color.a * texel.a) * fade;",
+      "const float alpha = saturate(InPixel.Color.a) * fade;"),
+    M("SPRITE_NO_DEPTH_FADE", SPRITE, "Sprite: neither faded near a surface nor hidden behind one",
+      "const float fade = saturate((sceneDepth - InPixel.ViewDepth) / max(InPixel.FadeDistance, 1e-3));",
+      "const float fade = 1.0;"),
+    M("SPRITE_DEPTH_FADE_HARD", SPRITE, "Sprite: hidden behind surfaces but not faded near them",
+      "const float fade = saturate((sceneDepth - InPixel.ViewDepth) / max(InPixel.FadeDistance, 1e-3));",
+      "const float fade = sceneDepth > InPixel.ViewDepth ? 1.0 : 0.0;"),
+    M("SPRITE_DEPTH_LINEAR", SPRITE, "Sprite: depth buffer taken as -1..1 when it holds 0..1",
+      "const float ndc = InDepth * 2.0 - 1.0;",
+      "const float ndc = InDepth;"),
+    M("SPRITE_PROBE_AMBIENT", SPRITE, "Sprite: the probes' ambient light dropped",
+      "const float3 irradiance = InVertex.Ambient.rgb + LampIrradiance(InVertex.Position) * InVertex.Ambient.w;",
+      "const float3 irradiance = LampIrradiance(InVertex.Position) * InVertex.Ambient.w;"),
+    M("SPRITE_LAMP_SHARE", SPRITE, "Sprite: the lamps' light taken whole, whatever share was asked for",
+      "const float3 irradiance = InVertex.Ambient.rgb + LampIrradiance(InVertex.Position) * InVertex.Ambient.w;",
+      "const float3 irradiance = InVertex.Ambient.rgb + LampIrradiance(InVertex.Position);"),
+    M("SPRITE_LAMBERT_PI", SPRITE, "Sprite: lit without the division by pi",
+      "color = color * irradiance / kPi;",
+      "color = color * irradiance;"),
+    M("SPRITE_UNLIT_LIT", SPRITE, "Sprite: an unlit sprite lit anyway",
+      "if (InVertex.Ambient.w >= 0.0) {",
+      "if (true) {"),
+    M("SPRITE_SPOT_CONE", SPRITE, "Sprite: a spot light's soft edge ignored",
+      "arriving += light.Color.rgb * light.Params.y * LightAttenuation(distance, light.Params.x) * cone;",
+      "arriving += light.Color.rgb * light.Params.y * LightAttenuation(distance, light.Params.x);"),
+    M("SPRITE_SPOT_OUTSIDE", SPRITE, "Sprite: lit outside a spot light's cone",
+      "            continue;\n        const float cone = smoothstep(0.0, 1.0, saturate((theta - outerCos) / max(innerCos - outerCos, 0.0001)));\n        arriving +=",
+      "            ;\n        const float cone = 1.0;\n        arriving +="),
+    M("SPRITE_POINT_FALLOFF", SPRITE, "Sprite: point lights without their falloff",
+      "arriving += light.Color.rgb * light.Color.a * LightAttenuation(distance, light.Params.x);",
+      "arriving += light.Color.rgb * light.Color.a;"),
+    M("SPRITE_NO_FOG", SPRITE, "Sprite: not fogged",
+      "const float3 color = ApplyDistanceFog(InPixel.Color.rgb * texel.rgb, InPixel.WorldPosition);",
+      "const float3 color = InPixel.Color.rgb * texel.rgb;"),
+    M("SPRITE_NO_CLAMP", SPRITE, "Sprite: no limit to what it adds to the half-float scene",
+      "return float4(min(color, 60000.0), alpha);",
+      "return float4(color * 1.0e6, alpha);"),
 ]
 
 

@@ -55,6 +55,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Renderer/LightSelectionTests.cpp
     Renderer/ShadowCasterCullingTests.cpp
     Renderer/ZoneVisibilityTests.cpp
+    Renderer/SpriteParticleTests.cpp
     Core/FrameProfilerTests.cpp
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
@@ -93,6 +94,7 @@ set(LEON_ENGINE_TEST_SOURCES
     Shader/PBRShaderAlphaTests.cpp
     Shader/DecalTests.cpp
     Shader/VolumetricFogTests.cpp
+    Shader/SpriteParticleTests.cpp
     Shader/ShadowPointTests.cpp
     Shader/PBRShaderNormalMappingTests.cpp
     Shader/PBRShaderColorSpaceTests.cpp

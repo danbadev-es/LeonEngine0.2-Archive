@@ -1,4 +1,5 @@
 #include "Scene/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
 #include "Engine/FMapSerializer.hpp"
 #include "Engine/UWorld.hpp"
 #include "Gameplay/AActor.hpp"
@@ -701,6 +702,93 @@ Actors:
             CHECK(handPortal.Size == glm::vec2(1.6f, 2.05f));
             REQUIRE(handPortal.Doors.size() == 2);
             CHECK(handPortal.Doors[1] == "Door_Ward_B");
+        }
+
+        TEST_CASE("a particle emitter's block is written and read back whole, and an actor without one has none") {
+            auto src = UWorld::Create("Dusty");
+            AActor* dust = src->SpawnActor<AActor>("Dust_Ward");
+            dust->SetActorLocation({11.4f, 1.6f, -9.0f});
+            FSpriteEmitterSettings settings;
+            settings.Texture = "/Game/Textures/T_Dust.ltex";
+            settings.Shape = ESpriteShape::Speck;
+            settings.ColorStart = {0.9f, 0.85f, 0.7f, 0.6f};
+            settings.ColorEnd = {0.8f, 0.8f, 0.75f, 0.25f};
+            settings.FadeIn = 0.3f;
+            settings.FadeOut = 0.4f;
+            settings.SizeStart = 0.012f;
+            settings.SizeEnd = 0.008f;
+            settings.SpawnRate = 12.5f;
+            settings.Burst = 40;
+            settings.Lifetime = 9.0f;
+            settings.LifetimeSpread = 0.3f;
+            settings.Velocity = {0.0f, -0.01f, 0.0f};
+            settings.VelocitySpread = {0.03f, 0.02f, 0.03f};
+            settings.Drag = 0.4f;
+            settings.Gravity = {0.0f, -0.002f, 0.0f};
+            settings.SpawnShape = ESpriteSpawnShape::Sphere;
+            settings.SpawnExtent = {0.9f, 0.0f, 0.0f};
+            settings.MaxParticles = 160;
+            settings.bLit = false;
+            settings.LightFraction = 0.75f;
+            settings.DepthFade = 0.05f;
+            settings.bRandomRotation = false;
+            settings.bEnabled = false;
+            dust->AddComponent<FSpriteEmitterComponent>(settings);
+            src->SpawnActor<AActor>("Plain");
+
+            std::string text;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            CHECK(text.find("ParticleEmitter:") != std::string::npos);
+            CHECK(text.find("ParticleEmitter:") == text.rfind("ParticleEmitter:"));
+            CHECK(text.find("Shape: Speck") != std::string::npos);
+            CHECK(text.find("SpawnShape: Sphere") != std::string::npos);
+
+            auto dst = UWorld::Create("DustyDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(text));
+            AActor* restored = dst->FindActorByName("Dust_Ward");
+            REQUIRE(restored != nullptr);
+            REQUIRE(restored->HasComponent<FSpriteEmitterComponent>());
+            const FSpriteEmitterSettings& loaded = restored->GetComponent<FSpriteEmitterComponent>().Settings;
+            CHECK(loaded.Texture == settings.Texture);
+            CHECK(loaded.Shape == settings.Shape);
+            CHECK(loaded.ColorStart == settings.ColorStart);
+            CHECK(loaded.ColorEnd == settings.ColorEnd);
+            CHECK(loaded.FadeIn == settings.FadeIn);
+            CHECK(loaded.FadeOut == settings.FadeOut);
+            CHECK(loaded.SizeStart == settings.SizeStart);
+            CHECK(loaded.SizeEnd == settings.SizeEnd);
+            CHECK(loaded.SpawnRate == settings.SpawnRate);
+            CHECK(loaded.Burst == settings.Burst);
+            CHECK(loaded.Lifetime == settings.Lifetime);
+            CHECK(loaded.LifetimeSpread == settings.LifetimeSpread);
+            CHECK(loaded.Velocity == settings.Velocity);
+            CHECK(loaded.VelocitySpread == settings.VelocitySpread);
+            CHECK(loaded.Drag == settings.Drag);
+            CHECK(loaded.Gravity == settings.Gravity);
+            CHECK(loaded.SpawnShape == settings.SpawnShape);
+            CHECK(loaded.SpawnExtent == settings.SpawnExtent);
+            CHECK(loaded.MaxParticles == settings.MaxParticles);
+            CHECK(loaded.bLit == settings.bLit);
+            CHECK(loaded.LightFraction == settings.LightFraction);
+            CHECK(loaded.DepthFade == settings.DepthFade);
+            CHECK(loaded.bRandomRotation == settings.bRandomRotation);
+            CHECK(loaded.bEnabled == settings.bEnabled);
+            CHECK_FALSE(dst->FindActorByName("Plain")->HasComponent<FSpriteEmitterComponent>());
+
+            // Written by hand with a few keys: the rest keep their defaults.
+            const std::string minimal = "Map: \"Minimal\"\nVersion: \"2.2\"\n\nActors:\n"
+                                        "  - Name: \"Steam\"\n    Class: \"AActor\"\n"
+                                        "    Transform:\n      Translation: [1, 0.9, -2]\n"
+                                        "    ParticleEmitter:\n      SpawnRate: 6\n      Gravity: [0, 0.35, 0]\n";
+            auto hand = UWorld::Create("SteamByHand");
+            REQUIRE(FMapSerializer(hand).DeserializeText(minimal));
+            const FSpriteEmitterSettings& steam = hand->FindActorByName("Steam")->GetComponent<FSpriteEmitterComponent>().Settings;
+            CHECK(steam.SpawnRate == 6.0f);
+            CHECK(steam.Gravity == glm::vec3(0.0f, 0.35f, 0.0f));
+            CHECK(steam.Shape == ESpriteShape::Puff);
+            CHECK(steam.bLit);
+            CHECK(steam.Texture.empty());
+            CHECK(steam.MaxParticles == FSpriteEmitterSettings{}.MaxParticles);
         }
 
         TEST_CASE("the post-process block is persisted for maps that have one, and only for them") {

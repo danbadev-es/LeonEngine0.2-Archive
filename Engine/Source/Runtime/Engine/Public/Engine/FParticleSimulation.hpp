@@ -22,4 +22,13 @@ namespace Leon {
     void CopyParticlesForRender(const std::vector<FSimulatedParticle>& InParticles,
                                 std::vector<FParticleInstance>& OutRenderParticles);
 
+    /**
+     * Advances a sprite emitter by InDeltaSeconds (at most a quarter of a second at a time): on its
+     * first tick it starts its random numbers from InSeed and releases its burst; then it spawns at its
+     * rate inside its volume (placed by InWorld, the actor's matrix), moves its particles (gravity, then
+     * drag, then velocity) and drops those whose life is over. A disabled emitter holds nothing.
+     */
+    void TickSpriteEmitter(FSpriteEmitterComponent& InOutEmitter, const glm::mat4& InWorld, float InDeltaSeconds,
+                           uint32_t InSeed);
+
 } // namespace Leon

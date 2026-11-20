@@ -41,6 +41,7 @@
 #include "RenderCore/FReflectionProbeMath.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "Renderer/FParticleRenderer.hpp"
+#include "Renderer/FSpriteParticleBatch.hpp"
 #include "RenderCore/FShaderConstants.hpp"
 #include "RenderCore/FShaderLibrary.hpp"
 #include "RenderCore/FShadowCasterCulling.hpp"
@@ -203,6 +204,39 @@ namespace Leon {
             std::vector<uint32_t> ShadowedPoints;
             std::vector<uint32_t> ShadowedSpots;
         };
+
+        /**
+         * The sprite a particle emitter draws when it names no texture: white, its alpha the shape. A puff
+         * fades from the middle to nothing at the edge; a speck is a small bright point.
+         */
+        TRef<IRHITexture> MakeSpriteTexture(IRHIDevice& InDevice, ESpriteShape InShape) {
+            const uint32_t size = InShape == ESpriteShape::Speck ? 16 : 64;
+            FRHITextureDesc desc;
+            desc.Width = size;
+            desc.Height = size;
+            desc.Format = ERHIFormat::RGBA8_UNorm;
+            desc.Usage = RHITextureUsage_Sampled;
+            desc.DebugName = InShape == ESpriteShape::Speck ? "SpriteSpeck" : "SpritePuff";
+            TRef<IRHITexture> texture = InDevice.CreateTexture(desc);
+            if (!texture)
+                return nullptr;
+            std::vector<uint8_t> pixels(static_cast<size_t>(size) * size * 4, 255);
+            for (uint32_t y = 0; y < size; ++y) {
+                for (uint32_t x = 0; x < size; ++x) {
+                    // Distance from the middle, 1 at the edge of the inscribed circle.
+                    const glm::vec2 offset((static_cast<float>(x) + 0.5f) / static_cast<float>(size) - 0.5f,
+                                           (static_cast<float>(y) + 0.5f) / static_cast<float>(size) - 0.5f);
+                    const float r = std::min(glm::length(offset) * 2.0f, 1.0f);
+                    const float falloff = 1.0f - r * r;
+                    const float alpha = InShape == ESpriteShape::Speck ? std::exp(-12.0f * r * r) * falloff
+                                                                       : falloff * falloff;
+                    pixels[(static_cast<size_t>(y) * size + x) * 4 + 3] =
+                        static_cast<uint8_t>(std::lround(std::clamp(alpha, 0.0f, 1.0f) * 255.0f));
+                }
+            }
+            InDevice.UploadTexture(*texture, 0, 0, pixels.data(), size * 4);
+            return texture;
+        }
 
         bool HeldSlot(const std::vector<uint32_t>& InHistory, uint32_t InId) {
             return std::find(InHistory.begin(), InHistory.end(), InId) != InHistory.end();
@@ -537,6 +571,10 @@ namespace Leon {
         uint64_t ShaderGeneration = 0;
         FLightSlotHistory LightHistory;
         FPostProcessRHI PostProcess;
+        /** Sprite particles: their pipeline and the sprites drawn when an emitter names no texture. */
+        TRef<IRHIPipeline> SpritePipeline;
+        TRef<IRHITexture> SpritePuff;
+        TRef<IRHITexture> SpriteSpeck;
     };
 
     IRHITexture* FWorldRenderer::GetSceneColorTarget() const {
@@ -561,6 +599,7 @@ namespace Leon {
             state.DownsamplePipeline.reset();
             state.ProbeFilterPipeline.reset();
             state.ProbeShrinkPipeline.reset();
+            state.SpritePipeline.reset();
             state.ShaderGeneration = FShaderLibrary::GetGeneration();
         }
         // CPU time of each stage, for the on-screen profiler.
@@ -2323,6 +2362,94 @@ namespace Leon {
         drawAll(transparent, "Transparent", true, true);
         FSceneBatchesRHI::Flush(InCommands, ERHIFormat::RGBA16_Float, ERHIFormat::D32_Float);
         InCommands.EndRenderPass();
+
+        // --- Sprite particles: blended over the scene, the farthest first ---
+        // A pass of their own after the scene's: they read its depth buffer, to fade out where they
+        // meet a surface and to hide behind one, which a pass that has it as its depth target cannot.
+        {
+            FSpriteParticleBatch sprites;
+            {
+                FFrameProfiler::FScope spriteTimer(&FFrameProfiler::Working().ParticlesMs);
+                // Where the map has no light probes: the sky's light, as surfaces without a lightmap
+                // take it (GetHemisphereIrradiance), averaged over every direction.
+                const glm::vec3 skyIrradiance = 0.5f * (glm::vec3(lighting.Constants.EnvSkyColor) +
+                                                        glm::vec3(lighting.Constants.EnvGroundColor)) *
+                                                lighting.Constants.EnvSkyColor.a * glm::pi<float>();
+                sprites.Build(*World, cameraPosition, InCamera.GetRightDirection(), InCamera.GetUpDirection(),
+                              InCamera.GetForwardDirection(), skyIrradiance);
+            }
+            FFrameProfiler::Working().SpriteParticleCount = static_cast<int32_t>(sprites.ParticleCount);
+            if (!sprites.Draws.empty() && !state.SpritePipeline) {
+                const TRef<IRHIShader> spriteVS = FShaderLibrary::Get("SpriteParticles.hlsl", "VSMain", ERHIShaderStage::Vertex);
+                const TRef<IRHIShader> spritePS = FShaderLibrary::Get("SpriteParticles.hlsl", "PSMain", ERHIShaderStage::Pixel);
+                if (spriteVS && spritePS) {
+                    FRHIGraphicsPipelineDesc desc;
+                    desc.VertexShader = spriteVS.get();
+                    desc.PixelShader = spritePS.get();
+                    desc.VertexLayout.Stride = sizeof(FSpriteVertex);
+                    desc.VertexLayout.Attributes = {{ERHIVertexFormat::Float3, offsetof(FSpriteVertex, Position)},
+                                                    {ERHIVertexFormat::Float3, offsetof(FSpriteVertex, UVFade)},
+                                                    {ERHIVertexFormat::Float4, offsetof(FSpriteVertex, Color)},
+                                                    {ERHIVertexFormat::Float4, offsetof(FSpriteVertex, Ambient)}};
+                    desc.Raster.Cull = ERHICull::None;
+                    desc.Depth.bTest = false;
+                    desc.Depth.bWrite = false;
+                    desc.Blend.bEnabled = true;
+                    desc.Blend.SrcColor = ERHIBlend::SrcAlpha;
+                    desc.Blend.DstColor = ERHIBlend::InvSrcAlpha;
+                    // The scene's alpha is left as it is.
+                    desc.Blend.SrcAlpha = ERHIBlend::Zero;
+                    desc.Blend.DstAlpha = ERHIBlend::One;
+                    desc.ColorFormats[0] = ERHIFormat::RGBA16_Float;
+                    desc.DepthFormat = ERHIFormat::Unknown;
+                    desc.DebugName = "SpriteParticles";
+                    state.SpritePipeline = device->CreateGraphicsPipeline(desc);
+                }
+            }
+            if (!sprites.Draws.empty() && state.SpritePipeline) {
+                if (!state.SpritePuff)
+                    state.SpritePuff = MakeSpriteTexture(*device, ESpriteShape::Puff);
+                if (!state.SpriteSpeck)
+                    state.SpriteSpeck = MakeSpriteTexture(*device, ESpriteShape::Speck);
+                // Each emitter's texture, resolved (and loaded, the first time) before the pass begins.
+                std::vector<IRHITexture*> spriteTextures;
+                for (const FSpriteDraw& draw : sprites.Draws) {
+                    IRHITexture* texture = nullptr;
+                    if (!draw.Settings->Texture.empty()) {
+                        const TRef<FTexture2D> asset = UAssetManager::GetTexture2D(draw.Settings->Texture);
+                        texture = asset && asset->IsLoaded() ? GetRHITexture(*asset) : nullptr;
+                    }
+                    if (!texture)
+                        texture = draw.Settings->Shape == ESpriteShape::Speck ? state.SpriteSpeck.get() : state.SpritePuff.get();
+                    spriteTextures.push_back(texture);
+                }
+                FSpriteParticleConstants spriteConstants;
+                spriteConstants.DepthParams = glm::vec4(InCamera.GetNearClip(), InCamera.GetFarClip(), 0.0f, 0.0f);
+
+                FRHIRenderPassDesc spritePass;
+                spritePass.NumColorTargets = 1;
+                spritePass.Color[0].Texture = state.SceneColor.get();
+                spritePass.Color[0].LoadOp = ERHILoadOp::Load;
+                spritePass.Name = "SpriteParticles";
+                InCommands.BeginRenderPass(spritePass);
+                InCommands.SetPipeline(state.SpritePipeline.get());
+                InCommands.SetConstants(ERHIConstantSlot::Frame, &frame, sizeof(frame));
+                InCommands.SetConstants(ERHIConstantSlot::Pass, &lighting.Constants, sizeof(lighting.Constants));
+                InCommands.SetConstants(ERHIConstantSlot::Material, &spriteConstants, sizeof(spriteConstants));
+                InCommands.SetTexture(1, state.SceneDepth.get());
+                InCommands.SetVertexData(sprites.Vertices.data(),
+                                         static_cast<uint32_t>(sprites.Vertices.size() * sizeof(FSpriteVertex)),
+                                         sizeof(FSpriteVertex));
+                for (size_t index = 0; index < sprites.Draws.size(); ++index) {
+                    InCommands.SetTexture(0, spriteTextures[index]);
+                    InCommands.Draw(sprites.Draws[index].VertexCount, sprites.Draws[index].FirstVertex);
+                    ++FRenderer::GetStatsMutable().DrawCalls;
+                }
+                InCommands.SetTexture(0, nullptr);
+                InCommands.SetTexture(1, nullptr);
+                InCommands.EndRenderPass();
+            }
+        }
         stageTimer.reset();
         gpuStage.reset();
 
