@@ -45,6 +45,7 @@
 #include "RenderCore/FShaderLibrary.hpp"
 #include "RenderCore/FShadowCasterCulling.hpp"
 #include "RenderCore/FShadowMath.hpp"
+#include "RenderCore/FZoneVisibility.hpp"
 #include "Renderer/FTextRenderer.hpp"
 
 #include <algorithm>
@@ -237,11 +238,16 @@ namespace Leon {
 
         /**
          * bInMovableLights false leaves out the lights gameplay moves (the player's flashlight): what a
-         * reflection probe captures must hold for as long as the level does.
+         * reflection probe captures must hold for as long as the level does. InLeftOut: lights (by
+         * entity) that take no slot at all this frame (shadow-casting lights that reach no zone in view).
          */
         FSceneLighting GatherLighting(IRenderScene& InWorld, const glm::vec3& InViewPosition,
                                       const FFrustumPlanes& InFrustum, FLightSlotHistory& InOutHistory,
-                                      bool bInMovableLights = true) {
+                                      bool bInMovableLights = true, const std::vector<uint32_t>* InLeftOut = nullptr) {
+            const auto leftOut = [InLeftOut](entt::entity InEntity) {
+                return InLeftOut &&
+                       std::find(InLeftOut->begin(), InLeftOut->end(), static_cast<uint32_t>(InEntity)) != InLeftOut->end();
+            };
             FSceneLighting lighting;
             FLitPassConstants& constants = lighting.Constants;
             auto& registry = InWorld.GetRegistry();
@@ -269,7 +275,7 @@ namespace Leon {
             std::vector<bool> pointCastsShadows;
             for (auto entity : registry.view<FPointLightComponent>()) {
                 const auto& component = registry.get<FPointLightComponent>(entity);
-                if (!contributes(component.bEnabled, component.Mobility))
+                if (!contributes(component.bEnabled, component.Mobility) || leftOut(entity))
                     continue;
                 FPointLight point = component.Light;
                 if (const auto* transform = registry.try_get<FTransformComponent>(entity))
@@ -302,7 +308,7 @@ namespace Leon {
             std::vector<bool> spotCastsShadows;
             for (auto entity : registry.view<FSpotLightComponent>()) {
                 const auto& component = registry.get<FSpotLightComponent>(entity);
-                if (!contributes(component.bEnabled, component.Mobility))
+                if (!contributes(component.bEnabled, component.Mobility) || leftOut(entity))
                     continue;
                 FSpotLight spot = component.Light;
                 if (const auto* transform = registry.try_get<FTransformComponent>(entity))
@@ -815,6 +821,52 @@ namespace Leon {
         auto& registry = World->GetRegistry();
         const FFrustumPlanes frustum = ExtractFrustumPlanes(InCamera.GetViewProjectionMatrix());
         const glm::vec3 cameraPosition = InCamera.GetPosition();
+
+        // Rooms and doorways: which zones the camera sees (RenderCore/FZoneVisibility.hpp). Zones are
+        // taken in a fixed order (by entity), so the bits of a zone mean the same thing all frame.
+        std::vector<FZoneBox> zoneBoxes;
+        std::vector<FZonePortal> zonePortals;
+        if (bZoneVisibilityEnabled) {
+            std::vector<entt::entity> zoneEntities;
+            for (auto entity : registry.view<FTransformComponent, FVisibilityZoneComponent>())
+                zoneEntities.push_back(entity);
+            std::sort(zoneEntities.begin(), zoneEntities.end());
+            for (const entt::entity entity : zoneEntities) {
+                const glm::vec3 center(ResolveActorWorldMatrix(World, entity, registry.get<FTransformComponent>(entity))[3]);
+                const glm::vec3 extent = glm::abs(registry.get<FVisibilityZoneComponent>(entity).Extent);
+                zoneBoxes.push_back({center - extent, center + extent});
+            }
+            if (zoneBoxes.size() > kMaxVisibilityZones)
+                zoneBoxes.clear(); // more rooms than the masks hold: drawn as a map without zones
+            for (auto entity : registry.view<FTransformComponent, FPortalComponent>()) {
+                if (zoneBoxes.empty())
+                    break;
+                const FPortalComponent& component = registry.get<FPortalComponent>(entity);
+                const glm::mat4 world = ResolveActorWorldMatrix(World, entity, registry.get<FTransformComponent>(entity));
+                FZonePortal portal;
+                portal.Center = glm::vec3(world[3]);
+                portal.AxisX = SafeNormalize(glm::vec3(world[0]), glm::vec3(1.0f, 0.0f, 0.0f));
+                portal.AxisY = SafeNormalize(glm::vec3(world[1]), glm::vec3(0.0f, 1.0f, 0.0f));
+                portal.HalfSize = glm::max(glm::abs(component.Size) * 0.5f, glm::vec2(0.01f));
+                portal.bOpen = component.IsOpen();
+                zonePortals.push_back(portal);
+            }
+            ResolvePortalZones(zoneBoxes, zonePortals);
+        }
+        // The near plane reaches about this far from the camera: a portal that close is stepped through.
+        const FZoneVisibility zoneVisibility =
+            zoneBoxes.empty() ? FZoneVisibility{}
+                              : ComputeZoneVisibility(zoneBoxes, zonePortals, cameraPosition, frustum,
+                                                      std::max(InCamera.GetNearClip() * 2.0f, 0.05f));
+        uint32_t zoneCulledActors = 0;
+        // An actor of the camera's view that no zone in sight holds. Its bounds are the culling bounds.
+        const auto hiddenByZones = [&](const glm::vec3& InMin, const glm::vec3& InMax) {
+            if (!zoneVisibility.bActive ||
+                IsHeldBoundsVisible(zoneVisibility, ZonesHolding(zoneBoxes, InMin, InMax), InMin, InMax))
+                return false;
+            ++zoneCulledActors;
+            return true;
+        };
         const bool bLightmapsTrusted = World->AreLightmapsTrusted();
         const TRef<FMaterialInstance> defaultMaterial = UAssetManager::GetDefaultMaterialInstance();
 
@@ -1079,6 +1131,13 @@ namespace Leon {
                              nullptr, mesh.Mobility == EComponentMobility::Static);
             if (IsProceduralMeshCulled(model, mesh, frustum))
                 continue;
+            if (zoneVisibility.bActive) {
+                glm::vec3 boundsMin;
+                glm::vec3 boundsMax;
+                TransformAABB(-extent, extent, model, boundsMin, boundsMax);
+                if (hiddenByZones(boundsMin, boundsMax))
+                    continue;
+            }
             submit(*mesh.VertexArray, material.get(), model, indexCount, 0,
                    lightmapFor(mesh.Mobility, mesh.LightmapIndex, mesh.LightmapAssetPath), mesh.LightmapScale,
                    mesh.LightmapBias, -extent, extent, nullptr, mesh.bReceiveShadows);
@@ -1108,6 +1167,14 @@ namespace Leon {
             }
             if (IsStaticMeshCulled(world, component, frustum))
                 continue;
+            if (zoneVisibility.bActive) {
+                glm::vec3 boundsMin;
+                glm::vec3 boundsMax;
+                TransformAABB(component.StaticMesh->GetBoundsMin(), component.StaticMesh->GetBoundsMax(), world,
+                              boundsMin, boundsMax);
+                if (hiddenByZones(boundsMin, boundsMax))
+                    continue;
+            }
             const uint32_t lod = std::min(component.CurrentLOD, lodCount - 1);
             RecordStaticMeshLODStats(lod, component.StaticMesh->GetSourceTriangleCount(),
                                      component.StaticMesh->GetLODTriangleCount(lod));
@@ -1148,6 +1215,17 @@ namespace Leon {
             }
             if (IsSkeletalMeshCulled(world, skinned, frustum))
                 continue;
+            if (zoneVisibility.bActive) {
+                // The rest pose's bounds, grown as for shadows: an animated pose leaves them.
+                glm::vec3 boundsMin;
+                glm::vec3 boundsMax;
+                TransformAABB(skinned.SkeletalMesh->GetBoundsMin(), skinned.SkeletalMesh->GetBoundsMax(),
+                              SkeletalModelMatrix(world, skinned, glm::mat4(1.0f)), boundsMin, boundsMax);
+                const glm::vec3 center = 0.5f * (boundsMin + boundsMax);
+                const glm::vec3 half = 0.5f * (boundsMax - boundsMin) * FShadowSettings::kSkinnedShadowBoundsPadding;
+                if (hiddenByZones(center - half, center + half))
+                    continue;
+            }
             for (const auto& submesh : skinned.SkeletalMesh->GetSubmeshes()) {
                 if (submesh.IndexCount == 0)
                     continue;
@@ -1265,7 +1343,48 @@ namespace Leon {
             prepareMaterial(*caster.Material);
 
         // --- Lighting ---
-        FSceneLighting lighting = GatherLighting(*World, cameraPosition, frustum, state.LightHistory);
+        // A shadow-casting light that reaches no zone in sight would only shade what its map shows to be
+        // behind a wall: it takes no slot (FZoneVisibility.hpp). Not while a planar capture is drawn:
+        // a mirror can show a room the camera does not.
+        std::vector<uint32_t> zoneLeftOutLights;
+        const auto wantsPlanarCapture = [](const FSceneDraw& InDraw) { return InDraw.bPlanar; };
+        const bool bPlanarThisFrame =
+            bEnablePlanarReflection && (std::any_of(opaque.begin(), opaque.end(), wantsPlanarCapture) ||
+                                        std::any_of(decals.begin(), decals.end(), wantsPlanarCapture) ||
+                                        std::any_of(transparent.begin(), transparent.end(), wantsPlanarCapture));
+        if (zoneVisibility.bActive && bShadowsOn && !bPlanarThisFrame) {
+            uint64_t visibleZones = 0;
+            for (size_t zone = 0; zone < zoneVisibility.Visible.size(); ++zone) {
+                if (zoneVisibility.Visible[zone])
+                    visibleZones |= uint64_t(1) << zone;
+            }
+            const auto considerLight = [&](entt::entity InEntity, const glm::vec3& InPosition, float InRadius) {
+                const FZoneLightReach reach = ComputeZoneLightReach(zoneBoxes, zonePortals, InPosition, InRadius);
+                if (!reach.bKnown || (reach.Zones & visibleZones) || (reach.bOutside && zoneVisibility.bOutsideVisible))
+                    return;
+                zoneLeftOutLights.push_back(static_cast<uint32_t>(InEntity));
+            };
+            for (auto entity : registry.view<FPointLightComponent>()) {
+                const auto& component = registry.get<FPointLightComponent>(entity);
+                if (!component.bEnabled || !component.bCastShadows)
+                    continue;
+                glm::vec3 position = component.Light.Position;
+                if (const auto* transform = registry.try_get<FTransformComponent>(entity))
+                    position = transform->Translation;
+                considerLight(entity, position, component.Light.Radius);
+            }
+            for (auto entity : registry.view<FSpotLightComponent>()) {
+                const auto& component = registry.get<FSpotLightComponent>(entity);
+                if (!component.bEnabled || !component.bCastShadows)
+                    continue;
+                glm::vec3 position = component.Light.Position;
+                if (const auto* transform = registry.try_get<FTransformComponent>(entity))
+                    position = transform->Translation;
+                considerLight(entity, position, component.Light.Radius);
+            }
+        }
+        FSceneLighting lighting =
+            GatherLighting(*World, cameraPosition, frustum, state.LightHistory, true, &zoneLeftOutLights);
         IRHITexture* brdfLut = IBLEnvironment.BRDFLUT ? GetRHITexture(*IBLEnvironment.BRDFLUT) : nullptr;
         IRHITexture* irradiance = IBLEnvironment.IrradianceMap ? GetRHITexture(*IBLEnvironment.IrradianceMap) : nullptr;
         IRHITexture* prefilter = IBLEnvironment.PrefilterMap ? GetRHITexture(*IBLEnvironment.PrefilterMap) : nullptr;
@@ -1458,21 +1577,42 @@ namespace Leon {
             std::vector<uint8_t> Static;
             std::vector<uint8_t> Skinned;
         };
+        // In a map with zones, a light inside a zone draws only the casters it can shine on: in a zone
+        // it lights, inside what it sees of that zone through the portals (FZoneVisibility.hpp). The
+        // first surface a ray from it meets is one of those, or the wall that closes such a zone. Not
+        // for a light that shines out of every zone.
+        std::vector<uint64_t> staticCasterZones;
+        std::vector<uint64_t> skinnedCasterZones;
+        if (!zoneBoxes.empty()) {
+            for (const FShadowCaster& caster : staticCasters)
+                staticCasterZones.push_back(ZonesTouching(zoneBoxes, caster.WorldMin, caster.WorldMax));
+            for (const FShadowCaster& caster : skinnedCasters)
+                skinnedCasterZones.push_back(ZonesTouching(zoneBoxes, caster.WorldMin, caster.WorldMax));
+        }
         const auto maskCasters = [&](const FLightReach& InReach, const FFrustumPlanes* InReceiverView) {
             FCasterMasks masks;
-            if (!ShadowSettings.bCullShadowCasters)
+            FZoneLightReach zones;
+            if (!zoneBoxes.empty())
+                zones = ComputeZoneLightReach(zoneBoxes, zonePortals, InReach.Position, InReach.Radius);
+            const bool bZones = zones.bKnown && !zones.bOutside;
+            const bool bReach = ShadowSettings.bCullShadowCasters;
+            if (!bZones && !bReach)
                 return masks;
-            const auto fill = [&](const std::vector<FShadowCaster>& InCasters, std::vector<uint8_t>& OutMask) {
+            const auto fill = [&](const std::vector<FShadowCaster>& InCasters, const std::vector<uint64_t>& InZones,
+                                  std::vector<uint8_t>& OutMask) {
                 OutMask.resize(InCasters.size());
                 for (size_t index = 0; index < InCasters.size(); ++index) {
                     const FShadowCaster& caster = InCasters[index];
-                    OutMask[index] =
-                        CasterInLightReach(caster.WorldMin, caster.WorldMax, InReach) &&
-                        (!InReceiverView || CasterCanShadowView(caster.WorldMin, caster.WorldMax, InReach, *InReceiverView));
+                    bool bKeep = !bZones || IsCasterLit(zones, InZones[index], caster.WorldMin, caster.WorldMax);
+                    if (bKeep && bReach)
+                        bKeep = CasterInLightReach(caster.WorldMin, caster.WorldMax, InReach) &&
+                                (!InReceiverView ||
+                                 CasterCanShadowView(caster.WorldMin, caster.WorldMax, InReach, *InReceiverView));
+                    OutMask[index] = bKeep;
                 }
             };
-            fill(staticCasters, masks.Static);
-            fill(skinnedCasters, masks.Skinned);
+            fill(staticCasters, staticCasterZones, masks.Static);
+            fill(skinnedCasters, skinnedCasterZones, masks.Skinned);
             return masks;
         };
 
@@ -2237,6 +2377,9 @@ namespace Leon {
         profile.CulledActors = static_cast<int32_t>(stats.MeshesCulled);
         profile.DrawCalls = stats.DrawCalls;
         profile.TriangleCount = stats.TriangleCount;
+        profile.VisibleZones = zoneVisibility.bActive ? zoneVisibility.VisibleCount() : 0;
+        profile.ZoneCulledActors = zoneCulledActors;
+        profile.ZoneSkippedLights = static_cast<uint32_t>(zoneLeftOutLights.size());
         {
             profile.GPUShadowMs = device->GetGpuTimeMs(EGPUTimerSlot::Shadow);
             profile.GPUPlanarMs = device->GetGpuTimeMs(EGPUTimerSlot::Planar);

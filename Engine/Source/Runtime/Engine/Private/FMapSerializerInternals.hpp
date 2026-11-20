@@ -262,4 +262,33 @@ namespace Leon {
         return result;
     }
 
+    /**
+     * A list of quoted strings, ["A", "B"], as WriteStringArray writes it. Commas and brackets inside the
+     * quotes belong to the strings.
+     */
+    inline std::vector<std::string> ParseStringArray(const std::string& InValue, bool bInUnescape) {
+        std::vector<std::string> result;
+        const std::string s = FStringUtils::Trim(InValue);
+        for (size_t i = 0; i < s.size(); ++i) {
+            if (s[i] != '"')
+                continue;
+            size_t end = i + 1;
+            while (end < s.size() && s[end] != '"') {
+                if (s[end] == '\\' && bInUnescape)
+                    ++end;
+                ++end;
+            }
+            result.push_back(StripQuotes(s.substr(i, std::min(end, s.size() - 1) - i + 1), bInUnescape));
+            i = end;
+        }
+        return result;
+    }
+
+    inline std::string WriteStringArray(const std::vector<std::string>& InValues) {
+        std::string out = "[";
+        for (size_t i = 0; i < InValues.size(); ++i)
+            out += (i > 0 ? ", " : "") + QuoteMapString(InValues[i]);
+        return out + "]";
+    }
+
 } // namespace Leon

@@ -100,6 +100,7 @@ leon_add_module(RenderCore
     Source/Runtime/RenderCore/Private/FPerspectiveCamera.cpp
     Source/Runtime/RenderCore/Private/FShaderLibrary.cpp
     Source/Runtime/RenderCore/Private/FMeshPrimitives.cpp
+    Source/Runtime/RenderCore/Private/FZoneVisibility.cpp
     DEPENDS Core RHI ShaderCompiler
 )
 
@@ -279,6 +280,8 @@ set(LEON_ENGINE_SOURCES
     Source/Runtime/Gameplay/Private/ABlockingVolume.cpp
     Source/Runtime/Gameplay/Private/ASkyLight.cpp
     Source/Runtime/Gameplay/Private/AReflectionProbe.cpp
+    Source/Runtime/Gameplay/Private/AVisibilityZone.cpp
+    Source/Runtime/Gameplay/Private/APortal.cpp
     Source/Runtime/Gameplay/Private/ATriggerVolume.cpp
     Source/Runtime/Gameplay/Private/APhysicsVolume.cpp
     Source/Runtime/Gameplay/Private/ANavMeshBoundsVolume.cpp

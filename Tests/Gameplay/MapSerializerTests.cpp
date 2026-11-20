@@ -4,7 +4,9 @@
 #include "Gameplay/AActor.hpp"
 #include "Gameplay/ABlockingVolume.hpp"
 #include "Gameplay/APlayerStart.hpp"
+#include "Gameplay/APortal.hpp"
 #include "Gameplay/AReflectionProbe.hpp"
+#include "Gameplay/AVisibilityZone.hpp"
 #include "Gameplay/ATriggerVolume.hpp"
 #include "Gameplay/UClassRegistry.hpp"
 
@@ -624,6 +626,81 @@ Actors:
             CHECK(written->GetComponent<FReflectionProbeComponent>().CaptureOffset == glm::vec3(0.0f));
             CHECK(written->GetComponent<FReflectionProbeComponent>().Intensity == 1.0f);
             CHECK(written->GetComponent<FReflectionProbeComponent>().BlendDistance == 0.5f);
+        }
+
+        TEST_CASE("zones and portals keep their class, their place and their blocks; doors are told shut by name") {
+            auto src = UWorld::Create("Zoned");
+            auto* zone = src->SpawnActor<AVisibilityZone>("Zone_Corridor");
+            REQUIRE(zone != nullptr);
+            REQUIRE(zone->HasComponent<FVisibilityZoneComponent>());
+            zone->SetActorLocation({7.2f, 1.4f, -15.0f});
+            zone->GetComponent<FVisibilityZoneComponent>().Extent = {1.2f, 1.9f, 9.0f};
+            auto* portal = src->SpawnActor<APortal>("Portal_Ward");
+            REQUIRE(portal != nullptr);
+            REQUIRE(portal->HasComponent<FPortalComponent>());
+            portal->SetActorLocation({8.4f, 1.025f, -9.5f});
+            portal->SetActorRotation({0.0f, 90.0f, 0.0f});
+            auto& opening = portal->GetComponent<FPortalComponent>();
+            opening.Size = {1.6f, 2.05f};
+            // A name with a comma and a quote in it survives the list.
+            opening.Doors = {"Door_Ward_A", "Door \"Ward\", B"};
+            src->SpawnActor<APortal>("Portal_Open");
+
+            std::string text;
+            REQUIRE(FMapSerializer(src).SerializeText(text));
+            CHECK(text.find("Class: \"AVisibilityZone\"") != std::string::npos);
+            CHECK(text.find("VisibilityZone:\n      Extent: [1.2, 1.9, 9]") != std::string::npos);
+            CHECK(text.find("Portal:\n      Size: [1.6, 2.05]") != std::string::npos);
+            CHECK(text.find("Doors: [\"Door_Ward_A\", \"Door \\\"Ward\\\", B\"]") != std::string::npos);
+            // A portal without doors writes no list.
+            CHECK(text.find("Doors:") == text.rfind("Doors:"));
+
+            auto dst = UWorld::Create("ZonedDst");
+            REQUIRE(FMapSerializer(dst).DeserializeText(text));
+            AActor* restoredZone = dst->FindActorByName("Zone_Corridor");
+            REQUIRE(restoredZone != nullptr);
+            CHECK(dynamic_cast<AVisibilityZone*>(restoredZone) != nullptr);
+            CHECK(restoredZone->GetActorLocation() == glm::vec3(7.2f, 1.4f, -15.0f));
+            CHECK(restoredZone->GetComponent<FVisibilityZoneComponent>().Extent == glm::vec3(1.2f, 1.9f, 9.0f));
+            AActor* restoredPortal = dst->FindActorByName("Portal_Ward");
+            REQUIRE(restoredPortal != nullptr);
+            CHECK(dynamic_cast<APortal*>(restoredPortal) != nullptr);
+            CHECK(restoredPortal->GetActorRotation() == glm::vec3(0.0f, 90.0f, 0.0f));
+            const auto& loaded = restoredPortal->GetComponent<FPortalComponent>();
+            CHECK(loaded.Size == glm::vec2(1.6f, 2.05f));
+            REQUIRE(loaded.Doors.size() == 2);
+            CHECK(loaded.Doors[0] == "Door_Ward_A");
+            CHECK(loaded.Doors[1] == "Door \"Ward\", B");
+            CHECK(dst->FindActorByName("Portal_Open")->GetComponent<FPortalComponent>().Doors.empty());
+
+            // The game tells the world a door is shut: the portal closes when all of its doors are.
+            CHECK(loaded.IsOpen());
+            CHECK(dst->SetPortalDoorClosed("Door_Ward_A", true) == 1);
+            CHECK(loaded.IsOpen());
+            CHECK(dst->SetPortalDoorClosed("Door \"Ward\", B", true) == 1);
+            CHECK_FALSE(loaded.IsOpen());
+            CHECK(dst->SetPortalDoorClosed("Door_Ward_A", false) == 1);
+            CHECK(loaded.IsOpen());
+            CHECK(dst->SetPortalDoorClosed("Somewhere_Else", true) == 0);
+            CHECK(dst->FindActorByName("Portal_Open")->GetComponent<FPortalComponent>().IsOpen());
+
+            // Written by hand, as a map script writes it.
+            const std::string minimal = "Map: \"Minimal\"\nVersion: \"2.2\"\n\nActors:\n"
+                                        "  - Name: \"Zone_Ward\"\n    Class: \"AVisibilityZone\"\n"
+                                        "    Transform:\n      Translation: [11.4, 1.4, -9.5]\n"
+                                        "    VisibilityZone:\n      Extent: [3, 1.9, 3.5]\n"
+                                        "  - Name: \"Portal_Ward\"\n    Class: \"APortal\"\n"
+                                        "    Transform:\n      Translation: [8.4, 1.025, -9.5]\n      Rotation: [0, 90, 0]\n"
+                                        "    Portal:\n      Size: [1.6, 2.05]\n      Doors: [\"Door_Ward_A\", \"Door_Ward_B\"]\n";
+            auto hand = UWorld::Create("ZonedByHand");
+            REQUIRE(FMapSerializer(hand).DeserializeText(minimal));
+            REQUIRE(hand->FindActorByName("Zone_Ward") != nullptr);
+            CHECK(hand->FindActorByName("Zone_Ward")->GetComponent<FVisibilityZoneComponent>().Extent ==
+                  glm::vec3(3.0f, 1.9f, 3.5f));
+            const auto& handPortal = hand->FindActorByName("Portal_Ward")->GetComponent<FPortalComponent>();
+            CHECK(handPortal.Size == glm::vec2(1.6f, 2.05f));
+            REQUIRE(handPortal.Doors.size() == 2);
+            CHECK(handPortal.Doors[1] == "Door_Ward_B");
         }
 
         TEST_CASE("the post-process block is persisted for maps that have one, and only for them") {

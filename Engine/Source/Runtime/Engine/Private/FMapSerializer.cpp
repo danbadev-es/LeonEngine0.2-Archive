@@ -566,6 +566,26 @@ namespace Leon {
                 ss << "BlendDistance: " << probe.BlendDistance << "\n";
             }
 
+            // Visibility zone and portal
+            if (entity.HasComponent<FVisibilityZoneComponent>()) {
+                const auto& zone = entity.GetComponent<FVisibilityZoneComponent>();
+                Indent(ss, 2);
+                ss << "VisibilityZone:\n";
+                Indent(ss, 3);
+                ss << "Extent: [" << zone.Extent.x << ", " << zone.Extent.y << ", " << zone.Extent.z << "]\n";
+            }
+            if (entity.HasComponent<FPortalComponent>()) {
+                const auto& portal = entity.GetComponent<FPortalComponent>();
+                Indent(ss, 2);
+                ss << "Portal:\n";
+                Indent(ss, 3);
+                ss << "Size: [" << portal.Size.x << ", " << portal.Size.y << "]\n";
+                if (!portal.Doors.empty()) {
+                    Indent(ss, 3);
+                    ss << "Doors: " << WriteStringArray(portal.Doors) << "\n";
+                }
+            }
+
             // Text Component
             if (entity.HasComponent<FTextComponent>()) {
                 const auto& txt = entity.GetComponent<FTextComponent>();

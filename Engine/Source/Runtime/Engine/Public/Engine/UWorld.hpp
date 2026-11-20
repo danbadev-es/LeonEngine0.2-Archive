@@ -175,6 +175,13 @@ namespace Leon {
         void SetLightProbes(FLightProbeGrid InGrid) { LightProbes = std::move(InGrid); }
         const FLightProbeGrid& GetLightProbes() const { return LightProbes; }
 
+        /**
+         * A door named by portals (FPortalComponent::Doors) opened or shut. A portal lets nothing be
+         * seen or lit through it once every door it names is reported closed. Call it when the door is
+         * fully shut and again as soon as it starts to open. Returns how many portals name the door.
+         */
+        uint32_t SetPortalDoorClosed(const std::string& InDoorName, bool bInClosed);
+
         // The rest of IRenderScene.
         glm::mat4 GetEntityWorldMatrix(entt::entity InEntity, const FTransformComponent& InTransform) const override;
         bool WantsDebugDraw() const override;

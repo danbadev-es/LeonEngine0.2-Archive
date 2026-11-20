@@ -298,6 +298,46 @@ namespace Leon {
     };
 
     /**
+     * A room of the level, for what the camera can see and where lights reach (AVisibilityZone, a
+     * VisibilityZone: block in a map): an axis-aligned box centred on the actor; the actor's rotation
+     * and scale are not used. The renderer draws the camera's zone and the zones it sees through open
+     * portals (RenderCore/FZoneVisibility.hpp). A map without zones is drawn as before.
+     */
+    struct FVisibilityZoneComponent {
+        /** Half the size of the box, in metres: the room with its walls, floor and ceiling. */
+        glm::vec3 Extent{2.0f, 1.5f, 2.0f};
+
+        FVisibilityZoneComponent() = default;
+        FVisibilityZoneComponent(const FVisibilityZoneComponent&) = default;
+    };
+
+    /**
+     * An opening between two zones (APortal, a Portal: block in a map): a rectangle centred on the
+     * actor, in its local XY plane (it faces the actor's local +Z), Size wide and high; the actor's
+     * scale is not used. The zones on either side are found from the zone boxes. When every actor
+     * named in Doors is reported closed (UWorld::SetPortalDoorClosed), nothing is seen or lit through it.
+     */
+    struct FPortalComponent {
+        /** Width and height of the opening, in metres. */
+        glm::vec2 Size{1.0f, 2.0f};
+        /** The actors (by name) that close the opening: the leaves of its door. */
+        std::vector<std::string> Doors;
+        /** Bit i: Doors[i] is closed. Set by the game while playing; not saved. */
+        uint32_t ClosedDoors = 0;
+
+        /** Open unless it has doors and all of them are closed (doors past the 32nd are taken as open). */
+        bool IsOpen() const {
+            if (Doors.empty() || Doors.size() > 32)
+                return true;
+            const uint32_t all = Doors.size() == 32 ? 0xFFFFFFFFu : ((1u << Doors.size()) - 1u);
+            return (ClosedDoors & all) != all;
+        }
+
+        FPortalComponent() = default;
+        FPortalComponent(const FPortalComponent&) = default;
+    };
+
+    /**
      * @brief Unreal Engine aligned Camera component.
      */
     struct FCameraComponent {

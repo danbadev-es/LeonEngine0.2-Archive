@@ -537,6 +537,21 @@ namespace Leon {
         return settings.bStaticLighting ? settings.LightmapBakeHash : 0;
     }
 
+    uint32_t UWorld::SetPortalDoorClosed(const std::string& InDoorName, bool bInClosed) {
+        uint32_t portals = 0;
+        for (auto entity : Registry.view<FPortalComponent>()) {
+            FPortalComponent& portal = Registry.get<FPortalComponent>(entity);
+            for (size_t index = 0; index < portal.Doors.size() && index < 32; ++index) {
+                if (portal.Doors[index] != InDoorName)
+                    continue;
+                const uint32_t bit = 1u << index;
+                portal.ClosedDoors = bInClosed ? (portal.ClosedDoors | bit) : (portal.ClosedDoors & ~bit);
+                ++portals;
+            }
+        }
+        return portals;
+    }
+
     FWorldRenderer* UWorld::GetWorldRenderer() {
         if (!Renderer) {
             Renderer = CreateScope<FWorldRenderer>(this);

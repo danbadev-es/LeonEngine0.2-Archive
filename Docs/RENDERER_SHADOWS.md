@@ -40,6 +40,10 @@ before):
    that every shadowed point within the radius is inside. When the light is in or at the box, or the
    box spans more than about 80 degrees each way from it, the caster is kept.
 
+4. **In a map with zones** ([RENDERER.md](RENDERER.md), "Rooms and doorways"), for a light inside a
+   zone that does not shine out of every zone: the caster touches a zone the light lights, inside
+   what the light sees of it through the doorways. This one does not depend on `bCullShadowCasters`.
+
 Why this cannot drop a visible shadow: everything that reads these maps lies in the camera's frustum
 (the surfaces drawn, and the samples the volumetric fog takes along view rays up to the depth buffer),
 and a receiver within the light's radius can only be shadowed by something on the segment from the

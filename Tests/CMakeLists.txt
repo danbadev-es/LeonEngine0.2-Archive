@@ -54,12 +54,14 @@ set(LEON_ENGINE_TEST_SOURCES
     Renderer/RenderDebugHotkeysTests.cpp
     Renderer/LightSelectionTests.cpp
     Renderer/ShadowCasterCullingTests.cpp
+    Renderer/ZoneVisibilityTests.cpp
     Core/FrameProfilerTests.cpp
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
     GPU/ClinicMeasureTests.cpp
     GPU/ShadowCasterCullingTests.cpp
+    GPU/ZoneVisibilityTests.cpp
     Lightmass/BakerAccelerationTests.cpp
     Asset/TextureCompressionTests.cpp
     Core/MulticastDelegateTests.cpp

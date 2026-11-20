@@ -149,6 +149,16 @@ namespace Leon {
         uint32_t GetVolumetricFogSteps() const { return VolumetricFogSteps; }
 
         /**
+         * Rooms and doorways (FVisibilityZoneComponent, FPortalComponent): the camera's zone and the
+         * zones it sees through open portals are drawn, nothing held by the others; a shadow-casting
+         * light that reaches no zone that is seen is left out, and the others draw into their maps only
+         * the casters that touch a zone they reach (RenderCore/FZoneVisibility.hpp). On by default; a
+         * map without zones is drawn the same either way.
+         */
+        void SetZoneVisibilityEnabled(bool bEnabled) { bZoneVisibilityEnabled = bEnabled; }
+        bool IsZoneVisibilityEnabled() const { return bZoneVisibilityEnabled; }
+
+        /**
          * The HDR scene of the last frame drawn (RGBA16 float), for tools and tests; null before the
          * first. With ambient occlusion off it includes the light in the air.
          */
@@ -217,6 +227,9 @@ namespace Leon {
         std::string ReflectionProbeCacheDirectory;
         uint32_t ReflectionProbeCaptureCount = 0;
         uint32_t ReflectionProbeCacheLoadCount = 0;
+
+        // Rooms and doorways.
+        bool bZoneVisibilityEnabled = true;
 
         // Light in the air.
         bool bVolumetricFogEnabled = true;

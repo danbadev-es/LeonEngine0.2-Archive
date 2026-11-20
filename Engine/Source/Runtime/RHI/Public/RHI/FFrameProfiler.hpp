@@ -93,6 +93,12 @@ namespace Leon {
         uint32_t DrawCalls = 0;
         uint32_t TriangleCount = 0;
         uint32_t ShadowDrawCalls = 0;
+        /** Visibility zones the camera sees this frame (0 when the map has none or culling is off). */
+        uint32_t VisibleZones = 0;
+        /** Actors not drawn because no zone they are in is seen. */
+        uint32_t ZoneCulledActors = 0;
+        /** Shadow-casting lights left out because they reach no zone that is seen. */
+        uint32_t ZoneSkippedLights = 0;
         uint32_t ShaderChanges = 0;
         uint32_t TextureBinds = 0;
         uint32_t VAOBinds = 0;

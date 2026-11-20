@@ -123,6 +123,11 @@ namespace Leon {
         bool bHasReflectionProbe = false;
         FReflectionProbeComponent ReflectionProbe;
 
+        bool bHasVisibilityZone = false;
+        FVisibilityZoneComponent VisibilityZone;
+        bool bHasPortal = false;
+        FPortalComponent Portal;
+
         bool bHasBoxCollision = false;
         FBoxCollisionComponent BoxCollision;
         bool bTriggerEnabled = true;
@@ -194,6 +199,8 @@ namespace Leon {
             SpotLight,
             Text,
             ReflectionProbe,
+            VisibilityZone,
+            Portal,
             BoxCollision,
             Properties
         };
@@ -556,6 +563,14 @@ namespace Leon {
                     currentCompSection = EActorComponentSection::ReflectionProbe;
                     currentActor.bHasReflectionProbe = true;
                     continue;
+                } else if (trimmed == "VisibilityZone:") {
+                    currentCompSection = EActorComponentSection::VisibilityZone;
+                    currentActor.bHasVisibilityZone = true;
+                    continue;
+                } else if (trimmed == "Portal:") {
+                    currentCompSection = EActorComponentSection::Portal;
+                    currentActor.bHasPortal = true;
+                    continue;
                 } else if (trimmed == "BoxCollision:" || trimmed == "BoxCollisionComponent:") {
                     currentCompSection = EActorComponentSection::BoxCollision;
                     currentActor.bHasBoxCollision = true;
@@ -824,6 +839,24 @@ namespace Leon {
                             currentActor.ReflectionProbe.Intensity = std::stof(val);
                         else if (key == "BlendDistance")
                             currentActor.ReflectionProbe.BlendDistance = std::stof(val);
+                        break;
+
+                    case EActorComponentSection::VisibilityZone:
+                        if (key == "Extent") {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                currentActor.VisibilityZone.Extent = {v[0], v[1], v[2]};
+                        }
+                        break;
+
+                    case EActorComponentSection::Portal:
+                        if (key == "Size") {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 2)
+                                currentActor.Portal.Size = {v[0], v[1]};
+                        } else if (key == "Doors") {
+                            currentActor.Portal.Doors = ParseStringArray(trimmed.substr(colon + 1), bEscapedStrings);
+                        }
                         break;
 
                     case EActorComponentSection::SpotLight:
@@ -1154,6 +1187,11 @@ namespace Leon {
             // Reflection probe: AReflectionProbe creates the component itself, so assign rather than add.
             if (actorData.bHasReflectionProbe)
                 entity->AddOrReplaceComponent<FReflectionProbeComponent>(actorData.ReflectionProbe);
+            // Zones and portals: their classes create the component themselves, as probes do.
+            if (actorData.bHasVisibilityZone)
+                entity->AddOrReplaceComponent<FVisibilityZoneComponent>(actorData.VisibilityZone);
+            if (actorData.bHasPortal)
+                entity->AddOrReplaceComponent<FPortalComponent>(actorData.Portal);
 
             // Authored properties last, then the hook: the actor is complete when it runs.
             for (const auto& [key, value] : actorData.Properties) {

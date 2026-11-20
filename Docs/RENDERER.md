@@ -34,6 +34,7 @@ command list and the output through `FRHIFrame`, runs the layers, ends the frame
 ```text
 UpdateViewState    level of detail, IBL environment, spot light aim, skinned shadow casters, mirror planes
 queue              world text, particles, gameplay debug shapes (drawn at the end of the scene pass)
+zones              the rooms the camera sees through open doorways, when the map has zones
 collect            visible mesh sections, resolved to pipelines, buffers and textures; shadow casters
 lights             the point and spot lights that get the shader's slots, by importance for the camera
 probe captures     only while a reflection probe has no cube yet: two views of the static level a frame
@@ -174,6 +175,103 @@ long corridor can lose to weaker ones around the camera; a light dropped from th
 at once rather than fading out; a spot light's shadow is lost where the occluder is close to the surface
 it shadows and both are several metres from the light (the map stores perspective depth from a near
 plane of 0.1 m, which leaves little precision out there, and the bias is larger than what is left).
+
+## Rooms and doorways: what is drawn, what is lit
+
+A level built of rooms can say so: a **zone** is a room (an axis-aligned box), a **portal** is a
+doorway between two rooms (a rectangle). The renderer then draws the camera's zone and the zones it sees
+through open portals, leaves out the shadow-casting lights that light none of those, and draws into
+each shadow map only what its light can shine on. A map without zones is drawn as before, bit for bit;
+`FWorldRenderer::SetZoneVisibilityEnabled(false)` makes a map with zones draw as one without. The math
+is `RenderCore/FZoneVisibility.hpp` (no device; tested on the CPU), the use of it
+`FWorldRendererRHI.cpp`.
+
+Why zones and portals and not something else: the levels are rooms joined by doors, and a door is the
+one place a room can be seen or lit from another. Boxes and rectangles written by the map script cost
+nothing to author or to bake, hold for moving things and opening doors, and answer both questions
+(what the camera sees, where a light reaches) the same way. A precomputed potentially-visible set
+would need a bake and could not follow doors; occlusion queries would cost a frame of latency and GPU
+time for walls that are always the same.
+
+- **Seen.** The zones holding the camera are seen whole. From there each open portal in view is
+  clipped to what of it is in view, and the camera's frustum is narrowed to it: planes through the
+  camera and each edge, and the portal's plane. The zone beyond is seen through that narrowed frustum,
+  and its own portals are clipped to it in turn. A portal within twice the near clip of the camera
+  shows both its zones whole (the near plane can reach through it). A path never crosses one portal
+  twice; at most 16 narrowed frustums are kept per zone (more: the zone is taken as seen whole) and
+  4096 portal crossings per frame (more: the frame is drawn without zones).
+- **Drawn.** An actor of the camera's view (procedural mesh, static mesh, skinned mesh, with its
+  outline) is left out when every zone whose box holds its bounds whole (5 cm of slack) is unseen, or
+  seen only through narrowed frustums that miss its bounds. An actor no single zone holds (a door
+  frame across two rooms, anything outside every zone) is always drawn. Moving actors are placed
+  every frame from their bounds; skinned meshes with their bounds grown as for shadows. Particles,
+  text and debug drawing are not culled; reflection captures (probes, planar) see everything.
+- **Lit.** A light reaches zones the way the camera sees them, from the light's position, every way,
+  through open portals within its radius. A shadow-casting spot or point light that reaches no zone
+  that is seen (nor, through a portal to the outside, an outside that is seen) takes no lit slot and no
+  shadow map that frame (`FFrameTiming::ZoneSkippedLights`). Not while a planar capture is drawn: a
+  mirror can show a room the camera does not.
+- **Shadowed.** A spot or point light inside a zone that does not shine out of every zone draws into
+  its map only the casters that touch a zone it lights, inside what it sees of that zone; casters no
+  zone touches are always drawn. Reflection-probe captures use the same rule.
+- **Doors.** A portal names the actors that close it (`Doors`). The game reports a door with
+  `UWorld::SetPortalDoorClosed(name, bClosed)`: closed when it is fully shut, open as soon as it starts
+  to open. When every door a portal names is reported closed, nothing is seen or lit through it. A
+  portal without doors (an open archway) is always open.
+
+What this assumes of the level, and why it is then safe. **Zones are sealed**: sight and light pass
+from one zone to another only through portals, and every surface seen or lit inside a zone lies in its
+box (walls, floor and ceiling included). Then every pixel the camera sees lies in a zone it sees, so an
+actor that no seen zone holds covers no pixel. A shadow-casting light that reaches no seen zone adds
+nothing to any seen pixel: its shadow map holds the wall between them. And a ray from a light leaves
+the zones it lights only through a wall whose surface faces into a lit zone and lies in its box, so the
+first surface every ray meets is still drawn into the map and the map is the same along every ray that
+reaches anything lit. A room shell made of its own floor, walls and ceiling facing inwards (the
+clinic's) is sealed. What is not: an opening without a portal (a hatch, a window between rooms), a
+zone box smaller than its room, a wall that only the room behind it models.
+
+What changes in a sealed map with zones: nothing seen, except that a shadow-casting light left out no
+longer leaks light through the walls of the room it is shut in (where a wall meets the floor nearer
+than the shadow bias, and where the shadow fades on surfaces it grazes); and, as lit slots go to the
+lights that count, a light that had no slot may get one.
+
+Map keys (on an actor of class `AVisibilityZone` or `APortal`; the `Transform` places it):
+
+| Block | Key | Default | Meaning |
+|-----|-----|---------|---------|
+| `VisibilityZone:` | `Extent: [x, y, z]` | `[2, 1.5, 2]` | Half-sizes of the box in metres, around the actor's location. Rotation and scale are not used |
+| `Portal:` | `Size: [w, h]` | `[1, 2]` | Width and height of the opening in metres. The rectangle is centred on the actor in its local XY plane: width along local X, height along local Y. Scale is not used |
+| `Portal:` | `Doors: ["A", "B"]` | none | Actors (by name) whose doors close the opening. Written only when there are some |
+
+The zones on either side of a portal are found from the boxes: the zones holding the points 0.3 m in
+front of and behind its centre. Up to 64 zones (`kMaxVisibilityZones`); a map with more is drawn as
+one without.
+
+```text
+  - Name: "Zone_Corridor"
+    Class: "AVisibilityZone"
+    Transform:
+      Translation: [7.2, 1.4, -15]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [1.2, 1.65, 9]
+  - Name: "Portal_Ward"
+    Class: "APortal"
+    Transform:
+      Translation: [8.4, 1.025, -9.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [1.6, 2.05]
+      Doors: ["Door_Ward_A", "Door_Ward_B"]
+```
+
+Measured on a grid of 16 rooms with a shadowed lamp each (`Tests/GPU/ZoneVisibilityTests.cpp`), see
+"Cost of a frame". Limits: zones are boxes, so a room that is not a box needs several zones joined by
+portals of the room's full cross-section; the actor is the unit of culling, so a mesh spanning rooms (one
+floor under the whole level) is always drawn; a light's reach ignores a spot light's cone; nothing in
+the editor draws zones or portals.
 
 ## Reflection probes: what a room reflects
 
@@ -503,6 +601,13 @@ differs more between runs than that):
 The CPU time fell with the per-frame lookups ("A frame"); with them, drawing a shadow caster costs
 under a microsecond, and the caster culling changes the CPU time by less than the runs differ. Its
 gain is the draw calls and a little GPU time.
+
+Zones ("Rooms and doorways") cannot be measured on the clinic until its map has them. On the grid of
+`Tests/GPU/ZoneVisibilityTests.cpp` (16 rooms of 6 m joined by 24 doorways, a dozen props and a lamp
+casting shadows in each, the flashlight; looking from a corner room down a row), zones off then on:
+509 → 372 draw calls (its props are drawn instanced: 1716 → 972 triangles), 500 → 364 shadow draws,
+4 rooms seen of 16, 62 actors and 8 shadowed lamps left out; CPU render 1.9–2.2 → 1.7–2.0 ms (Release,
+RTX 5060, three runs of 100 frames, `LEON_TEST_GPU=1`).
 
 ## Checking a change
 
