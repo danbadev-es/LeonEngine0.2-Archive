@@ -165,6 +165,10 @@ Map keys, in a `SpotLight:` or `PointLight:` block:
 Point lights do not cast shadows unless the map says so: a cube costs six views of the scene, and the
 lights of a baked level have their shadows in the lightmap.
 
+A spot or point light's shadow map draws only the casters the light reaches and whose shadow can fall
+in the camera's view ([RENDERER_SHADOWS.md](RENDERER_SHADOWS.md), "Which casters a spot or point
+light's map draws").
+
 Limits: the ranking looks at the camera, not at what is on screen, so a strong light at the end of a
 long corridor can lose to weaker ones around the camera; a light dropped from the lit slots disappears
 at once rather than fading out; a spot light's shadow is lost where the occluder is close to the surface
@@ -470,6 +474,35 @@ Limits: the project switches (`[/Script/Engine.RendererSettings]`: SSAO, bloom, 
 with the project, not the map; grading is three numbers per control, not a lookup table; the grain is
 per pixel of the output, so it is finer at higher resolutions; aberration shifts the scene, not the
 bloom added to it. Nothing in the editor edits the block yet.
+
+## Cost of a frame
+
+`Tests/GPU/ClinicMeasureTests.cpp` loads LeonHorror's clinic with the engine alone (the game's classes
+are not registered: no characters, no enemies; a Movable spot light stands in for the flashlight),
+applies the settings the game runs with (High, no planar reflections, one cascade, PCF 5x5) and draws
+200 frames at 1920 x 1080 at each of four places, printing draw calls, shadow-map draw calls, the CPU
+time of `FWorldRenderer::Render` and its stages, and GPU time. It runs only when asked, on the
+graphics card, best from a Release build:
+
+```text
+LEON_TEST_GPU=1 LEON_MEASURE_CLINIC=1 out/build/dev-release/bin/RendererTests.exe -tc="*clinic*"
+```
+
+It alternates blocks of frames with `bCullShadowCasters` off and on, so both see the same clock drift
+of a laptop. On the RTX 5060 laptop GPU, medians of three runs. CPU render: before the per-frame
+lookups, then with them and the caster culling. GPU: culling off, then on, in the same runs (GPU time
+differs more between runs than that):
+
+| Place (plan coordinates) | Draw calls | Shadow draws | CPU render | GPU |
+| :--- | ---: | ---: | ---: | ---: |
+| corridor (7.2, 8.6), north | 2304 → 1739 | 1803 → 1238 | 9.1 → 3.9 ms | 7.0 → 6.8 ms |
+| ward (11.4, 9.0), north | 2273 → 1764 | 1829 → 1320 | 8.8 → 4.8 ms | 6.9 → 6.8 ms |
+| reception (2.2, 2.3), north | 2435 → 2012 | 1841 → 1418 | 8.9 → 6.1 ms | 6.4 → 6.3 ms |
+| reception (2.2, 2.3), east | 1102 → 662 | 1003 → 563 | 4.6 → 3.0 ms | 4.7 → 4.6 ms |
+
+The CPU time fell with the per-frame lookups ("A frame"); with them, drawing a shadow caster costs
+under a microsecond, and the caster culling changes the CPU time by less than the runs differ. Its
+gain is the draw calls and a little GPU time.
 
 ## Checking a change
 

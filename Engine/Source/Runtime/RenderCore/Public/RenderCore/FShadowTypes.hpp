@@ -57,6 +57,12 @@ namespace Leon {
         uint32_t MaxShadowedPointLights = 4;
         uint32_t MaxShadowedSpotLights = 4;
 
+        /// The shadow map of a spot or point light draws only casters inside what the light reaches
+        /// (its sphere, a spot light's cone) and, for the camera's maps, whose shadow can fall where
+        /// the camera looks (FShadowCasterCulling.hpp). Off: every caster in the shadow view's
+        /// frustum, as before; the pictures are the same either way.
+        bool bCullShadowCasters = true;
+
         static constexpr uint32_t kMaxShadowedPointLights = 4;
         /// Layers of the spot shadow map; keep in sync with MAX_SHADOWED_SPOT_LIGHTS in PBR_Common.hlsli.
         static constexpr uint32_t kMaxShadowedSpotLights = 4;

@@ -43,6 +43,7 @@
 #include "Renderer/FParticleRenderer.hpp"
 #include "RenderCore/FShaderConstants.hpp"
 #include "RenderCore/FShaderLibrary.hpp"
+#include "RenderCore/FShadowCasterCulling.hpp"
 #include "RenderCore/FShadowMath.hpp"
 #include "Renderer/FTextRenderer.hpp"
 
@@ -1450,13 +1451,40 @@ namespace Leon {
                                      ShadowSettings.CascadeBlendWidth);
         lit.ShadowParams = shadowParams;
 
+        // Which casters one light's map needs, for each list of casters (see FShadowCasterCulling.hpp):
+        // those in what the light reaches and, when InReceiverView is given (the camera's maps), whose
+        // shadow can fall inside it. Empty masks when the culling is switched off: every caster passes.
+        struct FCasterMasks {
+            std::vector<uint8_t> Static;
+            std::vector<uint8_t> Skinned;
+        };
+        const auto maskCasters = [&](const FLightReach& InReach, const FFrustumPlanes* InReceiverView) {
+            FCasterMasks masks;
+            if (!ShadowSettings.bCullShadowCasters)
+                return masks;
+            const auto fill = [&](const std::vector<FShadowCaster>& InCasters, std::vector<uint8_t>& OutMask) {
+                OutMask.resize(InCasters.size());
+                for (size_t index = 0; index < InCasters.size(); ++index) {
+                    const FShadowCaster& caster = InCasters[index];
+                    OutMask[index] =
+                        CasterInLightReach(caster.WorldMin, caster.WorldMax, InReach) &&
+                        (!InReceiverView || CasterCanShadowView(caster.WorldMin, caster.WorldMax, InReach, *InReceiverView));
+                }
+            };
+            fill(staticCasters, masks.Static);
+            fill(skinnedCasters, masks.Skinned);
+            return masks;
+        };
+
         // Draws the casters a light can see into one slice of a shadow map.
         // InLightViewProjection is in the engine's clip convention (depth -1..1).
         // bInStaticOnly: only what never moves casts (the shadows a reflection probe's capture shows).
+        // InMasks: the casters this light needs (maskCasters); null for the sun, whose cascades take
+        // every caster in their frustum.
         const auto drawShadowMap = [&](IRHITexture& InMap, uint32_t InSlice, const glm::mat4& InLightViewProjection,
                                        bool bInCullFrontFaces, bool bInBias, bool bInSkinnedCasters,
                                        const glm::vec4& InPointLight, const char* InName,
-                                       bool bInStaticOnly = false) {
+                                       bool bInStaticOnly = false, const FCasterMasks* InMasks = nullptr) {
             const bool bCubeFace = InPointLight.w > 0.0f;
             const FFrustumPlanes lightFrustum = ExtractFrustumPlanes(InLightViewProjection);
             FShadowPassConstants passConstants;
@@ -1475,9 +1503,13 @@ namespace Leon {
 
             IRHIPipeline* boundPipeline = nullptr;
             const FMaterialInstance* boundMaterial = nullptr;
-            const auto drawCasters = [&](const std::vector<FShadowCaster>& InCasters) {
-                for (const FShadowCaster& caster : InCasters) {
+            const auto drawCasters = [&](const std::vector<FShadowCaster>& InCasters, const std::vector<uint8_t>* InMask) {
+                const bool bMasked = InMask && InMask->size() == InCasters.size();
+                for (size_t index = 0; index < InCasters.size(); ++index) {
+                    const FShadowCaster& caster = InCasters[index];
                     if (bInStaticOnly && !caster.bStatic)
+                        continue;
+                    if (bMasked && !(*InMask)[index])
                         continue;
                     if (!AABBIntersectsFrustum(caster.WorldMin, caster.WorldMax, lightFrustum))
                         continue;
@@ -1511,9 +1543,9 @@ namespace Leon {
                     ++FRenderer::GetStatsMutable().DrawCalls;
                 }
             };
-            drawCasters(staticCasters);
+            drawCasters(staticCasters, InMasks ? &InMasks->Static : nullptr);
             if (bInSkinnedCasters && !bInStaticOnly)
-                drawCasters(skinnedCasters);
+                drawCasters(skinnedCasters, InMasks ? &InMasks->Skinned : nullptr);
             InCommands.EndRenderPass();
         };
 
@@ -1543,9 +1575,11 @@ namespace Leon {
 
         // The shadow maps of the spot and point lights of a view: the camera's, or a probe capture's
         // (bInStaticOnly). The lights of InOutLighting learn which layer or cube is theirs.
+        // InReceiverView: where everything that reads these maps lies (the camera's frustum); null for
+        // a probe capture, which looks every way.
         const auto drawLocalShadows = [&](FSceneLighting& InOutLighting, const glm::vec3& InViewPosition,
                                           const FFrustumPlanes& InFrustum, FLightSlotHistory& InOutHistory,
-                                          bool bInStaticOnly) {
+                                          bool bInStaticOnly, const FFrustumPlanes* InReceiverView) {
             FLitPassConstants& constants = InOutLighting.Constants;
             // Spot: each shadowed light gets a layer of the map.
             const std::vector<uint32_t> shadowedSpots =
@@ -1560,8 +1594,12 @@ namespace Leon {
                 const float farPlane = std::max(spot.Radius * 1.05f, 1.0f);
                 const glm::mat4 spotMatrix = glm::perspective(glm::radians(fieldOfView), 1.0f, 0.1f, farPlane) *
                                              glm::lookAt(spot.Position, spot.Position + direction, up);
+                const FCasterMasks masks = maskCasters(
+                    SpotLightReach(spot.Position, direction, spot.Radius, std::max(spot.CutOff, spot.OuterCutOff),
+                                   fieldOfView, state.SpotShadowMap->GetDesc().Width, ShadowSettings.NormalBias),
+                    InReceiverView);
                 drawShadowMap(*state.SpotShadowMap, layer, spotMatrix, false, true, true, glm::vec4(0.0f), "SpotShadow",
-                              bInStaticOnly);
+                              bInStaticOnly, &masks);
                 constants.SpotLightSpaceMatrices[layer] = ClipToShadowMap() * spotMatrix;
                 constants.SpotLights[shadowedSpots[layer]].Params.z = static_cast<float>(layer);
             }
@@ -1577,10 +1615,12 @@ namespace Leon {
                 const glm::vec3 position(light.Position);
                 const float farPlane = std::max(light.Params.x, 1.0f);
                 const glm::mat4 faceProjection = ShadowMath::PointCubeFaceProjection(0.05f, farPlane);
+                const FCasterMasks masks =
+                    maskCasters(PointLightReach(position, light.Params.x, ShadowSettings.NormalBias), InReceiverView);
                 for (uint32_t face = 0; face < 6; ++face)
                     drawShadowMap(*state.PointShadowMap, cube * 6 + face,
                                   faceProjection * ShadowMath::PointCubeFaceView(position, face), false, false, true,
-                                  glm::vec4(position, farPlane), "PointShadow", bInStaticOnly);
+                                  glm::vec4(position, farPlane), "PointShadow", bInStaticOnly, &masks);
                 light.Params.y = static_cast<float>(cube);
             }
             constants.ShadowFlags.z = shadowedPoints.empty() ? 0 : 1;
@@ -1699,7 +1739,7 @@ namespace Leon {
                     capturePass.CascadeSplits = glm::vec4(1.0e9f);
                     capturePass.ShadowFlags.x = 1;
                 }
-                drawLocalShadows(captureLighting, position, everywhere, noHistory, true);
+                drawLocalShadows(captureLighting, position, everywhere, noHistory, true, nullptr);
                 capturePass.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), 0, 1, 0);
 
                 std::sort(staticTransparent.begin(), staticTransparent.end(),
@@ -1894,7 +1934,7 @@ namespace Leon {
             lit.ShadowFlags.x = 1;
         }
 
-        drawLocalShadows(lighting, cameraPosition, frustum, state.LightHistory, false);
+        drawLocalShadows(lighting, cameraPosition, frustum, state.LightHistory, false, &frustum);
         lit.ShadowSettings = glm::ivec4(static_cast<int>(ShadowSettings.FilterMode), 0,
                                         static_cast<int>(ShadowSettings.CascadeCount), 0);
 

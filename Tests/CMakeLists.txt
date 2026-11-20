@@ -53,10 +53,13 @@ set(LEON_ENGINE_TEST_SOURCES
     Lightmass/StaticLightingTests.cpp
     Renderer/RenderDebugHotkeysTests.cpp
     Renderer/LightSelectionTests.cpp
+    Renderer/ShadowCasterCullingTests.cpp
     Core/FrameProfilerTests.cpp
     RHI/RHINullTests.cpp
     RHI/RHID3D12Tests.cpp
     GPU/WorldRendererTests.cpp
+    GPU/ClinicMeasureTests.cpp
+    GPU/ShadowCasterCullingTests.cpp
     Lightmass/BakerAccelerationTests.cpp
     Asset/TextureCompressionTests.cpp
     Core/MulticastDelegateTests.cpp

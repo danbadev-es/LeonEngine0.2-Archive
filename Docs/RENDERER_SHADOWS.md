@@ -20,6 +20,41 @@ CSM uses front-face cull + polygon offset `(2, 4)`. Spot and point faces use bac
 
 Casters are AABB-culled against each cascade / spot / point-face frustum. Skinned casters inflate bind-pose AABB by `kSkinnedShadowBoundsPadding` (1.35). Masked materials (`EAlphaMode::Mask`) discard in the depth shader.
 
+## Which casters a spot or point light's map draws
+
+A shadow view's frustum holds more than its light reaches: a cube face's corners lie well outside the
+light's sphere, a spot projection is square around a round cone. And of what a light reaches, the
+camera's frame needs only the casters whose shadow can land where the camera looks. With
+`FShadowSettings::bCullShadowCasters` (on by default) a spot or point light's map draws a caster only
+when all of these hold (`RenderCore/FShadowCasterCulling.hpp`, once per light, then the face frustum as
+before):
+
+1. **In the light's sphere**: the caster's bounds come within the radius (plus margins, below). A
+   caster further away cannot stand between the light and anything it lights.
+2. **In a spot light's cone**: the bounds' sphere meets the cone of the outer cut-off plus one degree.
+   Skipped for cones of 85 degrees and more.
+3. **For the camera's maps only, its shadow can fall in view**: the bounds of everything the caster
+   can shadow meet the camera's frustum. Those bounds are the caster's box and the eight points the
+   rays from the light through its corners reach at `radius / c`, where `c` is the smallest cosine
+   between those rays and their mean direction; the comment of `CasterShadowBounds` has the proof
+   that every shadowed point within the radius is inside. When the light is in or at the box, or the
+   box spans more than about 80 degrees each way from it, the caster is kept.
+
+Why this cannot drop a visible shadow: everything that reads these maps lies in the camera's frustum
+(the surfaces drawn, and the samples the volumetric fog takes along view rays up to the depth buffer),
+and a receiver within the light's radius can only be shadowed by something on the segment from the
+light to it, which is inside the sphere and, for a spot light, inside the cone; a caster on that
+segment has the receiver in its shadow bounds. The margins cover what a lookup reads beside the
+receiver's own direction: the filter's taps and the push along the normal in texture space (an angle:
+`2 tan(half view) × (0.02 + 4 / resolution)` for a spot map, 0.04 rad for a cube) and the normal
+offset (`NormalBias` + 5 cm). Reflection-probe captures use tests 1 and 2 only (they look every way);
+the sun's cascades are culled by their frustums as before. Nothing is cached between frames: there is
+no static shadow cache.
+
+`Tests/GPU/ShadowCasterCullingTests.cpp` counts shadow draw calls for casters outside a cone, past a
+radius, behind the camera and above it, and draws frames with the culling on and off: the pictures are
+the same bit for bit. Measured on LeonHorror's clinic, see [RENDERER.md](RENDERER.md), "Cost of a frame".
+
 ## Practical split scheme
 
 For \(N\) partitions between \(z_{\text{near}}\) and shadow far \(z_{\text{far}}\):
