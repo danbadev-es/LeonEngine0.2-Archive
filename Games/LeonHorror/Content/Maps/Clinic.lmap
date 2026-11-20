@@ -19,7 +19,7 @@ Environment:
     TexelPadding: 4
     WorldScale: 1
     LightmapAsset: "/Game/Lightmaps/Clinic.llightmap"
-    LightmapBakeHash: "adf3269e2fafea02"
+    LightmapBakeHash: "a2df620c978c2ef3"
     LightProbeAsset: "/Game/Lightmaps/Clinic.lprobes"
   Skybox:
     Enabled: true
@@ -1446,6 +1446,309 @@ Actors:
       CaptureOffset: [0, 0.15, 0]
       Intensity: 1
       BlendDistance: 0.3
+  - Name: "Zone_Reception"
+    Class: "AVisibilityZone"
+    GUID: "3d7a48c0dffd830c30e29ccd5287892e"
+    Transform:
+      Translation: [4.2, 1.4, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [4.2, 1.65, 3]
+  - Name: "Zone_Waiting"
+    Class: "AVisibilityZone"
+    GUID: "70eca719ce9e7bbba18a8c17c6dec68b"
+    Transform:
+      Translation: [11.4, 1.4, -3]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 3]
+  - Name: "Zone_Corridor"
+    Class: "AVisibilityZone"
+    GUID: "83db565e9e86d8894239c47e3181cd2a"
+    Transform:
+      Translation: [7.2, 1.4, -15]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [1.2, 1.65, 9]
+  - Name: "Zone_Consult1"
+    Class: "AVisibilityZone"
+    GUID: "301d4c1cdddaeb9e0e8131c60d2e2c8f"
+    Transform:
+      Translation: [3, 1.4, -8.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 2.25]
+  - Name: "Zone_Consult2"
+    Class: "AVisibilityZone"
+    GUID: "2e8da521175b31d9f69f982905c13ce8"
+    Transform:
+      Translation: [3, 1.4, -12.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 2.25]
+  - Name: "Zone_Pharmacy"
+    Class: "AVisibilityZone"
+    GUID: "66a3dadb393fb56244634e2552260737"
+    Transform:
+      Translation: [3, 1.4, -17]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 2]
+  - Name: "Zone_Staff"
+    Class: "AVisibilityZone"
+    GUID: "fb8d7b42e0a8d5e842864af4c1241d2f"
+    Transform:
+      Translation: [3, 1.4, -21.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 2.5]
+  - Name: "Zone_Ward"
+    Class: "AVisibilityZone"
+    GUID: "df5a22cf0b1454955bc91e2fcc0e8910"
+    Transform:
+      Translation: [11.4, 1.4, -9.5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 3.5]
+  - Name: "Zone_XRay"
+    Class: "AVisibilityZone"
+    GUID: "f6b7acc6022bcec2b2892f318d333cd6"
+    Transform:
+      Translation: [11.4, 1.4, -15.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 2.25]
+  - Name: "Zone_Toilets"
+    Class: "AVisibilityZone"
+    GUID: "5cb519ed0eb7290b7a3e55cef4d55839"
+    Transform:
+      Translation: [11.4, 1.4, -18.75]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 1.25]
+  - Name: "Zone_Storage"
+    Class: "AVisibilityZone"
+    GUID: "8ec18292a807c4f7f181395d637e6bfa"
+    Transform:
+      Translation: [11.4, 1.4, -22]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 2]
+  - Name: "Zone_Service"
+    Class: "AVisibilityZone"
+    GUID: "607378c11b66935943755504c0d3f43c"
+    Transform:
+      Translation: [7.2, 1.4, -25.2]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [7.2, 1.65, 1.2]
+  - Name: "Zone_Theatre"
+    Class: "AVisibilityZone"
+    GUID: "de72724824323ae4a90c89024a60f18b"
+    Transform:
+      Translation: [3, 1.4, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [3, 1.65, 3]
+  - Name: "Zone_Morgue"
+    Class: "AVisibilityZone"
+    GUID: "05809ae793ea6ca0247cd782ec7e50f7"
+    Transform:
+      Translation: [8, 1.4, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [2, 1.65, 3]
+  - Name: "Zone_Plant"
+    Class: "AVisibilityZone"
+    GUID: "5142260659a16ae28c1db0712b31e986"
+    Transform:
+      Translation: [12.2, 1.4, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [2.2, 1.65, 3]
+  - Name: "Zone_Bay"
+    Class: "AVisibilityZone"
+    GUID: "c46e713b0827241e9581ee45ca801273"
+    Transform:
+      Translation: [16.2, 1.4, -26]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    VisibilityZone:
+      Extent: [1.8, 1.65, 2]
+  - Name: "Portal_Lobby"
+    Class: "APortal"
+    GUID: "61fefd75044eb77c96a8d78c3278ca90"
+    Transform:
+      Translation: [8.4, 1.2, -3]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [3, 2.4]
+  - Name: "Portal_Corridor"
+    Class: "APortal"
+    GUID: "90aa502af3526adb6adf750ca576da2a"
+    Transform:
+      Translation: [7.2, 1.025, -6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [1.6, 2.05]
+      Doors: ["Door_Corridor_A", "Door_Corridor_B"]
+  - Name: "Portal_Consult1"
+    Class: "APortal"
+    GUID: "65ee419870bc940edfb260e0a419269e"
+    Transform:
+      Translation: [6, 1.025, -8.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Consult1"]
+  - Name: "Portal_Consult2"
+    Class: "APortal"
+    GUID: "c3c0cc759369ec4db525e85f50038732"
+    Transform:
+      Translation: [6, 1.025, -12.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Consult2"]
+  - Name: "Portal_Pharmacy"
+    Class: "APortal"
+    GUID: "df532ee610e873af4032d3b352a3f5bc"
+    Transform:
+      Translation: [6, 1.025, -17]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Pharmacy"]
+  - Name: "Portal_Staff"
+    Class: "APortal"
+    GUID: "d578e01ecc07ebc7c99167be937c372b"
+    Transform:
+      Translation: [6, 1.025, -21.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Staff"]
+  - Name: "Portal_Ward"
+    Class: "APortal"
+    GUID: "0e116a361a38282d1ef7d3a8533321a3"
+    Transform:
+      Translation: [8.4, 1.025, -9.5]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [1.6, 2.05]
+      Doors: ["Door_Ward_A", "Door_Ward_B"]
+  - Name: "Portal_XRay"
+    Class: "APortal"
+    GUID: "4a97b1f16cd9d6f08458dc8a19c16cc6"
+    Transform:
+      Translation: [8.4, 1.025, -15.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_XRay"]
+  - Name: "Portal_Toilets"
+    Class: "APortal"
+    GUID: "95f69cfa7efeb7aad92bd82158ff168b"
+    Transform:
+      Translation: [8.4, 1.025, -18.8]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Toilets"]
+  - Name: "Portal_Storage"
+    Class: "APortal"
+    GUID: "a9fb85e9dd8574d80a18944e932473c3"
+    Transform:
+      Translation: [8.4, 1.025, -22]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Storage"]
+  - Name: "Portal_Service"
+    Class: "APortal"
+    GUID: "04c5b02c69264216575e9d67c5abcd8e"
+    Transform:
+      Translation: [7.2, 1.025, -24]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [1.6, 2.05]
+      Doors: ["Door_Service_A", "Door_Service_B"]
+  - Name: "Portal_Theatre"
+    Class: "APortal"
+    GUID: "8dc7e3acc01762c3ac04be223c68f24e"
+    Transform:
+      Translation: [3, 1.025, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [1.6, 2.05]
+      Doors: ["Door_Theatre_A", "Door_Theatre_B"]
+  - Name: "Portal_Morgue"
+    Class: "APortal"
+    GUID: "0ddad59b79059cb47e3c39bc67981288"
+    Transform:
+      Translation: [8, 1.025, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Morgue"]
+  - Name: "Portal_Plant"
+    Class: "APortal"
+    GUID: "b94ad64ef173984a994ecba2b4660476"
+    Transform:
+      Translation: [12.2, 1.025, -26.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Plant"]
+  - Name: "Portal_Bay"
+    Class: "APortal"
+    GUID: "7c3741f536097507d605995f3d7285c8"
+    Transform:
+      Translation: [14.4, 1.025, -25.2]
+      Rotation: [0, 90, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_Bay"]
+  - Name: "Portal_WardXRay"
+    Class: "APortal"
+    GUID: "e58ad8191d0de6ba98dce8c8c5c2b7f3"
+    Transform:
+      Translation: [12.5, 1.025, -13]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    Portal:
+      Size: [0.9, 2.05]
+      Doors: ["Door_WardXRay"]
   - Name: "Door_Corridor_Frame"
     Class: "AActor"
     GUID: "54519fd6bb8d11d5f6de4196c1cce2a7"
@@ -7032,3 +7335,96 @@ Actors:
       Collision: false
       Mobility: Movable
       LightmapResolution: 64
+  - Name: "Dust_Theatre_Lamp"
+    Class: "AActor"
+    GUID: "29337f77cc61a71991a18c1f7bfd28e9"
+    Transform:
+      Translation: [3, 1.2, -29.4]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ParticleEmitter:
+      Enabled: true
+      Shape: Speck
+      ColorStart: [0.9, 0.85, 0.75, 0.7]
+      ColorEnd: [0.9, 0.85, 0.75, 0.7]
+      FadeIn: 0.25
+      FadeOut: 0.35
+      SizeStart: 0.012
+      SizeEnd: 0.012
+      SpawnRate: 12
+      Burst: 80
+      Lifetime: 9
+      LifetimeSpread: 0.3
+      Velocity: [0, -0.01, 0]
+      VelocitySpread: [0.025, 0.02, 0.025]
+      Drag: 0.5
+      Gravity: [0, -0.003, 0]
+      SpawnShape: Sphere
+      SpawnExtent: [0.6, 0, 0]
+      MaxParticles: 150
+      Lit: true
+      LightFraction: 1
+      DepthFade: 0.05
+      RandomRotation: true
+  - Name: "Dust_Ward"
+    Class: "AActor"
+    GUID: "3c57baee24a1fa63b64041eba4ac9623"
+    Transform:
+      Translation: [11.4, 1.6, -9.6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ParticleEmitter:
+      Enabled: true
+      Shape: Speck
+      ColorStart: [0.9, 0.85, 0.75, 0.7]
+      ColorEnd: [0.9, 0.85, 0.75, 0.7]
+      FadeIn: 0.25
+      FadeOut: 0.35
+      SizeStart: 0.012
+      SizeEnd: 0.012
+      SpawnRate: 10
+      Burst: 90
+      Lifetime: 9
+      LifetimeSpread: 0.3
+      Velocity: [0, -0.01, 0]
+      VelocitySpread: [0.025, 0.02, 0.025]
+      Drag: 0.5
+      Gravity: [0, -0.003, 0]
+      SpawnShape: Box
+      SpawnExtent: [1.2, 0.6, 1.2]
+      MaxParticles: 140
+      Lit: true
+      LightFraction: 1
+      DepthFade: 0.05
+      RandomRotation: true
+  - Name: "Steam_Plant_Boiler"
+    Class: "AActor"
+    GUID: "3ccf8a962cdf0686982e3309b4e150f5"
+    Transform:
+      Translation: [13.2, 1.5, -30.25]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ParticleEmitter:
+      Enabled: true
+      Shape: Puff
+      ColorStart: [0.85, 0.88, 0.9, 0.3]
+      ColorEnd: [0.8, 0.82, 0.85, 0]
+      FadeIn: 0.15
+      FadeOut: 0.4
+      SizeStart: 0.15
+      SizeEnd: 0.6
+      SpawnRate: 6
+      Burst: 0
+      Lifetime: 3.5
+      LifetimeSpread: 0.25
+      Velocity: [0, 0.3, 0.25]
+      VelocitySpread: [0.05, 0.08, 0.05]
+      Drag: 0.6
+      Gravity: [0, 0.08, 0]
+      SpawnShape: Box
+      SpawnExtent: [0.06, 0.02, 0.06]
+      MaxParticles: 40
+      Lit: true
+      LightFraction: 0.6
+      DepthFade: 0.3
+      RandomRotation: true

@@ -149,6 +149,28 @@ class Level:
             "    ReflectionProbe:", f"      Extent: {vec(half_size)}", f"      CaptureOffset: {vec(capture_offset)}",
             f"      Intensity: {num(intensity)}", f"      BlendDistance: {num(blend_distance)}"])
 
+    def zone(self, name: str, centre, half_size) -> None:
+        """
+        A room for visibility (Docs/RENDERER.md, "Rooms and doorways"): a box holding the room's walls,
+        floor and ceiling. Sight and light pass between zones only through portals.
+        """
+        self.add(self.head(name, "AVisibilityZone", centre) + ["    VisibilityZone:", f"      Extent: {vec(half_size)}"])
+
+    def portal(self, name: str, centre, yaw: float, size, doors: list[str] | None = None) -> None:
+        """
+        A doorway between two zones: a rectangle (width, height) in the actor's XY plane. Shut when
+        every door it names reports itself closed.
+        """
+        lines = self.head(name, "APortal", centre, rot=(0, yaw, 0)) + ["    Portal:", f"      Size: {vec(size)}"]
+        if doors:
+            lines.append("      Doors: [" + ", ".join(quote(d) for d in doors) + "]")
+        self.add(lines)
+
+    def particles(self, name: str, loc, settings: dict[str, str]) -> None:
+        """Blended, lit sprites (Docs/RENDERER.md, "Sprite particles"): dust, steam, smoke."""
+        self.add(self.head(name, "AActor", loc) + ["    ParticleEmitter:", "      Enabled: true"]
+                 + [f"      {key}: {value}" for key, value in settings.items()])
+
     def player_start(self, loc, yaw: float = 0.0) -> None:
         """The player starts looking along -Z (north on a plan drawn in Blender)."""
         self.add(self.head("PlayerStart", "APlayerStart", loc, rot=(0, yaw, 0)))

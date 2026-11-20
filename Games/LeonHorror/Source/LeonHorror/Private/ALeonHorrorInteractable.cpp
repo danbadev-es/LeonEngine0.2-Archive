@@ -171,6 +171,9 @@ namespace Leon {
         } else {
             SetActorLocation(ClosedLocation + SlideOffset * OpenAlpha);
         }
+        // Rooms are seen through a doorway as soon as its door starts to open, until it is shut again.
+        if (World)
+            World->SetPortalDoorClosed(GetName(), OpenAlpha <= 0.0f);
     }
 
     void ALeonHorrorDoor::PlayDoorSound(const char* InWhat) const {

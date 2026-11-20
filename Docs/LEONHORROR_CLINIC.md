@@ -134,6 +134,16 @@ The theatre, the X-ray room and the toilets are off the route and hold supplies 
   script places them by their middle (`floor_decal`, `wall_decal`) and refuses one that would leave
   its room or turn a corner; keep them off doorways by eye. They are Movable: adding, moving or
   removing one needs no new bake.
+- **Rooms and doorways**: each room is a visibility zone (`Zone_<Room>`, its box) and each opening of
+  the plan a portal (`Portal_<Opening>`) naming the door leaves that close it (`Docs/RENDERER.md`,
+  "Rooms and doorways"). The renderer draws and lights only the rooms that can be seen through open
+  doorways; a door tells the world it is shut (`UWorld::SetPortalDoorClosed`) when it closes fully and
+  open as soon as it starts to move. Both come from `clinic_layout.py`, so a new opening gets its
+  portal by itself. A hole between rooms that is not in the plan's openings (a hatch, a window)
+  would break this: whatever is seen through it would be missing.
+- **Air**: dust in the theatre lamp's cone and under the ward's flickering light, steam from the
+  boiler in the plant room: blended, lit sprite particles (`air()` in the map script; `Docs/RENDERER.md`,
+  "Sprite particles").
 - **Signs**: each door has an enamelled plate beside it naming the room (`Art/leonart/signs.py`);
   the lettering is geometry.
 
@@ -176,12 +186,13 @@ Measured on the development laptop (RTX 5060 Laptop, Release build, 1920 x 1080,
 
 | Room | Frame, median | GPU | CPU, rendering | Draw calls (of them, shadows) |
 |---|---|---|---|---|
-| Reception | 7.9 ms | 3.9 ms | 6.7 ms | 2574 (1845) |
-| Corridor | 9.4 ms | 5.8 ms | 8.0 ms | 2414 (1798) |
-| Ward | 9.1 ms | 4.7 ms | 7.7 ms | 2413 (1789) |
+| Reception | 3.1 ms | 2.9 ms | 1.5 ms | 235 (109) |
+| Corridor | 3.4 ms | 3.2 ms | 1.7 ms | 527 (380) |
+| Ward | 4.2 ms | 4.1 ms | 1.6 ms | 375 (237) |
 
-The game is bound by the CPU, and most of it is submitting shadow maps of everything in the level.
-Gameplay (enemies, the player, sound) takes under 1 ms a frame.
+Before rooms and doorways, culling shadow casters by each light's reach, and looking up each
+lightmap once a frame, the same places took 7.9, 9.4 and 9.1 ms with about 2,500 draw calls, most of
+them shadow maps of the whole level. Gameplay (enemies, the player, sound) takes under 1 ms a frame.
 
 Known: on this laptop `Present` sometimes blocks for about half a second (10 to 25 times in 20 s,
 on the Slice map too, with or without vertical sync, and with a tearing swapchain). The frame
@@ -191,6 +202,7 @@ before and after it is fast, so it is not the game's work; it looks like the hyb
 ## Known limits
 
 - One storey: navigation has a single height.
+- The dust is fine and shows only where a lamp or the flashlight falls on it.
 - Light probes are blended across walls without a visibility test: a little light can come
   through a thin wall from the next room.
 - The dying clips still clip a little: the orderly's apron sinks through the floor while he kneels,

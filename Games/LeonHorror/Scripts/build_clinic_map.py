@@ -171,6 +171,26 @@ class Clinic:
             self.lv.reflection_probe(f"Probe_{name}", from_blender(centre), (room.width * 0.5, H * 0.5, room.depth * 0.5),
                                      capture_offset=(east, 1.55 - H * 0.5, -north))
 
+    def visibility(self) -> None:
+        """
+        A zone a room and a portal a doorway, so the renderer draws and lights only the rooms that can
+        be seen. Every room shell is sealed but for the openings of the plan; the bay's way out leads
+        outside, which belongs to no zone and is always drawn.
+        """
+        for name, room in self.rooms.items():
+            # Floor and ceiling slabs reach 0.25 m past the room's height either way.
+            self.lv.zone(f"Zone_{name}", (room.centre[0], 1.4, -room.centre[1]), (room.width * 0.5, 1.65, room.depth * 0.5))
+        for opening in plan.OPENINGS:
+            name, kind = opening["name"], opening["kind"]
+            axis, value, _, _ = plan.shared_edge(*opening["rooms"])
+            width, height = plan.opening_size(opening)
+            if axis == "x":
+                centre, yaw = (value, height * 0.5, -opening["at"]), 90.0
+            else:
+                centre, yaw = (opening["at"], height * 0.5, -value), 0.0
+            doors = {"double": [f"Door_{name}_A", f"Door_{name}_B"], "open": []}.get(kind, [f"Door_{name}"])
+            self.lv.portal(f"Portal_{name}", centre, yaw, (width, height), doors)
+
     def doors(self) -> None:
         locks = {"Consult2": "Key.Consult", "Pharmacy": "Key.Pharmacy", "Storage": "Key.Storage", "Bay": "Key.Bay"}
         powered = {"Morgue": "North"}
@@ -491,6 +511,30 @@ class Clinic:
                   "Feeds: service corridor, theatre, cold room and its door lock.\\n"
                   "Do NOT bridge it with wire again. - J.", yaw=5.0)
 
+    # ------------------------------------------------------------------ air
+    DUST = {
+        "Shape": "Speck", "ColorStart": "[0.9, 0.85, 0.75, 0.7]", "ColorEnd": "[0.9, 0.85, 0.75, 0.7]",
+        "FadeIn": "0.25", "FadeOut": "0.35", "SizeStart": "0.012", "SizeEnd": "0.012", "SpawnRate": "12", "Burst": "80",
+        "Lifetime": "9", "LifetimeSpread": "0.3", "Velocity": "[0, -0.01, 0]", "VelocitySpread": "[0.025, 0.02, 0.025]",
+        "Drag": "0.5", "Gravity": "[0, -0.003, 0]", "SpawnShape": "Sphere", "SpawnExtent": "[0.6, 0, 0]",
+        "MaxParticles": "150", "Lit": "true", "LightFraction": "1", "DepthFade": "0.05", "RandomRotation": "true",
+    }
+
+    def air(self) -> None:
+        """Dust where a lamp makes it show, and steam from the leaking boiler."""
+        theatre, ward, plant_room = self.rooms["Theatre"], self.rooms["Ward"], self.rooms["Plant"]
+        self.lv.particles("Dust_Theatre_Lamp", from_blender(theatre.at(3.0, 3.0, 1.2)), self.DUST)
+        self.lv.particles("Dust_Ward", from_blender(ward.at(3.0, 3.6, 1.6)),
+                          dict(self.DUST, SpawnShape="Box", SpawnExtent="[1.2, 0.6, 1.2]", SpawnRate="10", Burst="90", MaxParticles="140"))
+        # A hiss of steam from the front of the boiler, at a valve.
+        self.lv.particles("Steam_Plant_Boiler", from_blender(plant_room.at(3.2, 3.85, 1.5)), {
+            "Shape": "Puff", "ColorStart": "[0.85, 0.88, 0.9, 0.3]", "ColorEnd": "[0.8, 0.82, 0.85, 0]",
+            "FadeIn": "0.15", "FadeOut": "0.4", "SizeStart": "0.15", "SizeEnd": "0.6", "SpawnRate": "6", "Burst": "0",
+            "Lifetime": "3.5", "LifetimeSpread": "0.25", "Velocity": "[0, 0.3, 0.25]", "VelocitySpread": "[0.05, 0.08, 0.05]",
+            "Drag": "0.6", "Gravity": "[0, 0.08, 0]", "SpawnShape": "Box", "SpawnExtent": "[0.06, 0.02, 0.06]",
+            "MaxParticles": "40", "Lit": "true", "LightFraction": "0.6", "DepthFade": "0.3", "RandomRotation": "true",
+        })
+
     # ------------------------------------------------------------------ decals
     # The size in metres of each decal's quad (its material's tile size in Art/leonart/materials_decals.py).
     DECAL_SIZE = {"BloodPool": 1.4, "BloodSmear": 2.0, "Grime": 2.0, "Damp": 1.6, "Scratches": 1.2}
@@ -593,6 +637,7 @@ class Clinic:
 
         self.shells()
         self.probes()
+        self.visibility()
         self.doors()
         self.reception()
         self.waiting()
@@ -610,6 +655,7 @@ class Clinic:
         self.plant()
         self.bay()
         self.decals()
+        self.air()
         return lv
 
 

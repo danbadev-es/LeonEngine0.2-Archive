@@ -11,6 +11,8 @@
 #include "AI/UNavigationSystem.hpp"
 #include "Gameplay/APlayerStart.hpp"
 #include "Gameplay/UHealthComponent.hpp"
+#include "Scene/Components.hpp"
+#include "Scene/FParticleTypes.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -177,6 +179,49 @@ namespace Leon {
             clinic.Tick(1.5f);
             CHECK(clinic.Find<ALeonHorrorDoor>("Door_Corridor_B")->IsOpen());
             CHECK(navigation->FindPath(reception, corridor).Status == ENavPathStatus::Valid);
+        }
+
+        TEST_CASE("each room is a zone, each doorway a portal, and a portal opens and shuts with its door") {
+            FClinicWorld clinic(true);
+            int zones = 0;
+            std::map<std::string, FPortalComponent*> portals;
+            for (const auto& actor : clinic.World->GetAllActors()) {
+                if (actor->HasComponent<FVisibilityZoneComponent>())
+                    ++zones;
+                if (actor->HasComponent<FPortalComponent>())
+                    portals[actor->GetName()] = &actor->GetComponent<FPortalComponent>();
+            }
+            CHECK(zones == 16);
+            REQUIRE(portals.size() == 16);
+            // Every door the portals name exists; the archway has none and is always open.
+            for (const auto& [name, portal] : portals) {
+                for (const std::string& door : portal->Doors)
+                    CHECK_MESSAGE(clinic.Find<ALeonHorrorDoor>(door) != nullptr, door);
+            }
+            CHECK(portals["Portal_Lobby"]->IsOpen());
+            // Doors start shut, so the rooms behind them are not drawn until one opens.
+            CHECK_FALSE(portals["Portal_Corridor"]->IsOpen());
+            CHECK_FALSE(portals["Portal_Bay"]->IsOpen());
+            REQUIRE(clinic.UseFrom("Door_Corridor_A", 6.8f, 5.0f));
+            clinic.Tick(0.1f);
+            CHECK(portals["Portal_Corridor"]->IsOpen());
+            clinic.Find<ALeonHorrorDoor>("Door_Corridor_A")->SetState(false, false);
+            clinic.Find<ALeonHorrorDoor>("Door_Corridor_B")->SetState(false, false);
+            clinic.Tick(0.1f);
+            CHECK_FALSE(portals["Portal_Corridor"]->IsOpen());
+        }
+
+        TEST_CASE("the dust and the steam are in the air once play starts") {
+            FClinicWorld clinic(true);
+            clinic.Tick(1.0f);
+            int emitters = 0;
+            for (const auto& actor : clinic.World->GetAllActors()) {
+                if (!actor->HasComponent<FSpriteEmitterComponent>())
+                    continue;
+                ++emitters;
+                CHECK_MESSAGE(!actor->GetComponent<FSpriteEmitterComponent>().Particles.empty(), actor->GetName());
+            }
+            CHECK(emitters == 3);
         }
 
         TEST_CASE("with every door open, an enemy can walk from reception into every room") {
