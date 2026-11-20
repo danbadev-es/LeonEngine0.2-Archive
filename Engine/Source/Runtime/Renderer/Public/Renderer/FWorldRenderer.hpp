@@ -137,6 +137,23 @@ namespace Leon {
         uint32_t GetReflectionProbeCaptureCount() const { return ReflectionProbeCaptureCount; }
         uint32_t GetReflectionProbeCacheLoadCount() const { return ReflectionProbeCacheLoadCount; }
 
+        /**
+         * Light in the air (volumetric fog): a map that asks for it (FVolumetricFogComponent) has the
+         * beams of its shadowed lights drawn in its air. Off: such a map is drawn without, as a map
+         * that does not ask. On by default; the Low quality preset switches it off.
+         */
+        void SetVolumetricFogEnabled(bool bEnabled) { bVolumetricFogEnabled = bEnabled; }
+        bool IsVolumetricFogEnabled() const { return bVolumetricFogEnabled; }
+        /** Samples along a view ray for each light, where the map names no count (12 unless set). */
+        void SetVolumetricFogSteps(uint32_t InSteps) { VolumetricFogSteps = InSteps; }
+        uint32_t GetVolumetricFogSteps() const { return VolumetricFogSteps; }
+
+        /**
+         * The HDR scene of the last frame drawn (RGBA16 float), for tools and tests; null before the
+         * first. With ambient occlusion off it includes the light in the air.
+         */
+        IRHITexture* GetSceneColorTarget() const;
+
         /** Rebuilds the image-based lighting environment on the next frame (e.g. after a quality change). */
         void InvalidateEnvironment();
 
@@ -200,6 +217,10 @@ namespace Leon {
         std::string ReflectionProbeCacheDirectory;
         uint32_t ReflectionProbeCaptureCount = 0;
         uint32_t ReflectionProbeCacheLoadCount = 0;
+
+        // Light in the air.
+        bool bVolumetricFogEnabled = true;
+        uint32_t VolumetricFogSteps = 12;
 
         FPostProcessSettings PostProcessSettings;
 

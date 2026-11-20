@@ -125,6 +125,16 @@ namespace Leon {
                          {kFrame, {"PassConstants", sizeof(FFXAAConstants)}}});
         }
 
+        TEST_CASE("volumetric fog") {
+            const std::vector<FExpectedBuffer> fog = {kFrame, {"PassConstants", sizeof(FVolumetricFogConstants)}};
+            CheckShader({"VolumetricFog.hlsl", "PSScatter", ERHIShaderStage::Pixel, {}, fog});
+            // The other two steps read the first fields only.
+            const std::vector<FExpectedBuffer> fogStart = {kFrame,
+                                                           {"PassConstants", sizeof(FVolumetricFogConstants), false}};
+            CheckShader({"VolumetricFog.hlsl", "PSBlur", ERHIShaderStage::Pixel, {}, fogStart});
+            CheckShader({"VolumetricFog.hlsl", "PSComposite", ERHIShaderStage::Pixel, {}, fogStart});
+        }
+
         TEST_CASE("reflection probe filtering") {
             const std::vector<FExpectedBuffer> filter = {kFrame, {"PassConstants", sizeof(FProbeFilterConstants)}};
             CheckShader({"ReflectionProbeFilter.hlsl", "PSMain", ERHIShaderStage::Pixel, {}, filter});

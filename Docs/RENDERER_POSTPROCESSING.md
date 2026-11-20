@@ -1,10 +1,11 @@
 # Post-Processing & Anti-Aliasing
 
-Transforms linear HDR radiance from the forward PBR path into LDR display output. Order matches `FPostProcessRHI::Render`. The shaders are `SSAO.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl` and `FXAA.hlsl` in `Engine/Shaders`. Index: [RENDERER.md](RENDERER.md).
+Transforms linear HDR radiance from the forward PBR path into LDR display output. Order matches `FPostProcessRHI::Render`. The shaders are `SSAO.hlsl`, `VolumetricFog.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl` and `FXAA.hlsl` in `Engine/Shaders`. Index: [RENDERER.md](RENDERER.md).
 
 ## Pipeline flow
 
-Order: **SSAO → Bloom → Tone map (exposure) → FXAA**.
+Order: **SSAO → Volumetric fog → Bloom → Tone map (exposure) → FXAA**. The volumetric fog runs only in maps
+that have a `VolumetricFog:` block; it is described in [RENDERER.md](RENDERER.md#light-in-the-air-volumetric-fog).
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -16,6 +17,13 @@ Order: **SSAO → Bloom → Tone map (exposure) → FXAA**.
 ┌────────────────────────────────────────────────────────┐
 │  SSAO (half-res depth, nearest samples, bilateral blur)│
 │  Composite keeps high-luminance specular (planar/IBL)  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│  Volumetric fog (maps that ask for it): half-res march │
+│  of the shadowed lights, depth-aware blur and upsample │
+│  Composite: scene * transmittance + in-scattered light │
 └───────────────────────────┬────────────────────────────┘
                             │
               ┌─────────────┴─────────────┐

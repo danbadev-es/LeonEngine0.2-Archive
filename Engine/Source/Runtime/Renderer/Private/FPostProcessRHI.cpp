@@ -3,6 +3,7 @@
 #include "RenderCore/FPostProcessConstants.hpp"
 #include "RenderCore/FShaderConstants.hpp"
 #include "RenderCore/FShaderLibrary.hpp"
+#include "RHI/FFrameProfiler.hpp"
 
 #include <algorithm>
 #include <random>
@@ -55,9 +56,10 @@ namespace Leon {
     }
 
     IRHIPipeline* FPostProcessRHI::GetPipeline(IRHIDevice& InDevice, const char* InFile, const char* InPixelEntry,
-                                               ERHIFormat InTargetFormat, bool bInAdditive) {
+                                               ERHIFormat InTargetFormat, EBlend InBlend) {
         const std::string key = std::string(InFile) + "|" + InPixelEntry + "|" +
-                                std::to_string(static_cast<int>(InTargetFormat)) + (bInAdditive ? "|add" : "");
+                                std::to_string(static_cast<int>(InTargetFormat)) +
+                                (InBlend == EBlend::Add ? "|add" : (InBlend == EBlend::Veil ? "|veil" : ""));
         const auto found = Pipelines.find(key);
         if (found != Pipelines.end())
             return found->second.get();
@@ -72,11 +74,18 @@ namespace Leon {
             desc.Raster.Cull = ERHICull::None;
             desc.Depth.bTest = false;
             desc.Depth.bWrite = false;
-            if (bInAdditive) {
+            if (InBlend == EBlend::Add) {
                 desc.Blend.bEnabled = true;
                 desc.Blend.SrcColor = ERHIBlend::One;
                 desc.Blend.DstColor = ERHIBlend::One;
                 desc.Blend.SrcAlpha = ERHIBlend::One;
+                desc.Blend.DstAlpha = ERHIBlend::One;
+            } else if (InBlend == EBlend::Veil) {
+                desc.Blend.bEnabled = true;
+                desc.Blend.SrcColor = ERHIBlend::One;
+                desc.Blend.DstColor = ERHIBlend::SrcAlpha;
+                // The alpha of the target is not the veil's to change.
+                desc.Blend.SrcAlpha = ERHIBlend::Zero;
                 desc.Blend.DstAlpha = ERHIBlend::One;
             }
             desc.ColorFormats[0] = InTargetFormat;
@@ -117,7 +126,7 @@ namespace Leon {
         }
 
         // The textures the next draw reads, by register. Applied inside its pass.
-        IRHITexture* inputs[3] = {nullptr, nullptr, nullptr};
+        IRHITexture* inputs[4] = {nullptr, nullptr, nullptr, nullptr};
         const auto setInput = [&inputs](uint32_t InSlot, IRHITexture* InTexture) { inputs[InSlot] = InTexture; };
 
         // One full-screen triangle into InTarget. bInKeep draws over what the target holds.
@@ -133,7 +142,7 @@ namespace Leon {
             if (InPipeline) {
                 InCommands.SetPipeline(InPipeline);
                 InCommands.SetConstants(ERHIConstantSlot::Pass, InConstants, InConstantsSize);
-                for (uint32_t slot = 0; slot < 3; ++slot)
+                for (uint32_t slot = 0; slot < 4; ++slot)
                     InCommands.SetTexture(slot, inputs[slot]);
                 InCommands.Draw(3);
             }
@@ -178,6 +187,51 @@ namespace Leon {
             scene = OccludedScene.get();
         }
 
+        // --- Light in the air ---
+        // After ambient occlusion, which darkens surfaces and must not darken the air in front of
+        // them; before bloom, so a bright beam glows like any other bright thing. It is part of the
+        // scene, not of the look: it stays when post-processing is switched off.
+        const FVolumetricFogConstants* fog = InInputs.VolumetricFog;
+        if (fog && IsVolumetricFogDrawn(*fog) && InInputs.SceneDepth && InInputs.SpotShadowMap &&
+            InInputs.PointShadowMap && InSettings.DebugMode != 5) {
+            const uint32_t fogWidth = std::max(Width / 2, 1u);
+            const uint32_t fogHeight = std::max(Height / 2, 1u);
+            if (!Fog || Fog->GetDesc().Width != fogWidth || Fog->GetDesc().Height != fogHeight) {
+                Fog = MakeTarget(*device, fogWidth, fogHeight, ERHIFormat::RGBA16_Float, "VolumetricFog");
+                FogBlur = MakeTarget(*device, fogWidth, fogHeight, ERHIFormat::RGBA16_Float, "VolumetricFogBlur");
+            }
+            if (Fog && FogBlur) {
+                InCommands.BeginGpuTimer(EGPUTimerSlot::VolumetricFog);
+                FVolumetricFogConstants constants = *fog;
+                setInput(0, InInputs.SceneDepth);
+                setInput(1, InInputs.SpotShadowMap);
+                setInput(2, InInputs.PointShadowMap);
+                draw(*Fog, GetPipeline(*device, "VolumetricFog.hlsl", "PSScatter", ERHIFormat::RGBA16_Float),
+                     &constants, sizeof(constants), "VolumetricFogScatter");
+                setInput(1, nullptr);
+                setInput(2, nullptr);
+
+                // The march takes few steps, each pixel from a different start: the blur turns that
+                // noise into a smooth beam. It reads depth, so it does not smear over edges.
+                IRHIPipeline* blur = GetPipeline(*device, "VolumetricFog.hlsl", "PSBlur", ERHIFormat::RGBA16_Float);
+                const glm::vec2 texel = TexelSizeOf(*Fog);
+                constants.BlurParams = glm::vec4(texel.x, 0.0f, 0.0f, 0.0f);
+                setInput(3, Fog.get());
+                draw(*FogBlur, blur, &constants, sizeof(constants), "VolumetricFogBlurH");
+                constants.BlurParams = glm::vec4(0.0f, texel.y, 0.0f, 0.0f);
+                setInput(3, FogBlur.get());
+                draw(*Fog, blur, &constants, sizeof(constants), "VolumetricFogBlurV");
+
+                // Over the scene where it is: what the air leaves of it, plus what the air adds.
+                setInput(3, Fog.get());
+                draw(*scene,
+                     GetPipeline(*device, "VolumetricFog.hlsl", "PSComposite", ERHIFormat::RGBA16_Float, EBlend::Veil),
+                     &constants, sizeof(constants), "VolumetricFogComposite", true);
+                setInput(3, nullptr);
+                InCommands.EndGpuTimer(EGPUTimerSlot::VolumetricFog);
+            }
+        }
+
         // --- Bloom ---
         const uint32_t bloomLevels = std::min(kBloomLevels, InSettings.BloomMipCount);
         const bool bBloom = InSettings.bEnabled && InSettings.bBloomEnabled && InSettings.DebugMode != 1 &&
@@ -199,7 +253,7 @@ namespace Leon {
 
             // Back up the chain: each level is its own downsample plus the blurred level below it.
             IRHIPipeline* copy = GetPipeline(*device, "Bloom.hlsl", "PSUpsample", ERHIFormat::RGBA16_Float);
-            IRHIPipeline* add = GetPipeline(*device, "Bloom.hlsl", "PSUpsample", ERHIFormat::RGBA16_Float, true);
+            IRHIPipeline* add = GetPipeline(*device, "Bloom.hlsl", "PSUpsample", ERHIFormat::RGBA16_Float, EBlend::Add);
             for (uint32_t level = bloomLevels - 1; level > 0; --level) {
                 IRHITexture& target = *BloomUp[level - 1];
                 IRHITexture& smaller = level == bloomLevels - 1 ? *BloomDown[level] : *BloomUp[level];

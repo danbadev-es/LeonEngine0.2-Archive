@@ -25,6 +25,12 @@ namespace Leon {
         EPlanarReflectionQuality PlanarQuality = EPlanarReflectionQuality::Epic;
         /** Pixels along the edge of a reflection probe's cube face (Low=32, Medium=64, High=128). */
         uint32_t ReflectionProbeResolution = 128;
+        /**
+         * Light in the air of the maps that ask for it (volumetric fog), and the samples along a view
+         * ray per light (Low = off, Medium = 8, High = 12).
+         */
+        bool bEnableVolumetricFog = true;
+        uint32_t VolumetricFogSteps = 12;
         bool bEnableSSAO = true;
         bool bEnableBloom = true;
         bool bEnableFXAA = true;

@@ -202,6 +202,13 @@ namespace Leon {
         /** Pixels along the edge of a reflection probe's cube face. A change captures the probes again. */
         void SetProjectReflectionProbeResolution(uint32_t InResolution);
         uint32_t GetPendingReflectionProbeResolution() const { return PendingReflectionProbeResolution; }
+        /**
+         * Whether maps that ask for light in their air (volumetric fog) get it, and the samples along a
+         * view ray per light where a map names no count.
+         */
+        void SetProjectVolumetricFog(bool bInEnabled, uint32_t InSteps);
+        bool GetPendingVolumetricFogEnabled() const { return bPendingVolumetricFogEnabled; }
+        uint32_t GetPendingVolumetricFogSteps() const { return PendingVolumetricFogSteps; }
         bool GetPendingSSAOEnabled() const { return bPendingSSAOEnabled; }
         float GetPendingSSAORadius() const { return PendingSSAORadius; }
         float GetPendingSSAOIntensity() const { return PendingSSAOIntensity; }
@@ -305,6 +312,8 @@ namespace Leon {
         uint32_t PendingSpotResolution = 1024;
         uint32_t PendingPointShadowResolution = 512;
         uint32_t PendingReflectionProbeResolution = 128;
+        bool bPendingVolumetricFogEnabled = true;
+        uint32_t PendingVolumetricFogSteps = 12;
         uint32_t PendingMaxShadowedPointLights = 4;
         uint32_t PendingMaxShadowedSpotLights = 4;
 

@@ -319,9 +319,11 @@ namespace Leon {
             glm::vec4(0.75f, 0.85f, 0.95f, 1.0f));
         textY += lineHeight;
         DrawString(textX, textY,
-                   std::format("GPU sh {:.1f} op {:.1f} pl {:.1f} pp {:.1f}  Tick A/C {}/{}  Paths {}  ShDraw {}",
+                   std::format("GPU sh {:.1f} op {:.1f} pl {:.1f} pp {:.1f} (fog {:.2f})  Tick A/C {}/{}  Paths {}  "
+                               "ShDraw {}",
                                timing.GPUShadowMs, timing.GPUOpaqueMs, timing.GPUPlanarMs, timing.GPUPostProcessMs,
-                               timing.TickActors, timing.TickComponents, timing.PathRequests, timing.ShadowDrawCalls),
+                               timing.GPUVolumetricFogMs, timing.TickActors, timing.TickComponents,
+                               timing.PathRequests, timing.ShadowDrawCalls),
                    glm::vec4(0.75f, 0.85f, 0.95f, 1.0f));
         textY += lineHeight;
 

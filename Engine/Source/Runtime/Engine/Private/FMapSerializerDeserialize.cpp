@@ -176,6 +176,7 @@ namespace Leon {
             WorldSettings,
             Skybox,
             PostProcess,
+            VolumetricFog,
             Actors,
             InActor
         };
@@ -206,6 +207,8 @@ namespace Leon {
         bool bHasWorldSettings = false;
         FPostProcessComponent postProcess;
         bool bHasPostProcess = false;
+        FVolumetricFogComponent volumetricFog;
+        bool bHasVolumetricFog = false;
         bool bLegacyBakeOnSkybox = false;
 
         std::vector<FActorDeserializationData> actors;
@@ -278,10 +281,44 @@ namespace Leon {
 
             // Parse Environment block
             if (currentSection == EParserSection::Environment || currentSection == EParserSection::Skybox ||
-                currentSection == EParserSection::WorldSettings || currentSection == EParserSection::PostProcess) {
+                currentSection == EParserSection::WorldSettings || currentSection == EParserSection::PostProcess ||
+                currentSection == EParserSection::VolumetricFog) {
                 if (trimmed == "PostProcess:") {
                     currentSection = EParserSection::PostProcess;
                     bHasPostProcess = true;
+                    continue;
+                }
+                if (trimmed == "VolumetricFog:") {
+                    currentSection = EParserSection::VolumetricFog;
+                    bHasVolumetricFog = true;
+                    continue;
+                }
+                if (currentSection == EParserSection::VolumetricFog && trimmed != "WorldSettings:" &&
+                    trimmed != "Skybox:") {
+                    const size_t colon = trimmed.find(':');
+                    if (colon != std::string::npos) {
+                        const std::string key = FStringUtils::Trim(trimmed.substr(0, colon));
+                        const std::string val = unquote(trimmed.substr(colon + 1));
+                        FVolumetricFogSettings& fog = volumetricFog.Settings;
+                        if (key == "Enabled")
+                            fog.bEnabled = (val == "true");
+                        else if (key == "Density")
+                            fog.Density = std::stof(val);
+                        else if (key == "Scattering")
+                            fog.Scattering = std::stof(val);
+                        else if (key == "Anisotropy")
+                            fog.Anisotropy = std::stof(val);
+                        else if (key == "AmbientColor") {
+                            const auto v = ParseFloatArray(val);
+                            if (v.size() >= 3)
+                                fog.AmbientColor = {v[0], v[1], v[2]};
+                        } else if (key == "AmbientIntensity")
+                            fog.AmbientIntensity = std::stof(val);
+                        else if (key == "MaxDistance")
+                            fog.MaxDistance = std::stof(val);
+                        else if (key == "Steps")
+                            fog.StepCount = static_cast<uint32_t>(std::stoul(val));
+                    }
                     continue;
                 }
                 if (currentSection == EParserSection::PostProcess && trimmed != "WorldSettings:" && trimmed != "Skybox:") {
@@ -870,7 +907,7 @@ namespace Leon {
         if (bLegacyBakeOnSkybox && !bHasWorldSettings)
             bHasWorldSettings = true;
 
-        if (bHasSkybox || bHasWorldSettings || bHasPostProcess) {
+        if (bHasSkybox || bHasWorldSettings || bHasPostProcess || bHasVolumetricFog) {
             AActor* envEntity = World->SpawnActor("Environment Skybox");
             if (bHasSkybox)
                 envEntity->AddComponent<FSkyboxComponent>(skybox);
@@ -878,6 +915,8 @@ namespace Leon {
                 envEntity->AddComponent<FWorldSettingsComponent>(worldSettings);
             if (bHasPostProcess)
                 envEntity->AddComponent<FPostProcessComponent>(postProcess);
+            if (bHasVolumetricFog)
+                envEntity->AddComponent<FVolumetricFogComponent>(volumetricFog);
         }
 
         // Spawn actors

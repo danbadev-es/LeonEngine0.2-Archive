@@ -8,7 +8,8 @@
 // reflect a capture of the scene mirrored in the floor or in a wall mirror.
 //
 // Order of a frame: view state (FWorldRenderer::UpdateViewState) -> collect what is visible -> shadow
-// maps -> reflection captures -> scene pass -> post-processing.
+// maps -> reflection captures -> scene pass -> post-processing (which also lays the light in the air,
+// the volumetric fog, over the scene: it needs the finished depth buffer and the frame's shadow maps).
 
 #include "Renderer/FWorldRenderer.hpp"
 
@@ -36,6 +37,7 @@
 #include "Renderer/FDebugRenderer.hpp"
 #include "RenderCore/FLight.hpp"
 #include "RenderCore/FLightSelection.hpp"
+#include "RenderCore/FPostProcessConstants.hpp"
 #include "RenderCore/FReflectionProbeMath.hpp"
 #include "Assets/FMaterialInstance.hpp"
 #include "Renderer/FParticleRenderer.hpp"
@@ -527,6 +529,10 @@ namespace Leon {
         FLightSlotHistory LightHistory;
         FPostProcessRHI PostProcess;
     };
+
+    IRHITexture* FWorldRenderer::GetSceneColorTarget() const {
+        return RHIState ? RHIState->SceneColor.get() : nullptr;
+    }
 
     void FWorldRenderer::RenderRHI(const FPerspectiveCamera& InCamera, IRHICommandList& InCommands,
                                    IRHITexture& InTarget) {
@@ -2127,6 +2133,21 @@ namespace Leon {
         }
         post.Exposure = exposure;
         frameSettings.Exposure = exposure;
+        // The light in the air, where the map has air to show it in. Not in the debug views of the
+        // surface shader: they show one term of a surface, which a veil of fog would falsify.
+        FVolumetricFogConstants fogConstants;
+        const auto mapFogView = registry.view<FVolumetricFogComponent>();
+        if (bVolumetricFogEnabled && DebugMode == 0 && mapFogView.begin() != mapFogView.end()) {
+            const FVolumetricFogSettings& mapFog = registry.get<FVolumetricFogComponent>(*mapFogView.begin()).Settings;
+            if (mapFog.bEnabled) {
+                fogConstants = MakeVolumetricFogConstants(mapFog, lighting.Constants, frame.ViewProjection,
+                                                          post.Projection, cameraPosition,
+                                                          lighting.Constants.FogColorDensity.a > 0.0f, VolumetricFogSteps);
+                post.VolumetricFog = &fogConstants;
+                post.SpotShadowMap = state.SpotShadowMap.get();
+                post.PointShadowMap = state.PointShadowMap.get();
+            }
+        }
         stageTimer.emplace(&FFrameProfiler::Working().PostProcessMs);
         gpuStage.emplace(InCommands, EGPUTimerSlot::PostProcess);
         // Exposure comes from the sky or the map; the stored settings follow it so tools show the value in use.
@@ -2146,6 +2167,7 @@ namespace Leon {
             profile.GPUPlanarMs = device->GetGpuTimeMs(EGPUTimerSlot::Planar);
             profile.GPUOpaqueMs = device->GetGpuTimeMs(EGPUTimerSlot::Opaque);
             profile.GPUPostProcessMs = device->GetGpuTimeMs(EGPUTimerSlot::PostProcess);
+            profile.GPUVolumetricFogMs = device->GetGpuTimeMs(EGPUTimerSlot::VolumetricFog);
             profile.GPUMs = profile.GPUShadowMs + profile.GPUPlanarMs + profile.GPUOpaqueMs + profile.GPUPostProcessMs;
         }
     }

@@ -196,6 +196,8 @@ namespace Leon {
             preset.bEnablePlanarReflection = false;
             preset.PlanarQuality = EPlanarReflectionQuality::Low;
             preset.ReflectionProbeResolution = 32;
+            preset.bEnableVolumetricFog = false;
+            preset.VolumetricFogSteps = 8;
             preset.bEnableSSAO = false;
             preset.bEnableBloom = false;
             preset.bEnableFXAA = false;
@@ -213,6 +215,8 @@ namespace Leon {
             preset.bEnablePlanarReflection = true;
             preset.PlanarQuality = EPlanarReflectionQuality::Low;
             preset.ReflectionProbeResolution = 64;
+            preset.bEnableVolumetricFog = true;
+            preset.VolumetricFogSteps = 8;
             preset.bEnableSSAO = true;
             preset.bEnableBloom = true;
             preset.bEnableFXAA = true;
@@ -231,6 +235,8 @@ namespace Leon {
             preset.bEnablePlanarReflection = true;
             preset.PlanarQuality = EPlanarReflectionQuality::Epic;
             preset.ReflectionProbeResolution = 128;
+            preset.bEnableVolumetricFog = true;
+            preset.VolumetricFogSteps = 12;
             preset.bEnableSSAO = true;
             preset.bEnableBloom = true;
             preset.bEnableFXAA = true;
@@ -269,6 +275,7 @@ namespace Leon {
         InWorld.SetProjectOmniShadowDefaults(preset.SpotResolution, preset.PointShadowResolution,
                                              preset.MaxShadowedPointLights, preset.MaxShadowedSpotLights);
         InWorld.SetProjectReflectionProbeResolution(preset.ReflectionProbeResolution);
+        InWorld.SetProjectVolumetricFog(preset.bEnableVolumetricFog, preset.VolumetricFogSteps);
         FRenderer::SetMaxTextureResolution(preset.MaxTextureResolution);
         InWorld.ReloadTextures();
         SyncEngineProjectDefaults(preset);
@@ -390,6 +397,9 @@ namespace Leon {
             bytes += BloomBytes(w, h);
         if (preset.bEnableSSAO)
             bytes += SSAOBytes(w, h);
+        // Two half-resolution RGBA16F targets, in the maps that have light in their air.
+        if (preset.bEnableVolumetricFog)
+            bytes += 2ull * static_cast<size_t>(std::max(w / 2, 1u)) * std::max(h / 2, 1u) * 8ull;
         return bytes;
     }
 

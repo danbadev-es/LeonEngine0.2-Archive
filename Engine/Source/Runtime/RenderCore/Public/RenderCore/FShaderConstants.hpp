@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderCore/FShadowTypes.hpp"
+#include "RenderCore/FVolumetricFogSettings.hpp"
 
 #include <glm/glm.hpp>
 
@@ -198,6 +199,30 @@ namespace Leon {
         glm::vec4 Samples[16]{};
         glm::vec4 SSAOParams{0.0f};
         glm::vec4 BlurParams{0.0f};
+    };
+
+    struct FVolumetricFogConstants { // VolumetricFog.hlsl
+        struct FSpotLight {
+            glm::vec4 Position{0.0f};                     // xyz, w = radius
+            glm::vec4 Direction{0.0f, -1.0f, 0.0f, 1.0f}; // xyz (unit length), w = cos(inner angle)
+            glm::vec4 Color{0.0f};                        // rgb = colour * intensity, a = cos(outer angle)
+            glm::vec4 Shadow{0.0f};                       // x = layer of the spot shadow map
+        };
+        struct FPointLight {
+            glm::vec4 Position{0.0f}; // xyz, w = radius
+            glm::vec4 Color{0.0f};    // rgb = colour * intensity, a = cube of the point shadow map
+        };
+        glm::mat4 ClipToWorld{1.0f};
+        glm::vec4 CameraPosition{0.0f};
+        glm::vec4 FogParams{0.0f};
+        glm::vec4 FogAmbient{0.0f};
+        glm::vec4 DepthParams{0.0f};
+        glm::vec4 BlurParams{0.0f};
+        glm::ivec4 LightCounts{0};
+        FSpotLight SpotLights[kMaxVolumetricFogSpotLights];
+        glm::mat4 SpotMatrices[kMaxVolumetricFogSpotLights]{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f),
+                                                            glm::mat4(1.0f)};
+        FPointLight PointLights[kMaxVolumetricFogPointLights];
     };
 
     struct FToneMappingConstants { // ToneMapping.hlsl

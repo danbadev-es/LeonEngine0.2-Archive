@@ -40,7 +40,7 @@ probe captures     only while a reflection probe has no cube yet: two views of t
 shadow maps        sun: up to 4 cascades · up to 4 spot lights · up to 4 point lights (cube maps)
 reflection captures the scene mirrored in the floor and, if faced, a wall mirror; then their mip chains
 scene pass (HDR)   opaque → decals → skinned outlines → sky → blended (back to front) → queued world-space batches
-post-processing    ambient occlusion → bloom → tone mapping and the look of the map → FXAA → film grain, into the output
+post-processing    ambient occlusion → volumetric fog → bloom → tone mapping and the look of the map → FXAA → film grain, into the output
 ```
 
 2D drawing (`FUIRenderer`, `FDebugOverlay`, the editor's ImGui) goes on top of the output afterwards,
@@ -93,7 +93,7 @@ per-frame memory.
 | `ReflectionProbeFilter.hlsl` (+ `ReflectionProbes.hlsli`, used by the surface shader) | The levels of a reflection probe's cube, from its capture |
 | `Outline_Skinned.hlsl` | Silhouette around a skinned mesh |
 | `Skybox.hlsl` | Sky: HDR panorama or procedural gradient |
-| `SSAO.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl`, `FXAA.hlsl` | Post-processing, one entry point per step |
+| `SSAO.hlsl`, `VolumetricFog.hlsl`, `Bloom.hlsl`, `ToneMapping.hlsl`, `FXAA.hlsl` | Post-processing, one entry point per step |
 | `Downsample.hlsl` | Mip chains of render targets (`GenerateMips`) |
 | `Canvas.hlsl`, `DebugLine.hlsl`, `WorldText.hlsl` | HUD and overlays, debug lines and particles, text in the world |
 | `ImGui.hlsl` | The editor's interface |
@@ -111,7 +111,8 @@ Shaders are compiled from source when first used (`-HV 2021`, warnings as errors
   compares the size the compiler reports for each constant buffer with the C++ structure in
   `FShaderConstants.hpp` that fills it. A buffer the test does not know fails it too.
 - **GPU time.** `IRHICommandList::BeginGpuTimer` / `EndGpuTimer` bracket work under a slot; the frame
-  profiler shows shadows, planar captures, the scene pass and post-processing.
+  profiler shows shadows, planar captures, the scene pass and post-processing, and the volumetric fog
+  on its own inside post-processing (`EGPUTimerSlot::VolumetricFog`, `fog` on the debug overlay).
 Editing a `.hlsl` file and restarting is enough; nothing is rebuilt.
 
 `u_PassFlags.y` selects a debug view of the surface shader (`FWorldRenderer::SetDebugMode`). The numbers
@@ -335,6 +336,92 @@ the draw constants, evaluated with the pixel's normal in `PBR_Lit.hlsl` in place
 irradiance. Draws that would otherwise be instanced together are only batched when their samples are
 equal. Debug view 35 shows the term. How the probes are baked, stored and trusted is in
 [STATIC_LIGHTING.md](STATIC_LIGHTING.md).
+
+## Light in the air: volumetric fog
+
+The beam of the flashlight and the cones under the ceiling lamps seen in the air of a room, with the
+dark shafts that whatever stands in them cuts out. A map asks for it with a `VolumetricFog:` block
+(`FVolumetricFogComponent` on the Environment actor, settings in `RenderCore/FVolumetricFogSettings.hpp`);
+a map without the block, or with `Enabled: false`, is drawn as before, bit for bit.
+
+Three steps of `VolumetricFog.hlsl` in `FPostProcessRHI`, after ambient occlusion and before bloom
+(so a bright beam glows like any bright thing, and occlusion does not darken the air in front of a
+surface). They are part of the scene, not of the look: they stay when post-processing is off, and
+they are skipped in the surface shader's debug views and post-process debug view 5.
+
+1. **`PSScatter`**, at half the output's size (RGBA16F). Each pixel follows its view ray from the
+   camera to the surface the depth buffer has there (or `MaxDistance`, whichever is nearer; the sky is
+   at `MaxDistance`). For each light it cuts the ray to the part the light reaches (its sphere, and
+   for a spot light its cone) and takes a fixed number of steps along that part, started at a
+   different fraction of a step in each pixel (interleaved gradient noise). Each step adds
+   phase (Henyey-Greenstein, `Anisotropy` = g) × the light arriving (colour × intensity, the surface
+   shader's distance falloff, the spot's cone) × the light's shadow map at that point ×
+   `exp(-Density × distance to the camera)`. The sum, times the step length, times
+   `Density × Scattering`, is the light the air sends towards the camera (rgb). Alpha is how much of
+   the scene behind is left: `exp(-Density × length)`, and the air's own ambient glow
+   `AmbientColor × AmbientIntensity × Scattering × (1 - that)` is added to rgb.
+2. **`PSBlur`**, twice (horizontal, vertical): seven taps, each weighed by how close its depth is to
+   the centre's, so the noise of the few steps becomes a smooth beam without bleeding across edges.
+3. **`PSComposite`** at full size, blended over the HDR scene as `scene × a + rgb`. Each output pixel
+   takes the four half-size texels around it, weighed by distance and by whether they were marched to
+   the surface this pixel shows (depth); where none was (a thin thing in front of a far wall) the one
+   closest in depth.
+
+- **Which lights.** Only those that have a shadow map this frame: up to 4 spot lights (`t_SpotShadow`
+  layers, the flashlight included) and up to 4 point lights (`t_PointShadow` cubes), the same ones
+  the surfaces are shadowed by (previous section). A light without a shadow map would shine through
+  the walls into the next room's air, so it lights surfaces but not the air. The sun is not followed.
+- **With the map's distance fog** (`FogEnabled` in `Skybox:`): the distance fog has already dimmed the
+  surfaces and tinted them with `FogColor` in the surface shader. The volumetric pass then hides
+  nothing and adds no ambient glow of its own (alpha 1, `AmbientColor` unused): it adds only the
+  light of the lamps, dimmed by its own `Density` on the way to the camera. The surfaces are fogged
+  once. Without the distance fog, the volumetric pass does both itself: `Density` hides what is far
+  and `AmbientColor × AmbientIntensity` is the colour the air turns. Use one or the other for the
+  haze of a map; the volumetric block's `Density` then decides how much the beams show.
+- **Decals and glass.** The fog of a pixel is that of the depth buffer's surface: a decal (which does
+  not write depth) is fogged like the wall it lies on; a blended surface (glass, particles) like what
+  is behind it.
+- **Cost.** Two half-size RGBA16F targets (about 8 MB at 1080p), created by the first frame that draws
+  fog. Measured with the GPU timers on the RTX 5060 laptop GPU at 1920 × 1080 with 12 steps and every
+  shadow map of the High preset in view (4 spot + 4 point lights): 0.6 to 1.0 ms over six runs
+  (`Tests/Shader/VolumetricFogTests.cpp`, run with `LEON_TEST_GPU=1`). The march costs per light
+  per pixel; a frame with only the flashlight costs less.
+
+Map keys, all optional (`VolumetricFog:` under `Environment:`):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `Enabled` | `false` | The map has fog to show light in. Off draws nothing |
+| `Density` | 0.03 | Extinction per metre. 0.02 is clean indoor air with a beam just visible, 0.1 a dusty room. 0 draws nothing |
+| `Scattering` | 1 | How much of what the air takes from a beam it sends on. Above 1 brightens beams without thickening the air |
+| `Anisotropy` | 0.3 | Henyey-Greenstein g, held to -0.95..0.95. Towards 1 a beam is bright looked into and faint from behind |
+| `AmbientColor`, `AmbientIntensity` | `[1, 1, 1]`, 0 | The air's own glow outside the beams; unused under the distance fog |
+| `MaxDistance` | 30 | Metres from the camera beyond which the air is not looked at |
+| `Steps` | not set | Steps per light along a view ray, 4..64. Not set: the quality preset's |
+
+```text
+Environment:
+  Skybox:
+    ...
+  VolumetricFog:
+    Enabled: true
+    Density: 0.04
+    Scattering: 1
+    Anisotropy: 0.5
+    AmbientColor: [1, 1, 1]
+    AmbientIntensity: 0
+    MaxDistance: 20
+```
+
+Quality (`FGraphicsPreset::bEnableVolumetricFog`, `VolumetricFogSteps`): Low off, Medium 8 steps, High
+12. `FWorldRenderer::SetVolumetricFogEnabled` / `SetVolumetricFogSteps` set them directly.
+
+Limits: one density everywhere (no height falloff, no noise, nothing local to a room); the sun and
+lights without a shadow map are not in the air; the air between the camera and a glass pane is
+marched to the wall behind it; the march is fixed-step per light, so a beam that crosses a long
+stretch of a view ray far from its lamp is sampled sparsely and its edges can shimmer as the camera
+moves (there is no temporal filter); the composite does not reach the reflection captures, so a
+mirror shows the room without fog. Nothing in the editor edits the block.
 
 ## The final image: the look of a map
 

@@ -556,6 +556,8 @@ namespace Leon {
             }
             shadows.FilterMode = GetPendingShadowFilter();
             Renderer->SetReflectionProbeResolution(PendingReflectionProbeResolution);
+            Renderer->SetVolumetricFogEnabled(bPendingVolumetricFogEnabled);
+            Renderer->SetVolumetricFogSteps(PendingVolumetricFogSteps);
             FPostProcessSettings& post = Renderer->GetPostProcessSettings();
             post.bSSAOEnabled = GetPendingSSAOEnabled();
             post.SSAORadius = GetPendingSSAORadius();
@@ -654,6 +656,15 @@ namespace Leon {
         PendingReflectionProbeResolution = InResolution > 0 ? InResolution : 128;
         if (Renderer)
             Renderer->SetReflectionProbeResolution(PendingReflectionProbeResolution);
+    }
+
+    void UWorld::SetProjectVolumetricFog(bool bInEnabled, uint32_t InSteps) {
+        bPendingVolumetricFogEnabled = bInEnabled;
+        PendingVolumetricFogSteps = InSteps > 0 ? InSteps : 12;
+        if (Renderer) {
+            Renderer->SetVolumetricFogEnabled(bPendingVolumetricFogEnabled);
+            Renderer->SetVolumetricFogSteps(PendingVolumetricFogSteps);
+        }
     }
 
     void UWorld::ReloadTextures() {

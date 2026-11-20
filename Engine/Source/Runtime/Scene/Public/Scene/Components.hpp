@@ -11,6 +11,7 @@
 #include "Assets/FMaterialInstance.hpp"
 #include "RenderCore/FPerspectiveCamera.hpp"
 #include "RenderCore/FPostProcessSettings.hpp"
+#include "RenderCore/FVolumetricFogSettings.hpp"
 #include "Assets/UStaticMesh.hpp"
 #include "Assets/FLODSettings.hpp"
 #include "Assets/USkeletalMesh.hpp"
@@ -94,6 +95,17 @@ namespace Leon {
 
         FPostProcessComponent() = default;
         FPostProcessComponent(const FPostProcessComponent&) = default;
+    };
+
+    /**
+     * The air of one map as something light shows up in (its VolumetricFog: block). Lives on the
+     * Environment actor, next to the sky. A map without it has clear air and is drawn as before.
+     */
+    struct FVolumetricFogComponent {
+        FVolumetricFogSettings Settings;
+
+        FVolumetricFogComponent() = default;
+        FVolumetricFogComponent(const FVolumetricFogComponent&) = default;
     };
 
     struct FTagComponent {

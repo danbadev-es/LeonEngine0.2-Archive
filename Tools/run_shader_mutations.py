@@ -35,6 +35,7 @@ TONE = "ToneMapping.hlsl"
 FXAA = "FXAA.hlsl"
 SSAO = "SSAO.hlsl"
 SKY = "Skybox.hlsl"
+FOG = "VolumetricFog.hlsl"
 
 
 def M(mutation_id, file, name, target, replacement):
@@ -267,6 +268,61 @@ MUTATIONS = [
     M("SKY_PANORAMA_SEAM", SKY, "Panorama: mip level chosen from raw derivatives (seam where it wraps)",
       "t_Panorama.SampleGrad(s_LinearWrap, uv, dx, dy)",
       "t_Panorama.Sample(s_LinearWrap, uv)"),
+
+    # --- Volumetric fog ---
+    M("FOG_PHASE_NUMERATOR", FOG, "Phase: 1 + g^2 for 1 - g^2 (not normalised)",
+      "return (1.0 - g2) / (4.0 * kPi * d * sqrt(d));",
+      "return (1.0 + g2) / (4.0 * kPi * d * sqrt(d));"),
+    M("FOG_PHASE_DIRECTION", FOG, "Phase: forward and backward swapped",
+      "sum += PhaseHG(dot(L, InDirection), u_FogParams.z) * LightAttenuation(distance, light.Position.w) * cone *",
+      "sum += PhaseHG(dot(-L, InDirection), u_FogParams.z) * LightAttenuation(distance, light.Position.w) * cone *"),
+    M("FOG_SPOT_SHADOW_IGNORED", FOG, "Spot light: its shadow map not read (no shafts)",
+      "const float visibility = SpotLightVisibility(InLight, position + L * kShadowPull);",
+      "const float visibility = 1.0;"),
+    M("FOG_POINT_SHADOW_IGNORED", FOG, "Point light: its cube not read",
+      "const float visibility = PointLightVisibility(light, position + L * kShadowPull);",
+      "const float visibility = 1.0;"),
+    M("FOG_SPOT_CONE_WEIGHT", FOG, "Spot light: samples outside the cone count in full",
+      "const float cone = smoothstep(0.0, 1.0, saturate((theta - light.Color.a) / max(light.Direction.w - light.Color.a, 0.0001)));",
+      "const float cone = 1.0;"),
+    M("FOG_SPOT_CONE_CLIP", FOG, "Spot light: the ray is not cut to the cone (steps spread over the sphere)",
+      "if (!ClipRayToCone(InCamera, InDirection, light.Position.xyz, axis, light.Color.a, rayNear, rayFar))",
+      "if (false)"),
+    {"id": "FOG_SPOT_CONE_IGNORED", "name": "Spot light: lights the air all around it, as a point light",
+     "edits": [(FOG, "if (!ClipRayToCone(InCamera, InDirection, light.Position.xyz, axis, light.Color.a, rayNear, rayFar))",
+                "if (false)"),
+               (FOG, "const float cone = smoothstep(0.0, 1.0, saturate((theta - light.Color.a) / max(light.Direction.w - light.Color.a, 0.0001)));",
+                "const float cone = 1.0;")]},
+    M("FOG_TRANSMITTANCE", FOG, "In-scattered light not dimmed on its way to the camera",
+      "visibility * exp(-u_FogParams.x * along);",
+      "visibility;"),
+    M("FOG_STEP_LENGTH", FOG, "March: the sum not weighed by the length of a step",
+      "return light.Color.rgb * (sum * stepLength);\n}\n\nfloat3 ScatterPointLight",
+      "return light.Color.rgb * sum;\n}\n\nfloat3 ScatterPointLight"),
+    M("FOG_ATTENUATION", FOG, "Air lit without the lights' inverse-square falloff",
+      "return (window * window) / (InDistance * InDistance + 1.0);",
+      "return window * window;"),
+    M("FOG_SCATTERING_IGNORED", FOG, "Scattering strength ignored",
+      "float3 scattered = light * (density * u_FogParams.y);",
+      "float3 scattered = light * density;"),
+    M("FOG_EXTINCTION", FOG, "The air hides nothing behind it",
+      "sceneLeft = exp(-density * reach);",
+      "sceneLeft = 1.0;"),
+    M("FOG_AMBIENT", FOG, "The air's ambient light dropped",
+      "scattered += u_FogAmbient.rgb * (u_FogParams.y * (1.0 - sceneLeft));",
+      "scattered += 0.0;"),
+    M("FOG_DISTANCE_FOG_TWICE", FOG, "The surfaces fogged again under the map's distance fog",
+      "if (u_FogAmbient.a > 0.5) {",
+      "if (true) {"),
+    M("FOG_MAX_DISTANCE", FOG, "MaxDistance ignored",
+      "const float reach = min(surfaceDistance, u_CameraPosition.w);",
+      "const float reach = surfaceDistance;"),
+    M("FOG_COMPOSITE_DEPTH", FOG, "Upsample: fog of another surface mixed in across edges",
+      "const float weight = share.x * share.y * DepthWeight(depth, texelDepth);",
+      "const float weight = share.x * share.y;"),
+    M("FOG_BLUR_DEPTH", FOG, "Blur: smears across depth edges",
+      "const float weight = kKernel[abs(i)] * DepthWeight(centerDepth, ViewDepth(LoadDepth(uv)));",
+      "const float weight = kKernel[abs(i)];"),
 ]
 
 

@@ -138,6 +138,7 @@ namespace Leon {
         const FWorldSettingsComponent* worldSettings = nullptr;
         const FSkyboxComponent* skyboxComp = nullptr;
         const FPostProcessComponent* postProcess = nullptr;
+        const FVolumetricFogComponent* volumetricFog = nullptr;
         for (const auto& actorRef : World->GetAllActors()) {
             if (!actorRef)
                 continue;
@@ -147,6 +148,8 @@ namespace Leon {
                 skyboxComp = &actorRef->GetComponent<FSkyboxComponent>();
             if (!postProcess && actorRef->HasComponent<FPostProcessComponent>())
                 postProcess = &actorRef->GetComponent<FPostProcessComponent>();
+            if (!volumetricFog && actorRef->HasComponent<FVolumetricFogComponent>())
+                volumetricFog = &actorRef->GetComponent<FVolumetricFogComponent>();
         }
         if (worldSettings) {
             WriteWorldSettings(ss, *worldSettings);
@@ -236,6 +239,31 @@ namespace Leon {
             writeNumber("Saturation", look.Saturation);
             writeNumber("ChromaticAberration", look.ChromaticAberration);
         }
+        // Only maps whose air shows light have the block; in the others it is clear.
+        if (volumetricFog) {
+            const FVolumetricFogSettings& fog = volumetricFog->Settings;
+            const auto writeNumber = [&ss](const char* InKey, float InValue) {
+                Indent(ss, 2);
+                ss << InKey << ": " << InValue << "\n";
+            };
+            Indent(ss, 1);
+            ss << "VolumetricFog:\n";
+            Indent(ss, 2);
+            ss << "Enabled: " << (fog.bEnabled ? "true" : "false") << "\n";
+            writeNumber("Density", fog.Density);
+            writeNumber("Scattering", fog.Scattering);
+            writeNumber("Anisotropy", fog.Anisotropy);
+            Indent(ss, 2);
+            ss << "AmbientColor: [" << fog.AmbientColor.r << ", " << fog.AmbientColor.g << ", " << fog.AmbientColor.b
+               << "]\n";
+            writeNumber("AmbientIntensity", fog.AmbientIntensity);
+            writeNumber("MaxDistance", fog.MaxDistance);
+            // Without the key the renderer's quality chooses.
+            if (fog.StepCount > 0) {
+                Indent(ss, 2);
+                ss << "Steps: " << fog.StepCount << "\n";
+            }
+        }
 
         // 2. Actors Collection
         ss << "\nActors:\n";
@@ -246,7 +274,7 @@ namespace Leon {
             const AActor& entity = *actorRef;
 
             if (entity.HasComponent<FSkyboxComponent>() || entity.HasComponent<FWorldSettingsComponent>() ||
-                entity.HasComponent<FPostProcessComponent>()) {
+                entity.HasComponent<FPostProcessComponent>() || entity.HasComponent<FVolumetricFogComponent>()) {
                 continue;
             }
             if (IsRuntimeFrameworkActor(entity)) {

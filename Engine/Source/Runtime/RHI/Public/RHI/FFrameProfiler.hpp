@@ -48,7 +48,9 @@ namespace Leon {
         constexpr uint32_t Particles = 4;
         constexpr uint32_t PostProcess = 5;
         constexpr uint32_t Planar = 6;
-        constexpr uint32_t Count = 7;
+        /** Inside PostProcess: the light in the air alone. */
+        constexpr uint32_t VolumetricFog = 7;
+        constexpr uint32_t Count = 8;
     } // namespace EGPUTimerSlot
 
     /**
@@ -85,6 +87,8 @@ namespace Leon {
         float GPUOpaqueMs = 0.0f;
         float GPUPostProcessMs = 0.0f;
         float GPUPlanarMs = 0.0f;
+        /** Part of GPUPostProcessMs: the volumetric fog passes. */
+        float GPUVolumetricFogMs = 0.0f;
 
         uint32_t DrawCalls = 0;
         uint32_t TriangleCount = 0;
