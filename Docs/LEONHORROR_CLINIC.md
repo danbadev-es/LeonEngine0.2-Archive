@@ -21,6 +21,8 @@ nothing was downloaded: the scripts are the source and the files in `Content/` a
 | Run the level's tests | `LeonHorrorTests.exe -ts="LeonHorror clinic map"` |
 | A run that closes by itself | `LeonHorror.exe --validate-seconds=20` |
 | The same, starting with a weapon | add `--validate-give=Weapon.Pipe` (or `Weapon.Pistol`, or several separated by commas) |
+| The same, standing somewhere else | add `--validate-at=X,Z` (engine metres: plan east, minus plan north) |
+| The same, writing the frame timings | add `--validate-report=perf.txt` (and `--width=1920 --height=1080 --no-vsync` to measure) |
 
 A map that is written again has lost its bake: bake it before running the game, or the level is lit
 by its lamps alone. Baking the clinic at Production quality takes three to four minutes. The bake
@@ -102,7 +104,13 @@ The theatre, the X-ray room and the toilets are off the route and hold supplies 
 - **Enemies** (`FLeonHorrorArchetypes`): a spawner's `Type` picks a kind. The patient is thin and
   quick and does not take many blows; the orderly is big and slow, shrugs a hit off and hits hard.
   Each kind uses its own clips when files named `/Game/Animations/<Kind><Clip>.lanim` exist
-  (Idle, Walk, Attack, Hit, Death) and the mannequin's otherwise.
+  (Idle, Walk, Attack, Hit, Death) and the mannequin's otherwise; both kinds have theirs. A walk is
+  played faster as the enemy moves faster, so the feet keep up in a chase.
+- **The player's gestures**: bending to the floor or reaching to a table for what is picked up,
+  pushing a door, reloading, first aid; below a third of a life the player stands and walks bent
+  over, and a blow from in front throws the body over backwards. The clips are authored by
+  `Scripts/player_clips.py` and `Scripts/enemy_clips.py` (`import_animations.py --player`,
+  `--enemies`).
 - **Characters**: three bodies on one skeleton (the 52 bones of `YBot`), so every clip plays on all
   of them. The game scales each to its height.
 - **In the hands** (`ALeonHorrorHeldItem`): the flashlight in the left hand, pointing where the
@@ -119,6 +127,15 @@ The theatre, the X-ray room and the toilets are off the route and hold supplies 
   Stationary point light under it. Some fittings are dead and some flicker; the north wing is on
   the `North` power group. A few lights cast shadows: only four can at a time.
 - **Reflections**: one reflection probe a room (`Docs/RENDERER.md`, "Reflection probes").
+- **Light on what moves**: the bake leaves light probes every 1.5 m; characters and other things
+  without a lightmap take their ambient light from them.
+- **Decals**: stains, damp, blood and claw marks are quads with a decal material laid over floors
+  and walls (`Art/leonart/materials_decals.py`, `decals.py`; `Docs/RENDERER.md`, "Decals"). The map
+  script places them by their middle (`floor_decal`, `wall_decal`) and refuses one that would leave
+  its room or turn a corner; keep them off doorways by eye. They are Movable: adding, moving or
+  removing one needs no new bake.
+- **Signs**: each door has an enamelled plate beside it naming the room (`Art/leonart/signs.py`);
+  the lettering is geometry.
 
 ## Art
 
@@ -152,11 +169,30 @@ exist, and that every mesh and sound the map names is in the project.
 Moving a wall means changing `clinic_layout.py`, rebuilding the room shells
 (`Tools/build_art.py --meshes`) and then the map.
 
+## Performance
+
+Measured on the development laptop (RTX 5060 Laptop, Release build, 1920 x 1080, no vertical sync,
+20 s standing in a room with `--validate-report`):
+
+| Room | Frame, median | GPU | CPU, rendering | Draw calls (of them, shadows) |
+|---|---|---|---|---|
+| Reception | 7.9 ms | 3.9 ms | 6.7 ms | 2574 (1845) |
+| Corridor | 9.4 ms | 5.8 ms | 8.0 ms | 2414 (1798) |
+| Ward | 9.1 ms | 4.7 ms | 7.7 ms | 2413 (1789) |
+
+The game is bound by the CPU, and most of it is submitting shadow maps of everything in the level.
+Gameplay (enemies, the player, sound) takes under 1 ms a frame.
+
+Known: on this laptop `Present` sometimes blocks for about half a second (10 to 25 times in 20 s,
+on the Slice map too, with or without vertical sync, and with a tearing swapchain). The frame
+before and after it is fast, so it is not the game's work; it looks like the hybrid graphics
+(Intel display, NVIDIA rendering). It has not been looked at on another machine.
+
 ## Known limits
 
 - One storey: navigation has a single height.
-- Characters and movable objects are lit by the lamps and the flashlight only, until light probes
-  are in.
-- Enemy clips were authored for the mannequin's narrow body; on the new bodies an arm can pass
-  through the torso until each kind has its own.
+- Light probes are blended across walls without a visibility test: a little light can come
+  through a thin wall from the next room.
+- The dying clips still clip a little: the orderly's apron sinks through the floor while he kneels,
+  the patient's hand passes through the head for a few frames of the fall.
 - The sounds are synthesised and have not been mixed by ear.
